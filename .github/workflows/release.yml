@@ -37,9 +37,10 @@ jobs:
         with:
           name: contami-${{ matrix.label }}
           path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
+            release/**/Contami-*-mac-*.dmg
+            release/**/Contami-*-mac-*.zip
+            release/**/Contami-*-win-*.exe
+            release/**/Contami-*-win-*.zip
           if-no-files-found: error
 
   publish:
@@ -55,7 +56,12 @@ jobs:
         shell: bash
         run: |
           mkdir release-assets
-          find artifacts -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \) -exec cp '{}' release-assets/ \;
+          find artifacts -type f \( \
+            -name 'Contami-*-mac-*.dmg' -o \
+            -name 'Contami-*-mac-*.zip' -o \
+            -name 'Contami-*-win-*.exe' -o \
+            -name 'Contami-*-win-*.zip' \
+          \) -exec cp '{}' release-assets/ \;
           cd release-assets
           sha256sum ./* > SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
