@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS
+            os: macos-latest
+            command: npm run dist:mac -- --arm64 --x64
+          - label: Windows
+            os: windows-latest
+            command: npm run dist:win -- --x64
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run preflight
+      - run: ${{ matrix.command }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contami-${{ matrix.label }}
+          path: release/**/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish private GitHub release
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: contami-*
+          path: artifacts
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: find artifacts -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > artifacts/SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ContaMì desktop for macOS and Windows.
+
+            Artifact non firmati: verificare SHA256SUMS.txt prima dell’installazione.
+            Unsigned artifacts: verify SHA256SUMS.txt before installation.
+          files: artifacts/**/*
