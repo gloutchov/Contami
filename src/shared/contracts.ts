@@ -1,0 +1,61 @@
+import { z } from "zod";
+import type { FinanceCommand } from "../domain/commands";
+import type { DashboardMetrics } from "../domain/finance";
+import type { FinanceData } from "../domain/models";
+
+export const appSettingsSchema = z.object({
+  language: z.enum(["system", "it", "en"]),
+  theme: z.enum(["system", "light", "dark"]),
+  workbookFormat: z.enum(["excel", "numbers"]),
+  workbookPath: z.string().max(4_096).optional(),
+  numbersMirrorPath: z.string().max(4_096).optional(),
+});
+
+export type AppSettings = z.infer<typeof appSettingsSchema>;
+
+export interface SystemCapabilities {
+  platform: NodeJS.Platform;
+  systemLanguage: "it" | "en";
+  systemTheme: "light" | "dark";
+  numbersAvailable: boolean;
+}
+
+export interface FinanceSnapshot {
+  data: FinanceData;
+  metrics: DashboardMetrics;
+  workbookConfigured: boolean;
+  workbookDisplayName?: string;
+  lastSavedAt?: string;
+  warningCode?: string;
+}
+
+export interface WorkbookChoiceResult {
+  canceled: boolean;
+  path?: string;
+  mirrorPath?: string;
+}
+
+export interface RolloverResult {
+  canceled: boolean;
+  archivedPath?: string;
+  newWorkbookPath?: string;
+  year?: number;
+}
+
+export interface ContaMiApi {
+  getSettings(): Promise<AppSettings>;
+  updateSettings(patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">): Promise<AppSettings>;
+  getCapabilities(): Promise<SystemCapabilities>;
+  getSnapshot(): Promise<FinanceSnapshot>;
+  createWorkbook(format: AppSettings["workbookFormat"]): Promise<WorkbookChoiceResult>;
+  openWorkbook(): Promise<WorkbookChoiceResult>;
+  execute(command: FinanceCommand): Promise<FinanceSnapshot>;
+  rolloverYear(): Promise<RolloverResult>;
+  revealWorkbook(): Promise<boolean>;
+}
+
+declare global {
+  interface Window {
+    contami?: ContaMiApi;
+  }
+}

@@ -21,14 +21,14 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 | Milestone | Branch previsto | Versione | Stato |
 |---|---|---:|---|
-| M0 — Piano e analisi | `milestone/00-plan-and-discovery` | `0.0.0` | In corso |
-| M1 — Fondazioni dell’app | `milestone/01-foundation` | `0.1.0` | Da iniziare |
-| M2 — Motore dati spreadsheet-first | `milestone/02-spreadsheet-engine` | `0.2.0` | Da iniziare |
-| M3 — Flussi finanziari principali | `milestone/03-finance-workflows` | `0.4.0` | Da iniziare |
-| M4 — Dashboard e reporting | `milestone/04-dashboards` | `0.6.0` | Da iniziare |
-| M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | `0.8.0` | Da iniziare |
-| M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Da iniziare |
-| M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Da iniziare |
+| M0 — Piano e analisi | `milestone/00-plan-and-discovery` | `0.0.0` | Completata |
+| M1 — Fondazioni dell’app | `milestone/01-foundation` | `0.1.0` | Completata; CI macOS/Windows verde |
+| M2 — Motore dati spreadsheet-first | `milestone/02-spreadsheet-engine` | `0.2.0` | Funzionale; collaudo Numbers pendente |
+| M3 — Flussi finanziari principali | `milestone/03-finance-workflows` | `0.4.0` | Funzionale |
+| M4 — Dashboard e reporting | `milestone/04-dashboards` | `0.6.0` | Funzionale |
+| M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | `0.8.0` | Funzionale e testata |
+| M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | In corso |
+| M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso |
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -241,6 +241,16 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 - [ ] Tag/release creati soltanto per milestone rilasciabili.
 - [ ] Artifact e checksum verificati quando esiste una release.
 - [ ] Branch obsoleto eliminato solo dopo merge e verifiche.
+
+## Registro di avanzamento — 2026-07-18
+
+- M0: analizzato localmente e senza upload il workbook Numbers 26.3.1 (11 fogli, 43 tabelle nella sezione immobili); hash sorgente conservato nella nota di analisi e file originale intatto. Repository GitHub privato creato come `gloutchov/Contami`: GitHub non accetta `ì` nel nome tecnico e aveva convertito `Contamì` in `Contam-`, quindi è stata scelta la variante pulita più vicina.
+- M1: shell Electron/React modulare, branding, i18n IT/EN, tema sistema/chiaro/scuro, configurazione validata e documenti obbligatori completati. Verifica Playwright di tutte le viste: 0 errori e 0 warning console.
+- M2: schema workbook v1 con 14 fogli, round-trip validato, scrittura temporanea e rilettura, backup (10), rollback e rilevamento modifiche esterne. Workbook sintetico renderizzato con uno strumento indipendente. Il mirror `.numbers` è implementato ma non collaudabile su questa macchina perché Apple Numbers non è installato.
+- M3/M4: inserimenti guidati e dashboard generale/tematiche completati; chiusura/riapertura logica implementata. La v1 iniziale non include modifica/cancellazione fisica delle righe né creazione automatica delle transazioni dalle ricorrenze.
+- M5: rollover estratto in funzione di dominio e coperto da casi di test per saldi, posizioni attive, valutazioni, ricorrenze e spese condivise.
+- M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete implementati; audit npm 0 vulnerabilità; 8 test automatici passano localmente e in CI su macOS/Windows. Restano da completare smoke del pacchetto firmato e misure prestazionali su dataset molto ampi.
+- M7: repository privato e workflow CI/release macOS+Windows con checksum configurati; CI cross-platform verde nel run `29643193163`. Il codice Electron di produzione supera lo smoke test con il runtime ufficiale firmato; il bundle macOS locale non firmato viene bloccato su Apple Silicon. Firma ad-hoc con library validation ridotta non è stata abilitata senza approvazione esplicita. Tag `v1.0.0` e release restano sospesi finché la strategia firma macOS non è risolta.
 
 ## Rischi e mitigazioni iniziali
 

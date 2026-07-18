@@ -1,0 +1,93 @@
+import path from "node:path";
+import { app, BrowserWindow, nativeTheme, session } from "electron";
+import { APP_CONFIG } from "../config/appConfig";
+import { SettingsService } from "../infrastructure/settings/SettingsService";
+import { ExcelWorkbookRepository } from "../infrastructure/spreadsheet/ExcelWorkbookRepository";
+import { NumbersMirrorService } from "../infrastructure/spreadsheet/NumbersMirrorService";
+import { registerIpc } from "./ipc/registerIpc";
+import { FinanceFileService } from "./services/FinanceFileService";
+
+app.enableSandbox();
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+
+let mainWindow: BrowserWindow | null = null;
+
+function scriptPath(): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "scripts", "numbers-mirror.applescript")
+    : path.join(app.getAppPath(), "scripts", "numbers-mirror.applescript");
+}
+
+function iconPath(): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "assets", "icon.png")
+    : path.join(app.getAppPath(), "assets", "icon.png");
+}
+
+function createWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: APP_CONFIG.window.width,
+    height: APP_CONFIG.window.height,
+    minWidth: APP_CONFIG.window.minWidth,
+    minHeight: APP_CONFIG.window.minHeight,
+    show: false,
+    title: "ContaMì",
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#071c24" : "#f4f8f6",
+    icon: iconPath(),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      spellcheck: false,
+    },
+  });
+  window.removeMenu();
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-navigate", (event, url) => {
+    const current = window.webContents.getURL();
+    if (url !== current) event.preventDefault();
+  });
+  window.webContents.session.on("will-download", (event) => event.preventDefault());
+  window.once("ready-to-show", () => window.show());
+  window.on("closed", () => { if (mainWindow === window) mainWindow = null; });
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl === "http://127.0.0.1:5173") void window.loadURL(devUrl);
+  else void window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  return window;
+}
+
+function bootstrapWindow(): void {
+  mainWindow = createWindow();
+  const settings = new SettingsService(app.getPath("userData"));
+  const mirror = new NumbersMirrorService(scriptPath());
+  const finance = new FinanceFileService(mainWindow, settings, new ExcelWorkbookRepository(), mirror);
+  registerIpc(mainWindow, settings, finance);
+}
+
+app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*"] }, (details, callback) => {
+    const isDevelopmentAsset = process.env.VITE_DEV_SERVER_URL === "http://127.0.0.1:5173" && details.url.startsWith("http://127.0.0.1:5173");
+    callback({ cancel: !isDevelopmentAsset });
+  });
+  bootstrapWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) bootstrapWindow();
+  });
+});
+
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
