@@ -1,0 +1,123 @@
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import logo from "../../assets/logo.png";
+import { APP_CONFIG } from "../config/appConfig";
+import type { FinanceCommand } from "../domain/commands";
+import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../shared/contracts";
+import { AppShell, type AppView } from "./components/AppShell";
+import { I18nProvider, useI18n } from "./i18n/I18nContext";
+import type { Language, TranslationKey } from "./i18n/translations";
+import { getApi } from "./services/api";
+import { ThemeProvider } from "./theme/ThemeProvider";
+import { runUiAction } from "./utils/save";
+
+const OverviewView = lazy(() => import("./views/OverviewView").then((module) => ({ default: module.OverviewView })));
+const TransactionsView = lazy(() => import("./views/TransactionsView").then((module) => ({ default: module.TransactionsView })));
+const PropertiesView = lazy(() => import("./views/PropertiesView").then((module) => ({ default: module.PropertiesView })));
+const InvestmentsView = lazy(() => import("./views/InvestmentsView").then((module) => ({ default: module.InvestmentsView })));
+const RecurringView = lazy(() => import("./views/RecurringView").then((module) => ({ default: module.RecurringView })));
+const SharedExpensesView = lazy(() => import("./views/SharedExpensesView").then((module) => ({ default: module.SharedExpensesView })));
+const SettingsView = lazy(() => import("./views/SettingsView").then((module) => ({ default: module.SettingsView })));
+
+const api = getApi();
+
+const defaultCapabilities: SystemCapabilities = {
+  platform: "darwin",
+  systemLanguage: "en",
+  systemTheme: "light",
+  numbersAvailable: false,
+};
+
+function errorKey(error: unknown): TranslationKey {
+  const text = error instanceof Error ? error.message : "";
+  if (text.includes("WORKBOOK_NOT_CONFIGURED")) return "workbookRequired";
+  if (text.includes("WORKBOOK_CHANGED_EXTERNALLY")) return "workbookChangedExternally";
+  if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
+  return "genericError";
+}
+
+export default function App() {
+  const [view, setView] = useState<AppView>("overview");
+  const [settings, setSettings] = useState<AppSettings>({ language: "system", theme: "system", workbookFormat: "excel" });
+  const [capabilities, setCapabilities] = useState<SystemCapabilities>(defaultCapabilities);
+  const [snapshot, setSnapshot] = useState<FinanceSnapshot>();
+  const [busy, setBusy] = useState(true);
+  const [notice, setNotice] = useState<TranslationKey>();
+  const [noticeValues, setNoticeValues] = useState<Record<string, string | number>>();
+  const language: Language = settings.language === "system" ? capabilities.systemLanguage : settings.language;
+
+  useEffect(() => {
+    let current = true;
+    Promise.all([api.getSettings(), api.getCapabilities(), api.getSnapshot()]).then(([nextSettings, nextCapabilities, nextSnapshot]) => {
+      if (!current) return;
+      setSettings(nextSettings); setCapabilities(nextCapabilities); setSnapshot(nextSnapshot);
+      if (nextSnapshot.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning");
+    }).catch(() => setNotice("genericError")).finally(() => { if (current) setBusy(false); });
+    return () => { current = false; };
+  }, []);
+
+  const run = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
+    setBusy(true); setNotice(undefined);
+    try { return await operation(); }
+    catch (error) { setNotice(errorKey(error)); throw error; }
+    finally { setBusy(false); }
+  }, []);
+
+  const updateSettings = useCallback(async (patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">) => {
+    await run(async () => { const next = await api.updateSettings(patch); setSettings(next); });
+  }, [run]);
+
+  const createWorkbook = useCallback(async () => {
+    await run(async () => {
+      const result = await api.createWorkbook(settings.workbookFormat);
+      if (!result.canceled) { setSnapshot(await api.getSnapshot()); setSettings(await api.getSettings()); }
+    });
+  }, [run, settings.workbookFormat]);
+
+  const openWorkbook = useCallback(async () => {
+    await run(async () => { const result = await api.openWorkbook(); if (!result.canceled) { setSnapshot(await api.getSnapshot()); setSettings(await api.getSettings()); } });
+  }, [run]);
+
+  const execute = useCallback(async (command: FinanceCommand) => {
+    await run(async () => { const next = await api.execute(command); setSnapshot(next); if (next.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning"); });
+  }, [run]);
+
+  const rollover = useCallback(async () => {
+    if (!window.confirm(language === "it" ? "Vuoi creare il foglio del nuovo anno? Il file corrente resterà intatto." : "Create the next year workbook? The current file will remain intact.")) return;
+    await run(async () => {
+      const result = await api.rolloverYear();
+      if (!result.canceled) { setSnapshot(await api.getSnapshot()); setNotice("createdYear"); setNoticeValues({ year: result.year ?? "" }); }
+    });
+  }, [language, run]);
+
+  const reveal = useCallback(async () => { await run(() => api.revealWorkbook()); }, [run]);
+  const dismissNotice = useCallback(() => setNotice(undefined), []);
+
+  const content = useMemo(() => {
+    if (!snapshot) return null;
+    switch (view) {
+      case "overview": return <OverviewView snapshot={snapshot} onCreate={() => runUiAction(createWorkbook)} onOpen={() => runUiAction(openWorkbook)} />;
+      case "transactions": return <TransactionsView data={snapshot.data} onSave={execute} />;
+      case "properties": return <PropertiesView data={snapshot.data} onSave={execute} />;
+      case "investments": return <InvestmentsView data={snapshot.data} onSave={execute} />;
+      case "recurring": return <RecurringView data={snapshot.data} onSave={execute} />;
+      case "shared": return <SharedExpensesView data={snapshot.data} onSave={execute} />;
+      case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onSave={execute} />;
+    }
+  }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover]);
+
+  if (!snapshot) return <ThemeProvider theme={settings.theme} capabilities={capabilities}><div className="splash"><div><img src={logo} alt="ContaMì" /><p>Loading…</p></div></div></ThemeProvider>;
+
+  return <I18nProvider language={language}><ThemeProvider theme={settings.theme} capabilities={capabilities}><AppShell view={view} onNavigate={setView} workbookName={snapshot.workbookDisplayName} busy={busy}>{notice && <Notice messageKey={notice} values={noticeValues} onClose={dismissNotice} />}<Suspense fallback={<div className="empty-state">Loading…</div>}>{content}</Suspense></AppShell></ThemeProvider></I18nProvider>;
+}
+
+function Notice({ messageKey, values, onClose }: { messageKey: TranslationKey; values?: Record<string, string | number>; onClose: () => void }) {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => { const timeout = window.setTimeout(() => { setVisible(false); onClose(); }, APP_CONFIG.ui.noticeDurationMs); return () => window.clearTimeout(timeout); }, [onClose]);
+  if (!visible) return null;
+  return <NoticeText messageKey={messageKey} values={values} />;
+}
+
+function NoticeText({ messageKey, values }: { messageKey: TranslationKey; values?: Record<string, string | number> }) {
+  const { t } = useI18n();
+  return <div className={messageKey === "genericError" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
+}
