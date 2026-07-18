@@ -36,7 +36,10 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: contami-${{ matrix.label }}
-          path: release/**/*
+          path: |
+            release/**/*.dmg
+            release/**/*.zip
+            release/**/*.exe
           if-no-files-found: error
 
   publish:
@@ -48,15 +51,27 @@ jobs:
         with:
           pattern: contami-*
           path: artifacts
-      - name: Generate SHA-256 checksums
+      - name: Prepare flat release assets and SHA-256 checksums
         shell: bash
-        run: find artifacts -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > artifacts/SHA256SUMS.txt
+        run: |
+          mkdir release-assets
+          find artifacts -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \) -exec cp '{}' release-assets/ \;
+          cd release-assets
+          sha256sum ./* > SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
           body: |
-            ContaMì desktop for macOS and Windows.
+            ContaMì desktop preview for macOS and Windows.
 
-            Artifact non firmati: verificare SHA256SUMS.txt prima dell’installazione.
-            Unsigned artifacts: verify SHA256SUMS.txt before installation.
-          files: artifacts/**/*
+            Questi artifact sono generati da GitHub Actions senza certificati e senza firma ad-hoc del bundle. Verificare `SHA256SUMS.txt` prima dell’installazione.
+
+            - macOS: aprire il DMG e trascinare `Contami` in Applicazioni. Se lo sviluppatore non può essere verificato, usare Impostazioni di Sistema → Privacy e sicurezza → Apri comunque. Non disabilitare Gatekeeper globalmente.
+            - Windows: se SmartScreen mostra “PC protetto da Windows”, usare Ulteriori informazioni → Esegui comunque solo dopo aver verificato il checksum. Non disattivare Smart App Control se impedisce l’avvio.
+
+            These artifacts are produced by GitHub Actions without certificates and without a bundle-level ad-hoc signature. Verify `SHA256SUMS.txt` before installation.
+
+            - macOS: open the DMG and drag `Contami` to Applications. If the developer cannot be verified, use System Settings → Privacy & Security → Open Anyway. Do not disable Gatekeeper globally.
+            - Windows: if SmartScreen displays “Windows protected your PC”, use More info → Run anyway only after verifying the checksum. Do not turn off Smart App Control if it blocks the app.
+          files: release-assets/*

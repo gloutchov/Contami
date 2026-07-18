@@ -13,7 +13,27 @@ L’app è local-first: non richiede account, non usa servizi cloud e non invia 
 - Apple Numbers installato solo se vuoi una copia `.numbers` nativa;
 - Excel non è richiesto: ContaMì legge e scrive `.xlsx` direttamente.
 
-Le build iniziali non sono firmate. Verifica sempre il checksum SHA-256 pubblicato con la release. macOS Gatekeeper o Windows SmartScreen possono mostrare un avviso: procedi solo se il file proviene dalla release privata ufficiale.
+Le build iniziali sono generate da GitHub Actions senza certificati e senza firma ad-hoc del bundle. Verifica sempre il checksum SHA-256 pubblicato con la release. macOS Gatekeeper o Windows SmartScreen possono mostrare un avviso: procedi solo se il file proviene dalla release privata ufficiale.
+
+### Installazione macOS non firmata
+
+1. Scarica il DMG adatto al processore: `arm64` per Apple Silicon oppure `x64` per Mac Intel.
+2. Verifica il checksum, apri il DMG e trascina `Contami` in **Applicazioni**.
+3. Prova ad aprire `Contami`. Se macOS segnala che non può verificare lo sviluppatore, chiudi l’avviso.
+4. Apri **Impostazioni di Sistema → Privacy e sicurezza**, scorri alla sezione Sicurezza e premi **Apri comunque** accanto a `Contami`.
+5. Conferma con la password o Touch ID. macOS memorizza l’eccezione per gli avvii successivi.
+
+Non disabilitare Gatekeeper globalmente e non usare comandi che rimuovono in massa gli attributi di sicurezza. Se il checksum non coincide o l’avviso parla di file danneggiato, non avviare l’app: riscaricala dalla release ufficiale. Vedi la [procedura Apple](https://support.apple.com/guide/mac-help/mh40616/mac).
+
+Il bundle e l’eseguibile usano il nome tecnico ASCII `Contami` per la compatibilità delle build macOS non firmate. Logo, titolo della finestra e interfaccia mostrano il nome del prodotto **ContaMì**.
+
+### Installazione Windows non firmata
+
+1. Scarica `Contami-…-win-x64.exe` e verifica il checksum.
+2. Avvia l’installer. Se SmartScreen mostra **PC protetto da Windows**, seleziona **Ulteriori informazioni**.
+3. Controlla che il file indicato sia `Contami` e scegli **Esegui comunque**.
+
+Smart App Control può bloccare un’app senza consentire un’eccezione individuale. In quel caso non disattivarlo per installare ContaMì: usa l’avvio dal sorgente o attendi una build firmata. Mantieni Microsoft Defender attivo. Vedi le indicazioni Microsoft su [app non riconosciute](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) e [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
 
 ## 3. Primo avvio
 
