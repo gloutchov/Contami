@@ -1,0 +1,39 @@
+# Dependencies and build artifacts
+node_modules/
+dist/
+dist-electron/
+release/
+coverage/
+playwright-report/
+test-results/
+
+# Local application state and generated workbooks
+*.log
+*.tmp
+*.bak
+*.lock
+*.xlsx
+*.numbers
+outputs/
+
+# Private reference material (never commit or package)
+sources/
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local analysis/tooling
+.playwright-cli/
+.cache/
+
