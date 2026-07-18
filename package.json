@@ -30,8 +30,10 @@
   },
   "build": {
     "appId": "it.contami.desktop",
-    "productName": "ContaMì",
+    "productName": "Contami",
+    "executableName": "Contami",
     "asar": true,
+    "afterPack": "scripts/after-pack.mjs",
     "directories": {
       "output": "release/${version}"
     },
@@ -53,6 +55,7 @@
     "mac": {
       "category": "public.app-category.finance",
       "icon": "assets/icon.png",
+      "artifactName": "Contami-${version}-mac-${arch}.${ext}",
       "extendInfo": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
@@ -66,6 +69,7 @@
     },
     "win": {
       "icon": "assets/icon.ico",
+      "artifactName": "Contami-${version}-win-${arch}.${ext}",
       "target": [
         "nsis",
         "zip"

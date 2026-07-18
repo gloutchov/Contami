@@ -104,7 +104,7 @@ I workbook e i backup sono file normali non cifrati dall’app. La riservatezza 
 - CI esegue document hygiene, lint, typecheck, test, build e audit su macOS e Windows.
 - Le release su tag sono costruite da GitHub Actions e includono checksum SHA-256.
 
-Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; una futura milestone dovrebbe fissare commit verificati. Gli artifact non sono firmati/notarizzati finché non vengono fornite credenziali e una procedura di firma. Su Apple Silicon un bundle Electron completamente non firmato può non avviarsi prima dell’approvazione esplicita in Privacy e Sicurezza. La possibile alternativa ad-hoc richiede di indebolire la library validation e non viene abilitata senza consenso progettuale esplicito.
+Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; una futura milestone dovrebbe fissare commit verificati. Gli artifact sono deliberatamente generati senza certificati, firma ad-hoc del bundle o notarizzazione. Bundle, metadati tecnici ed eseguibile macOS usano il nome ASCII `Contami` per evitare un crash del runtime unsigned su Apple Silicon; logo, titolo e UI mantengono il marchio `ContaMì`. Lo smoke test locale del bundle ARM non firmato, con Hardened Runtime predefinito, è riuscito. Gatekeeper richiede comunque l’approvazione esplicita in Privacy e Sicurezza e Windows può mostrare SmartScreen o bloccare l’app con Smart App Control. Checksum e istruzioni riducono il rischio operativo, ma non sostituiscono l’identità crittografica del produttore.
 
 ### 12. Verifiche implementate
 
@@ -191,7 +191,7 @@ Workbooks and backups are not encrypted by ContaMì. Use filesystem permissions,
 
 `package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-07-18, npm audit reports zero known vulnerabilities after a compatible `uuid >=11.1.1` override for ExcelJS. Dependabot monitors npm and Actions weekly. CI runs hygiene checks, lint, typecheck, tests, build, and audit on macOS and Windows. Tagged releases are CI-built with SHA-256 checksums.
 
-Residual risks: Actions use major tags rather than immutable SHAs; pinning verified commits is planned. Artifacts remain unsigned and unnotarized until signing credentials and procedures exist. On Apple Silicon, a fully unsigned Electron bundle may not launch before explicit approval under Privacy & Security. The ad-hoc alternative requires weaker library validation and is not enabled without explicit design approval.
+Residual risks: Actions use major tags rather than immutable SHAs; pinning verified commits is planned. Artifacts are deliberately built without certificates, bundle-level ad-hoc signing, or notarization. The macOS bundle, technical metadata, and executable use the ASCII name `Contami` to avoid an unsigned-runtime crash on Apple Silicon; the logo, title, and UI retain the `ContaMì` brand. The local unsigned ARM-bundle smoke test passed with the default Hardened Runtime. Gatekeeper still requires explicit approval under Privacy & Security, and Windows may show SmartScreen or block the app through Smart App Control. Checksums and instructions reduce operational risk but do not provide cryptographic publisher identity.
 
 ### 10. Tests and recovery
 
