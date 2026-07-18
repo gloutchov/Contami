@@ -24,8 +24,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "pack": "npm run build && electron-builder --dir",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
     "preflight": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "build": {
