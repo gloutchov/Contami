@@ -32,21 +32,33 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 
 ## Installazione rapida / Quick install
 
-Le build della preview non sono ancora firmate. Quando gli artifact saranno pubblicati nella sezione Releases:
+Le build della preview sono generate da GitHub Actions senza certificati e senza applicare una firma ad-hoc al bundle. Quando gli artifact saranno pubblicati nella sezione Releases:
 
 1. scarica il pacchetto per macOS o Windows e il file `SHA256SUMS.txt`;
 2. verifica il checksum;
-3. installa e avvia ContaMì;
+3. installa e avvia ContaMì seguendo, se necessario, le istruzioni per l’avviso del sistema riportate sotto;
 4. scegli **Crea nuovo foglio** oppure **Apri foglio esistente**.
 
-Preview builds are not code-signed yet. Once artifacts are available under Releases:
+Preview builds are produced by GitHub Actions without certificates and without applying an ad-hoc signature to the bundle. Once artifacts are available under Releases:
 
 1. download the macOS or Windows package and `SHA256SUMS.txt`;
 2. verify the checksum;
-3. install and launch ContaMì;
+3. install and launch ContaMì, following the operating-system warning instructions below if needed;
 4. choose **Create new workbook** or **Open existing workbook**.
 
 Consulta [QUICK-START_Desktop.md](QUICK-START_Desktop.md), [ISTRUZIONI.md](ISTRUZIONI.md) o [INSTRUCTIONS.md](INSTRUCTIONS.md).
+
+### Primo avvio non firmato / First unsigned launch
+
+**macOS:** apri il DMG, trascina `Contami` in Applicazioni e prova ad avviarla. Se macOS non può verificare lo sviluppatore, chiudi l’avviso, apri **Impostazioni di Sistema → Privacy e sicurezza**, premi **Apri comunque** per `Contami` e conferma. Fallo soltanto dopo aver verificato il checksum della release. Non disabilitare Gatekeeper globalmente. Procedura Apple: [aprire un’app da uno sviluppatore non identificato](https://support.apple.com/guide/mac-help/mh40616/mac).
+
+**Windows:** avvia il file `Setup.exe`. Se SmartScreen mostra **PC protetto da Windows**, seleziona **Ulteriori informazioni → Esegui comunque** soltanto dopo aver verificato il checksum. Se Smart App Control blocca il file senza offrire un’eccezione, non disattivare la protezione per ContaMì: usa l’avvio dal sorgente o attendi una futura build firmata. Informazioni Microsoft: [protezione dalle app non riconosciute](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) e [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
+
+**macOS:** open the DMG, drag `Contami` to Applications, and try to launch it. If macOS cannot verify the developer, close the warning, open **System Settings → Privacy & Security**, choose **Open Anyway** for `Contami`, and confirm. Do this only after verifying the release checksum. Do not disable Gatekeeper globally. Apple procedure: [open an app from an unidentified developer](https://support.apple.com/guide/mac-help/mh40616/mac).
+
+**Windows:** run `Setup.exe`. If SmartScreen displays **Windows protected your PC**, choose **More info → Run anyway** only after verifying the checksum. If Smart App Control blocks the file without an exception, do not turn off that protection for ContaMì: run from source or wait for a future signed build. Microsoft guidance: [unrecognized-app protection](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) and [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
+
+Per compatibilità delle build macOS non firmate, file, bundle ed eseguibile usano il nome tecnico ASCII `Contami`; logo, titolo e interfaccia mantengono il marchio **ContaMì**. For unsigned macOS-build compatibility, files, bundle, and executable use the ASCII technical name `Contami`; the logo, window title, and UI retain the **ContaMì** brand.
 
 ## Formati del foglio / Spreadsheet formats
 

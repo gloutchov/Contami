@@ -17,6 +17,7 @@ ContaMì/
 │   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
+│   ├── after-pack.mjs                  # chiude eccezioni di rete nel bundle macOS
 │   ├── check-required-docs.mjs         # controllo documenti e file privati
 │   ├── generate-demo-workbook.ts       # workbook sintetico per QA, mai dati reali
 │   └── numbers-mirror.applescript      # import xlsx in Numbers su macOS

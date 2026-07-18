@@ -13,7 +13,27 @@ The app is local-first: it requires no account, uses no cloud service, and sends
 - Apple Numbers only if you want a native `.numbers` mirror;
 - Excel is not required: ContaMì reads and writes `.xlsx` directly.
 
-Early builds are unsigned. Always verify the SHA-256 checksum shipped with the release. macOS Gatekeeper or Windows SmartScreen may warn: proceed only when the file comes from the official private release.
+Early builds are produced by GitHub Actions without certificates and without a bundle-level ad-hoc signature. Always verify the SHA-256 checksum shipped with the release. macOS Gatekeeper or Windows SmartScreen may warn: proceed only when the file comes from the official private release.
+
+### Unsigned macOS installation
+
+1. Download the DMG for your processor: `arm64` for Apple Silicon or `x64` for an Intel Mac.
+2. Verify its checksum, open the DMG, and drag `Contami` to **Applications**.
+3. Try to open `Contami`. If macOS says it cannot verify the developer, close the warning.
+4. Open **System Settings → Privacy & Security**, scroll to Security, and choose **Open Anyway** beside `Contami`.
+5. Confirm with your password or Touch ID. macOS remembers the exception for future launches.
+
+Do not disable Gatekeeper globally or run commands that broadly remove security attributes. If the checksum differs or the alert says the file is damaged, do not launch it: download it again from the official release. See [Apple’s procedure](https://support.apple.com/guide/mac-help/mh40616/mac).
+
+The bundle and executable use the ASCII technical name `Contami` for unsigned macOS-build compatibility. The logo, window title, and UI display the **ContaMì** product name.
+
+### Unsigned Windows installation
+
+1. Download `Contami-…-win-x64.exe` and verify its checksum.
+2. Run the installer. If SmartScreen displays **Windows protected your PC**, choose **More info**.
+3. Confirm that the named file is `Contami`, then choose **Run anyway**.
+
+Smart App Control can block an app without offering a per-app exception. In that case, do not disable it to install ContaMì: run from source or wait for a signed build. Keep Microsoft Defender enabled. See Microsoft guidance on [unrecognized apps](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) and [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
 
 ## 3. First launch
 
