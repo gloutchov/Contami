@@ -14,6 +14,10 @@ function displayPath(settings: AppSettings): string | undefined {
   return settings.workbookFormat === "numbers" ? (settings.numbersMirrorPath ?? settings.workbookPath) : settings.workbookPath;
 }
 
+function isMissingFile(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
 export class FinanceFileService {
   private data?: FinanceData;
   private warningCode?: string;
@@ -28,11 +32,19 @@ export class FinanceFileService {
   ) {}
 
   async snapshot(): Promise<FinanceSnapshot> {
-    const settings = await this.settingsService.get();
+    let settings = await this.settingsService.get();
     if (!this.data) {
       if (settings.workbookPath) {
-        this.data = await this.repository.load(settings.workbookPath);
-        this.revision = await this.revisions.capture(settings.workbookPath);
+        try {
+          this.data = await this.repository.load(settings.workbookPath);
+          this.revision = await this.revisions.capture(settings.workbookPath);
+        } catch (error) {
+          if (!isMissingFile(error)) throw error;
+          this.data = createEmptyFinanceData();
+          this.revision = undefined;
+          this.warningCode = "WORKBOOK_MISSING";
+          settings = await this.settingsService.update({ workbookPath: undefined, numbersMirrorPath: undefined });
+        }
       }
       else this.data = createEmptyFinanceData();
     }
@@ -68,6 +80,7 @@ export class FinanceFileService {
     this.data = createEmptyFinanceData();
     await this.repository.save(workbookPath, this.data);
     this.revision = await this.revisions.capture(workbookPath);
+    this.warningCode = undefined;
     const mirrorPath = format === "numbers" ? chosenPath : undefined;
     const nextSettings = await this.settingsService.update({ workbookFormat: format, workbookPath, numbersMirrorPath: mirrorPath });
     await this.updateMirror(nextSettings, true);

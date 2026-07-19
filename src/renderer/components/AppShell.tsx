@@ -1,18 +1,20 @@
 import {
-  ArrowLeftRight, Building2, CalendarClock, ChartNoAxesCombined, HandCoins, Landmark,
-  LoaderCircle, Settings, UsersRound,
+  ArrowLeftRight, Building2, CalendarClock, CarFront, ChartNoAxesCombined, HandCoins, Landmark,
+  LoaderCircle, Settings, ShieldCheck, UsersRound,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import icon from "../../../assets/icon.png";
 import { useI18n } from "../i18n/I18nContext";
 
-export type AppView = "overview" | "transactions" | "properties" | "investments" | "recurring" | "shared" | "settings";
+export type AppView = "overview" | "transactions" | "properties" | "vehicles" | "investments" | "pensions" | "recurring" | "shared" | "settings";
 
-const navigation: Array<{ view: AppView; icon: typeof Landmark; label: "overview" | "transactions" | "properties" | "investments" | "recurring" | "shared" | "settings" }> = [
+const navigation: Array<{ view: AppView; icon: typeof Landmark; label: "overview" | "transactions" | "properties" | "vehicles" | "investments" | "pension" | "recurring" | "shared" | "settings" }> = [
   { view: "overview", icon: ChartNoAxesCombined, label: "overview" },
   { view: "transactions", icon: ArrowLeftRight, label: "transactions" },
   { view: "properties", icon: Building2, label: "properties" },
+  { view: "vehicles", icon: CarFront, label: "vehicles" },
   { view: "investments", icon: Landmark, label: "investments" },
+  { view: "pensions", icon: ShieldCheck, label: "pension" },
   { view: "recurring", icon: CalendarClock, label: "recurring" },
   { view: "shared", icon: UsersRound, label: "shared" },
   { view: "settings", icon: Settings, label: "settings" },

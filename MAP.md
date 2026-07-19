@@ -26,9 +26,15 @@ ContaMì/
 │   ├── config/
 │   │   └── appConfig.ts                # limiti e parametri applicativi centrali
 │   ├── domain/
+│   │   ├── catalogDefaults.ts          # tipi investimento iniziali / default investment types
+│   │   ├── catalogUsage.ts             # conteggio riferimenti per categorie e metodi / catalog usage counts
+│   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
 │   │   ├── commands.ts                 # comandi validati e tipi azione
-│   │   ├── finance.ts                  # aggregazioni, KPI e applicazione comandi
-│   │   ├── models.ts                   # schema Zod e modello finanziario
+│   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
+│   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
+│   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
+│   │   ├── migrations.ts               # migrazione workbook v1/v2 → v3
+│   │   ├── models.ts                   # schema Zod v3 e modello finanziario
 │   │   └── rollover.ts                 # trasformazione pura del passaggio d’anno
 │   ├── infrastructure/
 │   │   ├── settings/
@@ -45,15 +51,27 @@ ContaMì/
 │   ├── preload/
 │   │   └── index.ts                    # bridge minimo e congelato verso la UI
 │   ├── renderer/
-│   │   ├── components/                 # shell, KPI, modali, header e stati vuoti
+│   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
+│   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
+│   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
+│   │   │   └── VehicleForms.tsx     # anagrafica automobile e costi/consumi
 │   │   ├── i18n/                       # dizionari IT/EN e provider lingua
 │   │   ├── services/api.ts             # bridge reale + demo locale di sviluppo
 │   │   ├── theme/ThemeProvider.tsx     # tema sistema/chiaro/scuro reattivo
-│   │   ├── utils/                      # formati e salvataggi UI sicuri
+│   │   ├── utils/                      # formati, liste as-of-today, indicatori e serie storiche
+│   │   │   ├── investmentHistory.ts    # tutte le osservazioni di investito/controvalore, inclusi i raccoglitori pensione
+│   │   │   ├── overviewTransactions.ts # recenti confermati / confirmed recent records
+│   │   │   ├── propertyHistory.ts      # serie, mesi e filtri delle registrazioni immobiliari
+│   │   │   ├── propertyIndicators.ts   # indicatori residenza / residence indicators
+│   │   │   └── vehicleHistory.ts       # serie annuali, vita intera e confronto costo/km per vettura
 │   │   ├── views/                      # dashboard e liste tematiche lazy-loaded
+│   │   │   ├── InvestmentsView.tsx  # portafoglio privo delle pensioni integrative
+│   │   │   ├── PensionsView.tsx     # dashboard pensioni, comparti, dettagli e CRUD
+│   │   │   └── VehiclesView.tsx     # dashboard automobili, confronto e registrazioni
 │   │   ├── App.tsx                     # orchestrazione UI e stato applicativo
 │   │   ├── main.tsx                    # entry point React
+│   │   ├── linked-workflows.css        # filtri, badge, dettagli e stampa
 │   │   └── styles.css                  # design system ContaMì responsive
 │   ├── shared/
 │   │   ├── contracts.ts                # contratti tipizzati main/preload/renderer
@@ -61,11 +79,20 @@ ContaMì/
 │   └── test/setup.ts                   # ambiente comune Vitest
 ├── tests/
 │   ├── integration/
+│   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
 │       ├── finance.test.ts              # comandi e KPI finanziari
+│       ├── annualHistory.test.ts        # aggregati utenze e automobili
+│       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
+│       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
+│       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
+│       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
+│       ├── migrations.test.ts            # compatibilità schema v1/v2 → v3
+│       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
+│       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       └── rollover.test.ts             # nuovo anno e riconciliazione
 ├── AGENTS.md                            # regole per agenti e maintainer
 ├── INSTRUCTIONS.md                     # manuale utente inglese
@@ -90,6 +117,9 @@ Generati, non versionati / Generated, not versioned:
 ├── dist-electron/                       # main e preload compilati
 ├── release/                             # DMG/ZIP/NSIS e metadata
 ├── coverage/                            # copertura test
+├── outputs/                             # workbook personali/locali, esclusi da Git
+├── output/playwright/                   # screenshot QA locali / local UI QA screenshots
+├── tmp/                                 # lavorazioni temporanee locali
 └── .playwright-cli/                     # snapshot del collaudo UI locale
 ```
 
@@ -101,7 +131,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx
+                                                               ├── canonical .xlsx v3 + migrations
                                                                └── optional .numbers mirror
 ```
 
@@ -113,10 +143,12 @@ The renderer imports no privileged Node/Electron modules. Domain code is UI-inde
 
 - `sources/` e ogni `.numbers`/`.xlsx` locale possono contenere dati finanziari reali e sono esclusi da Git e packaging.
 - `_Meta` dentro un workbook è gestito dall’app; non rinominare fogli o colonne.
+- `outputs/` e `tmp/` contengono risultati locali o temporanei e non vanno pubblicati.
 - `dist/`, `dist-electron/`, `release/` e `node_modules/` sono rigenerabili.
 - `.contami-backups` è una cartella dell’utente accanto al workbook, non parte del repository.
 
 - `sources/` and local `.numbers`/`.xlsx` files may contain real financial data and are excluded from Git and packages.
 - Workbook `_Meta`, sheet names, and columns are app-managed.
+- `outputs/` and `tmp/` contain local or temporary artifacts and must not be published.
 - Build/dependency folders are reproducible generated output.
 - `.contami-backups` belongs beside the user workbook, not in this repository.

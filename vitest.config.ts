@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    exclude: ["tests/e2e/**", "node_modules/**", "release/**"],
+    exclude: ["tests/e2e/**", "**/node_modules/**", "release/**", "tmp/**"],
     coverage: {
       reporter: ["text", "html"],
       exclude: ["src/test/**", "src/renderer/main.tsx"],

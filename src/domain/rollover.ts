@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
+import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
 import type { FinanceData, InvestmentEntry, PropertyEntry } from "./models";
 
 function balanceForAccount(data: FinanceData, accountId: string): number {
@@ -8,6 +9,8 @@ function balanceForAccount(data: FinanceData, accountId: string): number {
   return account.openingBalance + data.transactions.filter((item) => item.accountId === accountId).reduce((sum, item) => {
     if (item.kind === "income") return sum + item.amount;
     if (item.kind === "expense") return sum - item.amount;
+    if (item.kind === "transfer" && item.cashFlowDirection === "inflow") return sum + item.amount;
+    if (item.kind === "transfer" && item.cashFlowDirection === "outflow") return sum - item.amount;
     return sum;
   }, 0);
 }
@@ -35,16 +38,21 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   const next = createEmptyFinanceData(nextYear);
   next.categories = structuredClone(current.categories);
   next.paymentMethods = structuredClone(current.paymentMethods);
+  next.investmentTypes = structuredClone(current.investmentTypes);
   next.accounts = current.accounts.filter((item) => item.active).map((item) => ({
     ...structuredClone(item), openingBalance: balanceForAccount(current, item.id), closedAt: undefined,
   }));
   next.properties = structuredClone(current.properties.filter((item) => item.active));
   next.investments = structuredClone(current.investments.filter((item) => item.active));
+  next.vehicles = structuredClone(current.vehicles.filter((item) => item.active));
   next.recurringItems = current.recurringItems
     .filter((item) => item.active && item.remainingInstallments !== 0 && (!item.endDate || item.endDate >= `${nextYear}-01-01`))
     .map((item) => ({ ...structuredClone(item), nextDueDate: advanceDueDate(item.nextDueDate, item.frequency, nextYear) }));
   next.sharedExpenses = structuredClone(current.sharedExpenses.filter((item) => !item.settled));
   next.annualSummaries = [...structuredClone(current.annualSummaries), createAnnualSummary(current)];
+  next.propertyAnnualSummaries = [...structuredClone(current.propertyAnnualSummaries), ...createPropertyAnnualSummaries(current)];
+  next.investmentAnnualSummaries = [...structuredClone(current.investmentAnnualSummaries), ...createInvestmentAnnualSummaries(current)];
+  next.vehicleAnnualSummaries = [...structuredClone(current.vehicleAnnualSummaries), ...createVehicleAnnualSummaries(current)];
   for (const property of next.properties) {
     const entry = latestEntry(current.propertyEntries, property.id, "propertyId");
     if (entry) next.propertyEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: "Opening valuation / Valutazione iniziale" });
