@@ -10,6 +10,41 @@ export interface WorkbookTableDefinition {
 export const WORKBOOK_TABLES: WorkbookTableDefinition[] = [
   { key: "categories", sheet: "Categories", columns: ["id", "nameIt", "nameEn", "kind", "active"] },
   { key: "paymentMethods", sheet: "Payment Methods", columns: ["id", "name", "kind", "active"] },
+  { key: "investmentTypes", sheet: "Investment Types", columns: ["id", "nameIt", "nameEn", "code", "active"] },
+  { key: "accounts", sheet: "Accounts", columns: ["id", "name", "kind", "currency", "openingBalance", "active", "openedAt", "closedAt", "notes"], dateColumns: ["openedAt", "closedAt"] },
+  { key: "transactions", sheet: "Transactions", columns: ["id", "date", "description", "categoryId", "paymentMethodId", "accountId", "kind", "amount", "currency", "recurringId", "propertyId", "propertyEntryId", "investmentId", "investmentEntryId", "vehicleId", "vehicleEntryId", "sharedExpenseId", "planned", "shared", "sharedPaidBy", "sharedSettled", "notes", "createdAt", "updatedAt", "cashFlowDirection"], dateColumns: ["date"] },
+  { key: "properties", sheet: "Properties", columns: ["id", "name", "kind", "usage", "address", "areaSqm", "ownershipShare", "cadastralValue", "expectedMonthlyRent", "rentDueDay", "purchaseDate", "purchasePrice", "active", "closedAt", "notes"], dateColumns: ["purchaseDate", "closedAt"] },
+  { key: "propertyEntries", sheet: "Property Entries", columns: ["id", "propertyId", "date", "kind", "category", "categoryId", "description", "amount", "quantity", "unit", "paymentMethodId", "transactionId", "isCommonExpense", "notes"], dateColumns: ["date"] },
+  { key: "investments", sheet: "Investments", columns: ["id", "name", "kind", "typeId", "parentInvestmentId", "provider", "currency", "periodicAmount", "periodicFrequency", "periodicNextDueDate", "periodicCategoryId", "periodicPaymentMethodId", "active", "openedAt", "closedAt", "notes"], dateColumns: ["periodicNextDueDate", "openedAt", "closedAt"] },
+  { key: "investmentEntries", sheet: "Investment Entries", columns: ["id", "investmentId", "date", "kind", "amount", "description", "categoryId", "paymentMethodId", "transactionId", "notes"], dateColumns: ["date"] },
+  { key: "recurringItems", sheet: "Recurring Items", columns: ["id", "name", "kind", "direction", "amount", "frequency", "categoryId", "paymentMethodId", "investmentId", "propertyId", "vehicleId", "nextDueDate", "endDate", "remainingInstallments", "active", "closedAt", "notes"], dateColumns: ["nextDueDate", "endDate", "closedAt"] },
+  { key: "sharedExpenses", sheet: "Shared Expenses", columns: ["id", "date", "description", "categoryId", "paymentMethodId", "amount", "ownerShare", "partnerShare", "paidBy", "settled", "transactionId", "notes"], dateColumns: ["date"] },
+  { key: "vehicles", sheet: "Vehicles", columns: ["id", "name", "manufacturer", "model", "fuelType", "purchaseDate", "disposalDate", "purchasePrice", "salePrice", "active", "notes"], dateColumns: ["purchaseDate", "disposalDate"] },
+  { key: "vehicleEntries", sheet: "Vehicle Entries", columns: ["id", "vehicleId", "date", "kind", "description", "amount", "odometerKm", "distanceKm", "fuelLiters", "fuelUnitPrice", "fuelType", "vendor", "categoryId", "paymentMethodId", "transactionId", "notes"], dateColumns: ["date"] },
+  { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth", "liquidBalance", "propertyValue", "investmentValue", "pensionValue", "monthlyRecurring", "vehicleCosts"] },
+  { key: "propertyAnnualSummaries", sheet: "Property History", columns: ["propertyId", "year", "income", "expenses", "closingValue", "electricityKwh", "gasCubicMeters", "waterCubicMeters", "electricityCost", "gasCost", "waterCost"] },
+  { key: "investmentAnnualSummaries", sheet: "Investment History", columns: ["investmentId", "year", "closingValue", "contributions", "withdrawals"] },
+  { key: "vehicleAnnualSummaries", sheet: "Vehicle History", columns: ["vehicleId", "year", "totalCosts", "fuelCosts", "installments", "taxes", "insurance", "tires", "maintenance", "repairs", "fuelLiters", "distanceKm", "averageKmPerLiter", "closingOdometer"] },
+];
+
+export const WORKBOOK_TABLES_V2: WorkbookTableDefinition[] = [
+  { key: "categories", sheet: "Categories", columns: ["id", "nameIt", "nameEn", "kind", "active"] },
+  { key: "paymentMethods", sheet: "Payment Methods", columns: ["id", "name", "kind", "active"] },
+  { key: "investmentTypes", sheet: "Investment Types", columns: ["id", "nameIt", "nameEn", "code", "active"] },
+  { key: "accounts", sheet: "Accounts", columns: ["id", "name", "kind", "currency", "openingBalance", "active", "openedAt", "closedAt", "notes"], dateColumns: ["openedAt", "closedAt"] },
+  { key: "transactions", sheet: "Transactions", columns: ["id", "date", "description", "categoryId", "paymentMethodId", "accountId", "kind", "amount", "currency", "recurringId", "propertyId", "propertyEntryId", "investmentId", "investmentEntryId", "sharedExpenseId", "planned", "shared", "sharedPaidBy", "sharedSettled", "notes", "createdAt", "updatedAt"], dateColumns: ["date"] },
+  { key: "properties", sheet: "Properties", columns: ["id", "name", "kind", "usage", "address", "areaSqm", "ownershipShare", "cadastralValue", "expectedMonthlyRent", "rentDueDay", "purchaseDate", "purchasePrice", "active", "closedAt", "notes"], dateColumns: ["purchaseDate", "closedAt"] },
+  { key: "propertyEntries", sheet: "Property Entries", columns: ["id", "propertyId", "date", "kind", "category", "categoryId", "description", "amount", "quantity", "unit", "paymentMethodId", "transactionId", "isCommonExpense", "notes"], dateColumns: ["date"] },
+  { key: "investments", sheet: "Investments", columns: ["id", "name", "kind", "typeId", "parentInvestmentId", "provider", "currency", "periodicAmount", "periodicFrequency", "periodicNextDueDate", "periodicCategoryId", "periodicPaymentMethodId", "active", "openedAt", "closedAt", "notes"], dateColumns: ["periodicNextDueDate", "openedAt", "closedAt"] },
+  { key: "investmentEntries", sheet: "Investment Entries", columns: ["id", "investmentId", "date", "kind", "amount", "description", "categoryId", "paymentMethodId", "transactionId", "notes"], dateColumns: ["date"] },
+  { key: "recurringItems", sheet: "Recurring Items", columns: ["id", "name", "kind", "direction", "amount", "frequency", "categoryId", "paymentMethodId", "investmentId", "propertyId", "nextDueDate", "endDate", "remainingInstallments", "active", "closedAt", "notes"], dateColumns: ["nextDueDate", "endDate", "closedAt"] },
+  { key: "sharedExpenses", sheet: "Shared Expenses", columns: ["id", "date", "description", "categoryId", "paymentMethodId", "amount", "ownerShare", "partnerShare", "paidBy", "settled", "transactionId", "notes"], dateColumns: ["date"] },
+  { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth", "liquidBalance", "propertyValue", "investmentValue", "monthlyRecurring"] },
+];
+
+export const WORKBOOK_TABLES_V1: WorkbookTableDefinition[] = [
+  { key: "categories", sheet: "Categories", columns: ["id", "nameIt", "nameEn", "kind", "active"] },
+  { key: "paymentMethods", sheet: "Payment Methods", columns: ["id", "name", "kind", "active"] },
   { key: "accounts", sheet: "Accounts", columns: ["id", "name", "kind", "currency", "openingBalance", "active", "openedAt", "closedAt", "notes"], dateColumns: ["openedAt", "closedAt"] },
   { key: "transactions", sheet: "Transactions", columns: ["id", "date", "description", "categoryId", "paymentMethodId", "accountId", "kind", "amount", "currency", "recurringId", "notes", "createdAt", "updatedAt"], dateColumns: ["date"] },
   { key: "properties", sheet: "Properties", columns: ["id", "name", "kind", "ownershipShare", "purchaseDate", "purchasePrice", "active", "closedAt", "notes"], dateColumns: ["purchaseDate", "closedAt"] },
@@ -21,4 +56,4 @@ export const WORKBOOK_TABLES: WorkbookTableDefinition[] = [
   { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth"] },
 ];
 
-export const WORKBOOK_SCHEMA_VERSION = 1;
+export const WORKBOOK_SCHEMA_VERSION = 3;

@@ -4,7 +4,7 @@ Questo documento governa lo sviluppo di ContaMì. Va aggiornato alla chiusura di
 
 ## Visione del prodotto
 
-ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, investimenti, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
+ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, automobile, investimenti, pensione integrativa, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
 
 ## Decisioni architetturali iniziali
 
@@ -29,6 +29,8 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 | M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | `0.8.0` | Funzionale e testata |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | In corso |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso |
+| M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.2.0` | Funzionale localmente; CI/release pendenti |
+| M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata |
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -61,7 +63,7 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 - Scaffold Electron + React + TypeScript con processi main/preload/renderer separati.
 - Configurare lint, typecheck, test unitari e build.
 - Integrare logo e icone; derivare palette, tipografia, spaziature e stati UI dagli asset.
-- Creare shell con navigazione per Overview, Transazioni, Immobili, Investimenti, Ricorrenze, Spese condivise e Impostazioni.
+- Creare shell con navigazione per Overview, Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze, Spese condivise e Impostazioni.
 - Implementare dizionari italiano/inglese, rilevamento lingua di sistema e override persistente.
 - Implementare tema sistema/chiaro/scuro con override persistente.
 - Creare configurazione centrale validata e stati di errore/vuoto/caricamento.
@@ -84,7 +86,7 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 **Attività principali**
 
-- Definire entità e value object per transazioni, categorie, metodi di pagamento, conti, immobili, consumi, investimenti, risparmi/pensione, ricorrenze, rate e quote condivise.
+- Definire entità e value object per transazioni, categorie, metodi di pagamento, conti, immobili, consumi domestici, veicoli e relativi costi/consumi, investimenti, pensioni integrative/comparti, ricorrenze, rate e quote condivise.
 - Definire tabelle del workbook con identificativi UUID, date ISO, importi numerici, valuta e stato attivo/chiuso.
 - Implementare repository di dominio e casi d’uso indipendenti dal formato file.
 - Implementare adattatore `.xlsx` multipiattaforma con lettura, validazione, migrazione e scrittura atomica.
@@ -113,7 +115,9 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 - CRUD e archiviazione logica per categorie, metodi di pagamento e conti.
 - Transazioni con data, descrizione, categoria, metodo di pagamento, importo, valuta, note e collegamenti opzionali.
 - Immobili: valore commerciale, entrate, uscite, consumi, mutui/costi e storico valutazioni.
-- Investimenti: titoli, fondi, pensione integrativa e altre forme di risparmio; versamenti, prelievi, valore corrente e stato.
+- Automobile: anagrafica delle vetture attuali e precedenti, rifornimenti e consumi, rate, bollo, assicurazione, pneumatici, manutenzione ordinaria e straordinaria.
+- Investimenti: titoli, fondi e altre forme di risparmio; versamenti, liquidazioni, valore corrente e stato.
+- Pensione Integrativa: pensioni usate come raccoglitori, comparti associati, totale aggregato senza doppio conteggio, versamenti, liquidazioni, valutazioni e piani periodici.
 - Ricorrenze: abbonamenti, servizi, rate auto/prestiti, frequenza, prossima scadenza, fine e stato.
 - Spese condivise: partecipanti, quota personale/partner, pagante, saldo e stato del rimborso.
 - Chiusura/riapertura controllata degli elementi conclusi; cancellazione definitiva solo con conferma e quando sicura.
@@ -136,7 +140,7 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 **Attività principali**
 
 - Dashboard iniziale: patrimonio netto, liquidità, investimenti, immobili, entrate/uscite, ricorrenze imminenti e saldo condiviso.
-- Dashboard per Transazioni, Immobili, Investimenti, Ricorrenze e Spese condivise.
+- Dashboard per Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze e Spese condivise.
 - Grafici accessibili, filtri temporali e confronto con periodo precedente.
 - Indicatori con definizioni visibili e drill-down fino alle righe origine.
 - Report mensile/annuale e riepiloghi esportati nel workbook tramite formule semplici e tabelle consuntive.
@@ -160,7 +164,7 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 - Procedura guidata “Chiudi anno” con anteprima e conferma esplicita.
 - Creare un nuovo workbook per l’anno successivo includendo anagrafiche e situazioni attive.
-- Conservare nel nuovo workbook solo i consuntivi aggregati dell’anno precedente necessari ai confronti.
+- Conservare nel nuovo workbook i consuntivi aggregati dell’anno precedente necessari ai confronti, con dettaglio annuale per singolo immobile/utenza, investimento/comparto pensione e veicolo/categoria di costo.
 - Rendere il vecchio workbook non più attivo, senza eliminarlo; proporre un percorso di archivio.
 - Verificare hash, totali di controllo, backup e possibilità di rollback prima di cambiare file attivo.
 - Gestire apertura di anni storici in sola lettura e recupero da backup.
@@ -224,6 +228,70 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 **Documentazione:** documenti obbligatori finali e note release bilingui.
 
+## M8 — Dati collegati, automobile, CRUD e confronti storici
+
+**Obiettivo:** eliminare gli inserimenti duplicati, completare la gestione delle anagrafiche e rendere confrontabili situazione e flussi con gli anni precedenti.
+
+**Attività principali**
+
+- Migrare il workbook allo schema v3 mantenendo la lettura/migrazione dei file v1 e v2 e aggiungendo collegamenti espliciti tra transazioni, immobili, investimenti, automobile, ricorrenze e spese condivise.
+- Implementare creazione, modifica e cancellazione controllata per categorie, metodi di pagamento, immobili, investimenti, movimenti, ricorrenze e spese condivise; aggiungere la gestione dei tipi di investimento.
+- Mostrare accanto a categorie e metodi di pagamento il numero di utilizzi effettivi in tutte le sezioni collegate, usando lo stesso conteggio completo per impedire cancellazioni che lascerebbero riferimenti orfani.
+- Rendere bidirezionale la registrazione dei movimenti collegati: una sola riga economica autorevole, riflessa automaticamente nelle viste pertinenti senza doppio conteggio.
+- Estendere le transazioni con filtri per testo, categoria, metodo di pagamento e mese, parziali filtrati, totali assoluti e alla data odierna, più evidenza visiva delle registrazioni ricorrenti.
+- Estendere gli immobili con scheda anagrafica, destinazione residenza/locazione, indirizzo, superficie, quota di proprietà, valore catastale, movimenti, consumi, spese comuni e controllo degli affitti attesi.
+- Aggiungere alla scheda dell’abitazione grafici annuali separati per consumi di elettricità, gas e acqua, ottenuti dalle registrazioni correnti e dai consuntivi ereditati.
+- Aggiungere alla residenza i consuntivi monetari e i grafici annuali di spesa per elettricità, gas e acqua; aggiungere a ogni immobile il grafico del valore commerciale, ai locati il confronto entrate/uscite e al dettaglio i filtri per mese e descrizione.
+- Aggiungere la sezione Automobile con CRUD di vetture e registrazioni, rifornimenti/consumi, rate, bollo, assicurazione, pneumatici, manutenzione ordinaria/straordinaria, dettaglio costi e confronto con vetture precedenti.
+- Confrontare le vetture per nome sull’asse orizzontale e costo per chilometro sull’asse verticale, ricavando percorrenza e costi della vettura attuale dalle registrazioni di dettaglio e i consuntivi delle precedenti dai dati storici.
+- Estendere gli investimenti non pensionistici con raggruppamento per tipologia, dettaglio movimenti, totali parziali, soli movimenti Versamento/Liquidazione e piani periodici collegati alle ricorrenze.
+- Mostrare per ogni investimento e comparto pensione il confronto storico tra cifra investita e controvalore, aggregando i comparti nel raccoglitore senza perdere i valori individuali.
+- Portare nei grafici finanziari tutte le osservazioni datate disponibili, non soltanto un punto annuale, mantenendo i consuntivi annuali come continuità per gli anni privi di registrazioni di dettaglio.
+- Separare la Pensione Integrativa dagli Investimenti: consentire la creazione di pensioni-raccoglitore e comparti associati, con CRUD, dettaglio, movimenti, valutazioni e piani periodici collegati. Rappresentare il Fondo Pensione Fideuram come pensione e Linea Equilibrio, Linea Crescita e Linea Valore come comparti, aggregando il totale senza duplicazioni.
+- Estendere le ricorrenze con direzione entrata/uscita, frequenza mensile o annuale, filtri e collegamento opzionale a un investimento o immobile.
+- Estendere le spese condivise con collegamento alle transazioni, filtri mensili, saldo massivo del mese e stampa delle voci non saldate.
+- Riconciliare le spese condivise del workbook privato con tutte le righe mensili del foglio sorgente `SPESE ORDINARIE`, conservando quote, pagante e stato e collegando una transazione soltanto quando la corrispondenza è non ambigua.
+- Aggiungere alla Panoramica tre grafici storici: patrimonio/liquidità/immobili/investimenti, entrate/uscite e impegni mensili; conservare i valori nei consuntivi annuali durante il rollover.
+- Estendere il rollover con `Property History`, `Investment History` e `Vehicle History`, mantenendo il nuovo workbook pulito senza perdere le serie necessarie ai confronti.
+- Limitare le liste recenti della Panoramica ai movimenti confermati fino alla data odierna e aggiungere il riepilogo separato delle spese ricorrenti recenti.
+- Uniformare i filtri di Transazioni, Ricorrenze e Spese condivise; completare la scheda residenza con Telefono/Internet e Canone TV.
+- Correggere il rilevamento di Apple Numbers quando installato tramite Apple Creator Studio e uniformare la splash screen al logo.
+- Integrare nel workbook ContaMì 2026 i dati mancanti ricavati localmente dal documento Numbers di esempio, senza versionare o distribuire dati personali.
+- Riconciliare l’importazione privata con le transazioni sorgente come unica lista autorevole, importi unitari delle ricorrenze, investimenti cumulativi convertiti in variazioni, consuntivi immobiliari/utenze e totali storici delle vetture; rappresentare acquisti e liquidazioni finanziarie come trasferimenti direzionati che incidono sulla liquidità ma non sulle entrate/uscite correnti.
+
+**Criteri di accettazione**
+
+- Un movimento collegato inserito o modificato da una vista è immediatamente coerente in tutte le altre viste coinvolte e viene contabilizzato una sola volta.
+- Investimenti e Pensione Integrativa hanno viste e totali distinti; i comparti sono associati a una sola pensione-raccoglitore e il patrimonio complessivo li conta una sola volta.
+- Tutte le anagrafiche richieste sono modificabili e cancellabili con conferma; i riferimenti esistenti non possono restare orfani.
+- Filtri, parziali e grafici storici sono riconciliabili con le righe e i consuntivi del workbook.
+- I file v1 e v2 si aprono senza perdita dati e vengono salvati come v3 soltanto dopo validazione e backup.
+- Consumi domestici, posizioni finanziarie/comparti e costi delle automobili restano confrontabili dopo il cambio d’anno tramite consuntivi annuali dettagliati.
+- Il workbook personale completato resta escluso da Git, CI e pacchetti di distribuzione.
+
+**Test richiesti:** migrazione v1/v2→v3, sincronizzazione bidirezionale e cancellazione, aggregazioni storiche di utenze/veicoli/investimenti, filtri, rollover, round-trip workbook, e2e dei flussi principali, verifica visiva chiaro/scuro e IT/EN, apertura del workbook con strumento indipendente.
+
+**Documentazione:** aggiornamento di manuali, README, MAP, SECURITY_MODEL e schema del workbook.
+
+## M9 — Valutazioni immobiliari web e andamento titoli tramite ISIN
+
+**Obiettivo:** arricchire le valutazioni con dati esterni verificabili mantenendo controllo manuale, privacy e funzionamento offline.
+
+**Attività pianificate**
+
+- Aggiungere il codice ISIN agli investimenti e validarne il formato senza assumere che identifichi sempre un titolo quotato.
+- Integrare un fornitore di dati di mercato con licenza e limiti d’uso compatibili, cache locale, indicazione di fonte/data/valuta e grafico storico; lasciare sempre disponibile l’inserimento manuale.
+- Integrare uno o più fornitori autorizzati di quotazioni immobiliari per zona, con indirizzo minimizzato o livello geografico configurabile, consenso esplicito e tracciamento di fonte/data del valore al metro quadrato.
+- Calcolare una stima automatica dal valore €/m², superficie e quota di proprietà, distinguendola visivamente dalle valutazioni manuali e consentendo override e disattivazione.
+- Eseguire l’aggiornamento all’avvio solo se abilitato, con timeout breve, cache e fallback offline; non bloccare mai l’apertura dell’app.
+- Documentare chiavi API, privacy, condizioni d’uso, accuratezza e limiti: i dati esterni sono indicativi e non costituiscono consulenza finanziaria o perizia immobiliare.
+
+**Gate di avvio:** selezione del fornitore e approvazione delle relative condizioni/costi e dell’invio dei dati strettamente necessari. Questa milestone introduce rete in un’app oggi local-first e richiede quindi una decisione esplicita prima dell’implementazione.
+
+**Test richiesti:** mock dei provider, rete assente/lenta, rate limit, dati obsoleti o incoerenti, conversioni valutarie, cache, consenso/opt-out, accessibilità dei grafici e assenza di segreti nei pacchetti.
+
+**Documentazione:** privacy e sicurezza di rete, fonti e disclaimer, configurazione provider, manuali IT/EN, MAP e note di rilascio.
+
 ## Checklist obbligatoria di chiusura per ogni milestone
 
 - [ ] Branch milestone creato.
@@ -246,11 +314,25 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 - M0: analizzato localmente e senza upload il workbook Numbers 26.3.1 (11 fogli, 43 tabelle nella sezione immobili); hash sorgente conservato nella nota di analisi e file originale intatto. Repository GitHub privato creato come `gloutchov/Contami`: GitHub non accetta `ì` nel nome tecnico e aveva convertito `Contamì` in `Contam-`, quindi è stata scelta la variante pulita più vicina.
 - M1: shell Electron/React modulare, branding, i18n IT/EN, tema sistema/chiaro/scuro, configurazione validata e documenti obbligatori completati. Verifica Playwright di tutte le viste: 0 errori e 0 warning console.
-- M2: schema workbook v1 con 14 fogli, round-trip validato, scrittura temporanea e rilettura, backup (10), rollback e rilevamento modifiche esterne. Workbook sintetico renderizzato con uno strumento indipendente. Il mirror `.numbers` è implementato ma non collaudabile su questa macchina perché Apple Numbers non è installato.
-- M3/M4: inserimenti guidati e dashboard generale/tematiche completati; chiusura/riapertura logica implementata. La v1 iniziale non include modifica/cancellazione fisica delle righe né creazione automatica delle transazioni dalle ricorrenze.
+- M2: schema workbook aggiornato alla v2 con 15 fogli, lettura/migrazione v1, round-trip validato, scrittura temporanea e rilettura, backup (10), rollback e rilevamento modifiche esterne. Il mirror `.numbers` è stato collaudato con successo sulla nuova installazione **Numbers Creator Studio**, rilevata tramite bundle id `com.apple.Numbers`.
+- M3/M4: inserimenti guidati, CRUD controllato, dettagli, filtri e dashboard generale/tematiche completati; chiusura/riapertura logica e transazioni pianificate da ricorrenze implementate.
 - M5: rollover estratto in funzione di dominio e coperto da casi di test per saldi, posizioni attive, valutazioni, ricorrenze e spese condivise.
-- M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete implementati; audit npm 0 vulnerabilità; 8 test automatici passano localmente e in CI su macOS/Windows. Restano da completare misure prestazionali su dataset molto ampi.
+- M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete implementati; audit npm 0 vulnerabilità; 21 test automatici passano localmente. Restano da completare misure prestazionali su dataset molto ampi e la nuova verifica CI del branch M8.
 - M7: repository privato e workflow CI/release macOS+Windows con checksum configurati; CI cross-platform verde nel run `29643193163`. Per scelta progettuale le preview sono prodotte senza certificati e senza firma ad-hoc del bundle. Il crash del primo bundle Apple Silicon dipendeva dai metadati Unicode del pacchetto, non da Gatekeeper: bundle, metadati tecnici ed eseguibile usano `Contami`, mentre logo, titolo e UI mantengono `ContaMì`. Il bundle ARM non firmato supera lo smoke locale mantenendo l’Hardened Runtime predefinito. Manuali e note release documentano Gatekeeper, SmartScreen e Smart App Control senza suggerire di disattivare globalmente le protezioni. La preview `v0.1.0` precede la futura stabile `v1.0.0`.
+- M8: schema v3 con migrazione v1/v2, sincronizzazione bidirezionale, CRUD, filtri/parziali, viste di dettaglio, dashboard storiche, grafici dei consumi domestici e sezione Automobile completati localmente. Investimenti e Pensione Integrativa restano aree distinte; il rollover conserva consuntivi dettagliati per immobile/utenza, investimento/comparto e veicolo. Il workbook personale 2026 è stato ricostruito localmente dalla nuova copia Numbers, validato con rilettura dell’adapter applicativo e mantenuto escluso da Git e release; nessun dato reale è usato nei test o nella documentazione. Preflight locale completato con 29 test automatici, build renderer/Electron, controllo documenti, audit npm senza vulnerabilità e verifica Playwright IT/EN, chiaro/scuro a 1080 px senza errori console; CI e release della milestone restano pendenti.
+- M9: registrate come funzionalità future la stima immobiliare automatica €/m² e i grafici di mercato tramite ISIN; l’implementazione resta subordinata alla scelta consapevole dei provider e delle condizioni di privacy/licenza.
+
+## Registro ritocchi — 2026-07-19
+
+- Panoramica: le liste recenti usano la data odierna, escludono movimenti futuri/pianificati e distinguono le spese ricorrenti confermate.
+- UI: filtri distribuiti su tutta la larghezza disponibile in Transazioni, Ricorrenze e Spese condivise, con etichette accessibili per i controlli.
+- Immobili: aggiunti gli indicatori bilingui Telefono/Internet e Canone TV alla residenza, con aggregazione testata su categoria e descrizione.
+- Pensione Integrativa: nuova area separata dagli Investimenti con pulsanti **Crea pensione** e **Crea comparto**; Fondo Pensione Fideuram è il raccoglitore e Linea Equilibrio, Linea Valore e Linea Crescita sono i comparti correlati. Dashboard e patrimonio evitano il doppio conteggio.
+- Avvio: se il workbook ricordato è stato spostato o cancellato, il percorso obsoleto viene rimosso e l’app si apre nello stato non configurato con le azioni per aprire o creare un file; workbook non validi continuano a produrre errore senza essere sovrascritti.
+- Impostazioni: categorie e metodi di pagamento mostrano un badge con il numero di utilizzi prima dei comandi di modifica; il conteggio include tutte le registrazioni collegate ed è condiviso con la protezione dalla cancellazione.
+- Spese condivise: l’importazione privata è stata ricostruita dai dodici prospetti mensili `SPESE ORDINARIE`, riconciliando le quote al centesimo e collegando soltanto le corrispondenze certe con le Transazioni.
+- Investimenti e Pensione Integrativa: i grafici cifra investita/controvalore usano tutte le valutazioni e i movimenti datati disponibili, con etichette temporali compatte e aggregazione dei comparti.
+- Automobile: il confronto usa i nomi delle vetture sull’asse X e il costo/km sull’asse Y; per la vettura corrente distanza e costi provengono dalle registrazioni di dettaglio, mentre i consuntivi storici restano disponibili per le vetture precedenti.
 
 ## Rischi e mitigazioni iniziali
 

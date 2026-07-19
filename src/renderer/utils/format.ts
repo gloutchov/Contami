@@ -10,4 +10,7 @@ export const formatDate = (date: string, language: Language) => new Intl.DateTim
   { day: "2-digit", month: "short", year: "numeric" },
 ).format(new Date(`${date}T12:00:00Z`));
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+export const todayIso = () => {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+};

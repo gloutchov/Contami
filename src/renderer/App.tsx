@@ -13,7 +13,9 @@ import { runUiAction } from "./utils/save";
 const OverviewView = lazy(() => import("./views/OverviewView").then((module) => ({ default: module.OverviewView })));
 const TransactionsView = lazy(() => import("./views/TransactionsView").then((module) => ({ default: module.TransactionsView })));
 const PropertiesView = lazy(() => import("./views/PropertiesView").then((module) => ({ default: module.PropertiesView })));
+const VehiclesView = lazy(() => import("./views/VehiclesView").then((module) => ({ default: module.VehiclesView })));
 const InvestmentsView = lazy(() => import("./views/InvestmentsView").then((module) => ({ default: module.InvestmentsView })));
+const PensionsView = lazy(() => import("./views/PensionsView").then((module) => ({ default: module.PensionsView })));
 const RecurringView = lazy(() => import("./views/RecurringView").then((module) => ({ default: module.RecurringView })));
 const SharedExpensesView = lazy(() => import("./views/SharedExpensesView").then((module) => ({ default: module.SharedExpensesView })));
 const SettingsView = lazy(() => import("./views/SettingsView").then((module) => ({ default: module.SettingsView })));
@@ -32,6 +34,7 @@ function errorKey(error: unknown): TranslationKey {
   if (text.includes("WORKBOOK_NOT_CONFIGURED")) return "workbookRequired";
   if (text.includes("WORKBOOK_CHANGED_EXTERNALLY")) return "workbookChangedExternally";
   if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
+  if (text.includes("ENTITY_IN_USE")) return "entityInUse";
   return "genericError";
 }
 
@@ -51,6 +54,7 @@ export default function App() {
       if (!current) return;
       setSettings(nextSettings); setCapabilities(nextCapabilities); setSnapshot(nextSnapshot);
       if (nextSnapshot.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning");
+      if (nextSnapshot.warningCode === "WORKBOOK_MISSING") setNotice("workbookMissing");
     }).catch(() => setNotice("genericError")).finally(() => { if (current) setBusy(false); });
     return () => { current = false; };
   }, []);
@@ -98,7 +102,9 @@ export default function App() {
       case "overview": return <OverviewView snapshot={snapshot} onCreate={() => runUiAction(createWorkbook)} onOpen={() => runUiAction(openWorkbook)} />;
       case "transactions": return <TransactionsView data={snapshot.data} onSave={execute} />;
       case "properties": return <PropertiesView data={snapshot.data} onSave={execute} />;
+      case "vehicles": return <VehiclesView data={snapshot.data} onSave={execute} />;
       case "investments": return <InvestmentsView data={snapshot.data} onSave={execute} />;
+      case "pensions": return <PensionsView data={snapshot.data} onSave={execute} />;
       case "recurring": return <RecurringView data={snapshot.data} onSave={execute} />;
       case "shared": return <SharedExpensesView data={snapshot.data} onSave={execute} />;
       case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onSave={execute} />;
@@ -119,5 +125,5 @@ function Notice({ messageKey, values, onClose }: { messageKey: TranslationKey; v
 
 function NoticeText({ messageKey, values }: { messageKey: TranslationKey; values?: Record<string, string | number> }) {
   const { t } = useI18n();
-  return <div className={messageKey === "genericError" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
+  return <div className={messageKey === "genericError" || messageKey === "entityInUse" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" || messageKey === "workbookMissing" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
 }

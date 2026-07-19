@@ -18,12 +18,16 @@ export class NumbersMirrorService {
 
   async isAvailable(): Promise<boolean> {
     if (process.platform !== "darwin") return false;
-    try {
-      await access("/Applications/Numbers.app");
-      return true;
-    } catch {
-      return false;
+    const candidates = [
+      "/Applications/Numbers.app",
+      "/Applications/Numbers Creator Studio.app",
+      path.join(process.env.HOME ?? "", "Applications", "Numbers.app"),
+      path.join(process.env.HOME ?? "", "Applications", "Numbers Creator Studio.app"),
+    ].filter((candidate) => candidate.startsWith("/"));
+    for (const candidate of candidates) {
+      try { await access(candidate); return true; } catch { /* Try the next supported Apple installation name. */ }
     }
+    return false;
   }
 
   async mirror(sourcePath: string, destinationPath: string): Promise<void> {

@@ -6,28 +6,38 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **0.1.0 — development preview** · Licenza / License: **Apache-2.0**
+> Stato / Status: **0.2.0 — development preview** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
-- Dashboard generale con patrimonio netto, liquidità, immobili, investimenti, entrate, uscite, impegni periodici e saldo condiviso.
-- Dashboard dedicate e inserimenti guidati per transazioni, immobili e consumi, investimenti e pensione, ricorrenze/rate e spese condivise.
+- Dashboard generale con confronti storici per patrimonio, liquidità, immobili, investimenti e pensioni integrative, entrate, uscite e impegni periodici.
+- Registrazioni collegate e bidirezionali: un movimento inserito in Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze o Spese condivise viene riflesso nelle viste pertinenti senza reinserirlo.
+- Ricerca e filtri mensili con parziali; dettaglio e CRUD controllato per immobili, automobili, investimenti, pensioni/comparti, movimenti, ricorrenze e spese condivise.
+- Schede immobili filtrabili per mese/descrizione con consuntivi e grafici annuali di consumi, costi delle utenze, entrate/uscite e valore commerciale; area Automobile con rifornimenti, percorrenze, rate, bollo, assicurazione, pneumatici e manutenzione, inclusi i costi complessivi delle vetture precedenti.
+- Grafici per ogni investimento e comparto pensione che confrontano nel tempo cifra investita e controvalore. I movimenti patrimoniali usano trasferimenti con direzione di cassa: aggiornano la liquidità senza gonfiare entrate o uscite correnti.
+- Area Pensione Integrativa separata: ogni pensione è un raccoglitore e ogni comparto collegato conserva valore, movimenti ed eventuale versamento periodico; il totale del raccoglitore non duplica quello dei comparti.
 - Data, descrizione, categoria, metodo di pagamento e importo validati a ogni inserimento pertinente.
-- Chiusura e riapertura logica di conti, immobili, investimenti e ricorrenze senza perdere lo storico.
+- Chiusura e riapertura logica di conti, immobili, investimenti, pensioni/comparti e ricorrenze senza perdere lo storico.
 - Workbook `.xlsx` portabile su macOS e Windows; copia `.numbers` nativa su macOS quando Apple Numbers è installato.
-- Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e soli consuntivi storici.
+- Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e consuntivi annuali dettagliati per immobili/utenze, investimenti/comparti e automobili.
 - Salvataggio locale verificato, sostituzione atomica, fino a 10 backup e blocco se il file è stato modificato da un’altra app.
+- Avvio recuperabile se il workbook configurato è stato spostato o cancellato: l’app torna allo stato non configurato e permette di aprire o creare un file.
 - Nessun account, cloud, telemetria o richiesta di rete durante l’uso normale.
 
 ---
 
-- Overall dashboard for net worth, liquidity, properties, investments, income, expenses, recurring commitments, and shared balance.
-- Dedicated dashboards and guided entry flows for transactions, property and consumption, investments and pensions, recurring/installment payments, and shared expenses.
+- Overall dashboard with historical comparisons for net worth, liquidity, properties, investments and private pensions, income, expenses, and recurring commitments.
+- Bidirectional linked records: a movement entered under Transactions, Properties, Vehicles, Investments, Private Pension, Recurring Items, or Shared Expenses is reflected in every relevant view without re-entry.
+- Monthly search/filters with subtotals; controlled detail and CRUD for properties, vehicles, investments, pensions/compartments, movements, recurring items, and shared expenses.
+- Property records can be filtered by month/description and include yearly charts for consumption, utility costs, income/expenses, and commercial value; the Vehicles area tracks fuel, distance, installments, road tax, insurance, tyres, and maintenance, including lifetime totals for prior cars.
+- Per-position investment and pension-compartment charts compare invested amount with countervalue over time. Asset movements use cash-directed transfers, updating liquidity without inflating current income or expenses.
+- A dedicated Private Pension area: every pension is a collector and each linked compartment keeps its value, movements, and optional periodic contribution; collector totals never double-count compartments.
 - Date, description, category, payment method, and amount validation wherever applicable.
-- Logical close/reopen for accounts, properties, investments, and recurring items without losing history.
+- Logical close/reopen for accounts, properties, investments, pensions/compartments, and recurring items without losing history.
 - Portable `.xlsx` workbook on macOS and Windows; native `.numbers` mirror on macOS when Apple Numbers is installed.
-- Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and historical annual totals only.
+- Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and detailed annual actuals for properties/utilities, investments/compartments, and vehicles.
 - Verified local saves, atomic replacement, up to 10 backups, and conflict protection when another app changes the file.
+- Recoverable startup when the configured workbook was moved or deleted: the app returns to its unconfigured state and lets the user open or create a file.
 - No account, cloud, telemetry, or network request during normal use.
 
 ## Installazione rapida / Quick install
@@ -65,7 +75,7 @@ Per compatibilità delle build macOS non firmate, file, bundle ed eseguibile usa
 | Formato | macOS | Windows | Note |
 |---|---:|---:|---|
 | Excel `.xlsx` | Sì | Sì | Formato interoperabile canonico; apribile anche in Numbers. |
-| Numbers `.numbers` | Sì | No | Richiede Apple Numbers. ContaMì conserva anche un sidecar `.contami.xlsx` per recupero e compatibilità. |
+| Numbers `.numbers` | Sì | No | Richiede Apple Numbers, incluso quando installato come **Numbers Creator Studio**. ContaMì conserva anche un sidecar `.contami.xlsx` per recupero e compatibilità. |
 
 Il file Numbers originale in `sources/` è materiale privato di riferimento: non viene incluso in Git, build o release. ContaMì usa un proprio schema normalizzato e non modifica quel documento.
 
@@ -73,7 +83,9 @@ The original Numbers file under `sources/` is private reference material: it is 
 
 ## Configurazione / Configuration
 
-Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook, conti, categorie e metodi di pagamento. Le preferenze vengono validate e salvate localmente con permessi riservati all’utente.
+Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook e gestire conti, categorie, metodi di pagamento e tipi di investimento. Categorie, metodi e tipi possono essere creati, modificati e cancellati quando non sono in uso; le categorie sono distinte come entrata, uscita o entrambe. Un piccolo badge mostra quante registrazioni usano ciascuna categoria o metodo di pagamento. Il tipo tecnico `pension` è riservato alla sezione Pensione Integrativa e non è modificabile dal catalogo.
+
+Under **Settings** you can select language (`System`, `Italiano`, `English`), theme (`System`, `Light`, `Dark`), the format for new workbooks, and manage accounts, categories, payment methods, and investment types. Categories, methods, and types can be created, edited, and deleted when unused; categories are classified as income, expense, or both. A compact badge shows how many records use each category or payment method. The technical `pension` type is reserved for the Private Pension section and cannot be changed through the catalog.
 
 ## Sviluppo locale / Local development
 

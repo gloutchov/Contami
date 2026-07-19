@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-18 · Applicazione / Application: 0.1.0
+Versione del documento / Document version: 2026-07-19 · Applicazione / Application: 0.2.0
 
 ## Italiano
 
@@ -12,7 +12,7 @@ Il workbook è la fonte dati autorevole. I dati in memoria sono una copia valida
 
 ### 2. Asset da proteggere
 
-- transazioni, patrimonio, investimenti, immobili, consumi e spese condivise;
+- transazioni, patrimonio, investimenti, pensioni integrative/comparti, immobili, consumi domestici, automobili e spese condivise;
 - percorsi locali del workbook e dei backup;
 - integrità dello schema e dei consuntivi annuali;
 - preferenze di lingua, tema e formato;
@@ -58,6 +58,11 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - Testo descrittivo: massimo 240 caratteri; note: massimo 2.000; importi e quantità hanno limiti finiti; le quote condivise devono riconciliare al centesimo.
 - Sono accettati soltanto percorsi assoluti `.xlsx`, senza byte nulli e lunghi al massimo 4.096 caratteri.
 - Il file in ingresso non può superare 250 MB e deve contenere `_Meta`, versione schema supportata e tutti i fogli richiesti.
+- Lo schema v3 mantiene UUID espliciti tra transazioni e registrazioni collegate, incluse le spese dell’automobile. Le modifiche vengono propagate dal dominio; una cancellazione rimuove i record dipendenti, mentre categorie, metodi e tipi in uso restituiscono `ENTITY_IN_USE` e non possono lasciare riferimenti orfani. Il contatore mostrato nelle Impostazioni usa la stessa funzione di dominio della protezione dalla cancellazione e considera transazioni, immobili, investimenti, ricorrenze, spese condivise e automobile.
+- I trasferimenti finanziari dichiarano esplicitamente l’effetto sulla liquidità (`inflow`, `outflow` o `neutral`). Il dominio applica tale direzione solo al saldo del conto e li esclude dai consuntivi di entrate/uscite, evitando che acquisti, vendite e versamenti vengano contabilizzati come spesa corrente.
+- Pensioni e comparti riusano le tabelle Investimenti dello schema v3: il tipo tecnico `pension` è riservato e protetto da modifica/cancellazione, i moduli e i selettori escludono i raccoglitori dalle nuove destinazioni di movimento e la loro chiusura propaga stato e ricorrenze ai comparti. I selettori di dominio separano investimenti e pensioni e aggregano soltanto le posizioni finali attive, impedendo il doppio conteggio.
+- I workbook v1 e v2 sono trasformati in memoria tramite migrazioni deterministiche e vengono convalidati integralmente come v3 prima di poter essere salvati.
+- I consuntivi annuali dettagliati (`Property History`, `Investment History`, `Vehicle History`) contengono solo dati aggregati e identificativi interni; il rollover non copia le transazioni storiche nel nuovo workbook.
 - Le stringhe utente vengono scritte come valori, non concatenate in formule. Il loader non esegue macro o formule; se incontra una cella formula legge il risultato memorizzato.
 - Il file Numbers non viene modificato direttamente: su macOS è rigenerato importando il sidecar `.xlsx` tramite uno script AppleScript fisso.
 
@@ -71,12 +76,13 @@ Limite residuo: un `.xlsx` compresso sotto 250 MB può espandersi molto durante 
 - Prima della sostituzione viene creata una copia in `.contami-backups`; sono mantenuti gli ultimi 10 backup `.xlsx`.
 - Dimensione e timestamp del file vengono catturati dopo apertura/salvataggio. Se cambiano esternamente, il successivo salvataggio viene bloccato e l’utente deve riaprire il workbook.
 - Il passaggio d’anno crea un nuovo file e non elimina, sposta o rende inaccessibile il precedente.
+- Se all’avvio il percorso ricordato non esiste più (`ENOENT`), ContaMì non crea né sovrascrive file: rimuove soltanto il collegamento obsoleto dalle preferenze, usa uno stato vuoto in memoria e richiede di aprire o creare esplicitamente un workbook. Errori di schema o corruzione non vengono confusi con un file mancante.
 
 Il controllo di conflitto riduce ma non elimina una gara nel brevissimo intervallo tra verifica e rename. I backup rendono recuperabile la versione esterna eventualmente sostituita. I programmi esterni non rispettano un lock ContaMì, quindi evitare modifiche simultanee.
 
 ### 8. Adapter Numbers
 
-- Disponibile solo su macOS se `/Applications/Numbers.app` esiste.
+- Disponibile solo su macOS quando è rilevato il bundle `com.apple.Numbers`, nei percorsi standard di **Numbers** o **Numbers Creator Studio** dentro `/Applications` o `~/Applications`.
 - I percorsi sorgente/destinazione devono essere assoluti e avere estensione prevista.
 - `/usr/bin/osascript` viene invocato con `execFile` e argomenti separati, senza shell interpolation.
 - Timeout 60 secondi e buffer output 64 KiB.
@@ -108,8 +114,9 @@ Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; 
 
 ### 12. Verifiche implementate
 
-- unit test per comandi, aggregazioni e rollover;
+- unit test per comandi, aggregazioni di consumi/automobili, separazione investimenti/pensioni senza doppio conteggio, protezione del tipo pensione, rollover, migrazione v1/v2→v3 e sincronizzazione bidirezionale/cancellazione;
 - integrazione round-trip workbook e controllo file modificato esternamente;
+- integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
 - lint, typecheck e build separata main/preload/renderer;
 - audit dipendenze;
@@ -133,6 +140,7 @@ Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; 
 - test automatici del pacchetto installato su entrambi i sistemi;
 - lock cooperativo e hash contenuto per una protezione concorrenza ancora più forte;
 - opzione di cifratura documentata, se compatibile con Excel e Numbers senza compromettere il principio di portabilità.
+- eventuali quotazioni immobiliari web e dati di mercato ISIN soltanto dopo scelta esplicita del provider, consenso, minimizzazione dei dati, cache, timeout, opt-out e gestione sicura delle chiavi; la versione corrente continua a bloccare la rete.
 
 ---
 
@@ -146,7 +154,7 @@ The workbook is authoritative. In-memory data is a validated copy used for calcu
 
 ### 2. Protected assets and threats
 
-Protected assets include financial records, workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
+Protected assets include financial records—including investments, private pensions and compartments, household consumption, and vehicles—workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
 
 Threats considered include malformed `.xlsx` input, a compromised renderer attempting privileged access, concurrent external edits, interrupted saves, formula injection, invalid paths/oversized files, unexpected navigation or network access, and supply-chain compromise. A compromised operating system, same-user malware, or unlocked physical access remains outside what the app alone can defend.
 
@@ -167,7 +175,9 @@ Inline styles remain allowed for the current UI. React escaping and the absence 
 
 ### 5. Data and workbook validation
 
-Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amounts, share reconciliation, and collection limits. Only absolute `.xlsx` paths up to 4,096 characters and files up to 250 MB are accepted. Required sheets, `_Meta`, and schema version must validate.
+Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amounts, share reconciliation, and collection limits. Only absolute `.xlsx` paths up to 4,096 characters and files up to 250 MB are accepted. Required sheets, `_Meta`, and schema version must validate. Schema v3 uses explicit UUID links between transactions and mirrored records, including vehicle costs; domain propagation keeps them synchronized, cascade deletion removes dependants, and in-use catalogs return `ENTITY_IN_USE`. Financial transfers declare a validated cash effect (`inflow`, `outflow`, or `neutral`): it changes account liquidity while remaining outside income/expense actuals, so purchases, sales, and contributions are not misclassified as current spending. Version 1 and 2 data is deterministically migrated in memory and fully validated as v3 before save.
+
+Pensions and compartments reuse the schema-v3 Investments tables. The technical `pension` type is reserved and protected against editing/deletion, forms and selectors exclude collectors from new movement targets, and closing one propagates state and recurring plans to its compartments. Domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
 
 User strings are written as values, not interpolated into formulas. The loader never executes macros or formulas. A compressed workbook may still expand heavily before schema validation and exhaust memory; open trusted ContaMì files only.
 
@@ -175,11 +185,13 @@ User strings are written as values, not interpolated into formulas. The loader n
 
 ContaMì writes a same-directory temporary workbook, reopens it to verify critical sheets, creates an adjacent backup, and then replaces the active file with rollback behavior. It retains 10 backups. Size and modification time detect external changes and block the next save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
 
+If the remembered path no longer exists at startup (`ENOENT`), ContaMì creates or overwrites no file: it removes only the stale preference, uses an empty in-memory state, and requires the user to explicitly open or create a workbook. Schema and corruption errors are not treated as missing files.
+
 A narrow race remains between conflict check and rename. External spreadsheet apps do not honor a ContaMì lock; avoid simultaneous edits. Backups provide recovery.
 
 ### 7. Numbers adapter
 
-The adapter is macOS-only, requires `/Applications/Numbers.app`, validates absolute `.xlsx`/`.numbers` paths, and invokes a fixed AppleScript via `execFile` with separate arguments. It has a 60-second timeout and 64-KiB output cap. Temporary and rollback paths protect the previous copy; the interoperable `.xlsx` sidecar remains safe on failure. macOS automation consent may be required.
+The adapter is macOS-only and detects Apple bundle id `com.apple.Numbers` at standard **Numbers** and **Numbers Creator Studio** locations under `/Applications` or `~/Applications`. It validates absolute `.xlsx`/`.numbers` paths and invokes a fixed AppleScript via `execFile` with separate arguments. It has a 60-second timeout and 64-KiB output cap. Temporary and rollback paths protect the previous copy; the interoperable `.xlsx` sidecar remains safe on failure. macOS automation consent may be required.
 
 ### 8. Preferences, secrets, logging, and encryption
 
@@ -195,10 +207,10 @@ Residual risks: Actions use major tags rather than immutable SHAs; pinning verif
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation and rollover, workbook round-trip, external-edit detection, validated atomic settings, builds, dependency audit, Playwright UI flows in both languages/themes, independent synthetic-workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, builds, dependency audit, Playwright UI flows in both languages/themes, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, Action SHA pinning, ZIP-expansion limits and hostile-workbook fuzzing, packaged-app smoke tests on both systems, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers.
+Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, Action SHA pinning, ZIP-expansion limits and hostile-workbook fuzzing, packaged-app smoke tests on both systems, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.

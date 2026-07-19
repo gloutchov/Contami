@@ -41,12 +41,12 @@ Smart App Control can block an app without offering a per-app exception. In that
 2. Light/dark mode follows the system.
 3. From Overview choose **Create new workbook** or **Open existing workbook**.
 4. Under **Settings → Account**, add the bank, cash, or other accounts that contribute to liquidity.
-5. Review the default categories and payment methods; add your own if needed.
+5. Review categories, payment methods, and investment types; add or adapt them to your habits.
 
 ### Excel or Numbers
 
 - **Excel (.xlsx)**: recommended and portable across macOS and Windows.
-- **Numbers (.numbers)**: macOS only and requires Numbers. ContaMì also keeps a `.contami.xlsx` file beside the Numbers copy; do not delete it, because it is the interoperable copy used by the app.
+- **Numbers (.numbers)**: macOS only and requires Numbers, including the version installed through **Apple Creator Studio**. ContaMì also keeps a `.contami.xlsx` file beside the Numbers copy; do not delete it, because it is the interoperable copy used by the app.
 
 The format preference applies to the next workbook you create. Opening an existing `.xlsx` makes that file active.
 
@@ -54,90 +54,130 @@ The format preference applies to the next workbook you create. Opening an existi
 
 The home page shows:
 
-- net worth: liquidity + active property value + active investment value;
+- net worth: liquidity + active property value + active investments + private pensions;
 - liquidity: account opening balances plus linked income less linked expenses;
 - property value: latest valuation, or purchase price, multiplied by ownership share;
-- investment value: latest valuation for each active investment;
+- investment value: latest valuation for active non-pension investments;
+- pension value: latest active-compartment valuations, without double-counting their pension collector;
 - current-year income and expenses;
 - monthly equivalent of active recurring commitments;
 - outstanding shared balance;
-- monthly trend, spending categories, and recent transactions.
+- monthly trend and spending categories;
+- recent transactions and recent recurring expenses, limited to confirmed records through today (future or planned rows are excluded);
+- three yearly comparisons: asset composition, income/expenses, and monthly commitments;
+- total property-related income and expenses.
 
-Transfers do not count as income or expense. Currency is recorded, but the initial version does not convert currencies automatically; avoid combining currencies in one overview without a consistent manual conversion.
+Closed-year points come from `Annual Summaries`; the current-year point is recalculated from live records. Year rollover preserves the totals required for these comparisons.
+
+Transfers do not count as income or expense. They may be neutral between accounts or carry a cash inflow/outflow: investment contributions, purchases, liquidations, and sales use that direction to update the account balance without changing current spending actuals. Currency is recorded, but the initial version does not convert currencies automatically.
 
 ## 5. Transactions
 
 Choose **New transaction** and enter:
 
 - income, expense, or transfer;
+- for a transfer, its cash effect (outflow, inflow, or neutral between accounts);
 - date and description;
 - category and payment method;
-- optional account;
+- optional account, property, investment, or recurring-item link;
+- whether an expense is shared and who paid it;
 - amount, EUR currency, and optional notes.
 
-The top summary shows yearly income, expenses, and net cash flow. Search filters descriptions; the adjacent menu filters transaction type.
+Filter by text, type, category, payment method, and month. When a month is selected, cards show filtered subtotals; yearly totals and totals accrued through today remain available. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
+
+Linking a transaction to a property, investment, or shared expense creates/updates the corresponding record automatically. Editing and deletion stay synchronized to prevent double counting.
 
 ## 6. Properties
 
-Use **New property** for the name, type, ownership share, purchase date/price, and notes.
+Use **New property** for name, type, use (residence, rental, or other), address, area, ownership share, cadastral value, purchase date/price, and notes. A rental can also define expected rent and due day.
 
-Use **New entry** for income, expense, valuation, or consumption. Consumption accepts a quantity and unit such as kWh or m³, plus an optional monetary cost. The view summarizes current value and yearly income/costs. **Close** removes a property from active totals without deleting history; **Reopen** activates it again.
+Open a property and choose **New entry** for income, expense, valuation, or consumption. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too.
 
-## 7. Investments and savings
+Details can be filtered by month and description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property shows commercial-value history; rentals also show income/expense actuals and trends and flag overdue expected rent.
 
-**New investment** supports funds, stocks, bonds, ETFs, private pensions, savings, and other forms. Enter provider and opening date.
+## 7. Vehicles
 
-**New movement** records a contribution, withdrawal, valuation, income, or fee. The latest valuation feeds the dashboard and net worth. The view summarizes value and yearly contributions/withdrawals. Use **Close/Reopen** without losing history.
+Use **New vehicle** to record its name, make, model, fuel type, and purchase/sale dates and prices. Disposed vehicles remain available for historical comparisons.
+
+**New cost / reading** records fuel, installments, road tax, insurance, tyres, routine maintenance, repairs/extraordinary maintenance, valuations, and other costs. Every cost requires date, description, category, and payment method and is mirrored to Transactions. Fuel entries can also store odometer, distance, litres, and price per litre.
+
+The dashboard shows current-year costs, fuel, and distance. Each vehicle card shows lifetime ownership costs; opening it shows the category breakdown and yearly comparison. The comparison chart places vehicle names on the horizontal axis and cost per kilometre on the vertical axis, combining detailed current-vehicle records with prior-vehicle actuals.
+
+## 8. Investments and savings
+
+**New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, and an optional parent/group. Investments are grouped by customizable type, with a subtotal for each group.
+
+Open an investment for its detail. **New movement** records only **Contribution** or **Liquidation**; **Update value** adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
+
+A contribution/liquidation creates a linked cash-outflow/inflow transfer; a transaction assigned to an investment creates its movement. Detail charts compare invested amount with countervalue using every dated observation available, rather than only the last point in each year. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
 
 ContaMì is a record-keeping tool. It does not provide financial advice or market prices.
 
-## 8. Recurring items and installments
+## 9. Private pension
 
-**New recurring item** covers subscriptions, services, installments, and recurring investments. Enter amount, frequency, category, payment method, next due date, and optional end date/installments left.
+The **Private pension** section is separate from other investments and uses two levels:
 
-The view shows monthly equivalent, active item count, and known installments left. Use **Close** when an item ends and **Reopen** if it resumes.
+- **Create pension** adds the main collector, such as **Fondo Pensione Fideuram**;
+- **Create compartment** adds a position associated with an existing pension, such as **Linea Equilibrio**, **Linea Crescita**, or **Linea Valore**.
 
-The initial version tracks due dates but does not create transactions automatically or execute payments.
+The pension card totals its active compartments without duplication. Each compartment keeps valuations, contributions, and liquidations and charts invested amount against countervalue; the collector aggregates those compartment series. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
 
-## 9. Shared expenses
+In the workbook, pensions and compartments remain in the `Investments` table, identified by the reserved pension type and parent/child relationship. Existing workbooks therefore remain compatible and readable without a destructive migration.
 
-Enter date, description, total, category, method, payer, and the two shares. Shares must equal the total within one cent.
+## 10. Recurring items and installments
+
+**New recurring item** covers subscriptions, services, installments, rental income, and periodic investments. Enter direction, amount, frequency (including monthly or yearly one-off), category, payment method, next due date, and optional end date/installments left. A periodic contribution can link to an existing investment or pension compartment; rental income can link to its property; an installment can be associated with a vehicle.
+
+The view shows monthly equivalent, active item count, and known installments left. Filters by name, type, and month update the totals. Editing, deletion, close, and reopen are available.
+
+ContaMì generates **planned** transactions through year end and links matching real rows already present. Confirming a row makes it effective; the app never executes payments.
+
+## 11. Shared expenses
+
+Create a shared expense in its dedicated view or select **Shared expense** on a Transaction. Both routes maintain one linked pair. The default split is 50/50; the dedicated form can adjust the two shares.
 
 - When you paid, a positive balance is owed to you by the partner.
 - When the partner paid, a negative balance is what you owe.
-- **Mark settled** closes the balance; **Reopen balance** makes it pending again.
+- **Mark settled** closes one balance; **Reopen balance** makes it pending again.
+- The month filter shows period subtotals and can settle/reopen an entire month with one action.
+- **Print unsettled** prepares a printable list of pending rows for the selected month.
+- Editing or deleting updates the linked Transaction automatically.
 
-## 10. Accounts, categories, and methods
+## 12. Accounts, categories, and methods
 
-Under **Settings** you can add accounts with type, opening balance, and opening date; close/reopen accounts; add bilingual categories with income/expense/both classification; and add payment methods. Categories and methods already referenced by history are not removed.
+Under **Settings** you can add accounts and close/reopen them; create, edit, and delete bilingual categories with distinct income/expense/both badges; create, edit, and delete payment methods; and manage custom investment types. A small counter before each category or payment method edit button shows how many records use it. An item already referenced by financial history cannot be deleted, preventing orphaned records.
 
-## 11. Language, theme, and preferences
+## 13. Language, theme, and preferences
 
 - **Language → Automatic**: Italian only on an Italian system, English otherwise.
 - **Theme → Automatic**: follows system theme changes in real time.
 - Manual Italian/English and Light/Dark overrides are immediate and persistent.
 - User-authored content is never translated.
 
-## 12. Year rollover
+## 14. Year rollover
 
 1. Ensure another application is not editing the workbook.
 2. In **Settings**, select **Close year** and confirm.
 3. Choose the next-year file location.
 4. Keep and archive the prior file yourself; ContaMì never deletes or moves it.
 
-The new workbook contains categories and methods, active accounts with closing balance as opening balance, active properties/investments with latest valuation carried to January 1, valid active recurring items with the next applicable due date, unsettled shared expenses, and aggregated annual history.
+The new workbook contains categories, methods, investment types, active accounts with closing balance as opening balance, active properties/vehicles/investments, latest property and investment valuations, valid active recurring items with the next applicable due date, and unsettled shared expenses. It also carries aggregate yearly history plus detailed annual actuals for each property (income, expenses, value, and utilities), investment/compartment (value, contributions, and withdrawals), and vehicle (cost categories, distance, and consumption).
 
 It does not contain prior-year individual transactions/movements, closed items, or settled shared expenses. The prior workbook remains the detailed source for that year.
 
-## 13. Workbook and backups
+## 15. Workbook and backups
 
-Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, and `Annual Summaries`. Hidden `_Meta` stores schema version and active year.
+Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v3; v1 and v2 workbooks migrate on opening.
 
 Do not rename sheets or columns if you want ContaMì to reopen the file. You may freely read, copy, and archive it.
 
 Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file.
 
-## 14. Troubleshooting
+## 16. Troubleshooting
+
+### The configured file was moved or deleted
+
+ContaMì still opens and returns to the **Not configured** state without creating a replacement automatically. Use **Open existing workbook** to select its new location or **Create new workbook**. The stale path is removed from preferences; existing backups are not deleted.
 
 ### “Another app changed the workbook”
 
@@ -145,7 +185,7 @@ Close Excel/Numbers and use **Open existing workbook** to reload the on-disk ver
 
 ### Numbers mirror is not updating
 
-The `.xlsx` sidecar is already safe. Close Numbers windows, confirm `/Applications/Numbers.app` exists, and retry. Do not delete the sidecar.
+The `.xlsx` sidecar is already safe. Close Numbers windows and confirm Numbers is installed, including as `/Applications/Numbers Creator Studio.app`; ContaMì identifies it through Apple bundle id `com.apple.Numbers`. Retry without deleting the sidecar.
 
 ### Invalid or oversized file
 
@@ -159,7 +199,7 @@ The local settings file may be missing or invalid. Financial data remains in the
 
 Check transaction account links, recent valuations, active/closed state, workbook year, and consistent currency usage.
 
-## 15. Security and limitations
+## 17. Security and limitations
 
 - Protect workbooks with operating-system permissions, FileVault/BitLocker, and encrypted backups when appropriate.
 - ContaMì does not encrypt workbooks or manage spreadsheet passwords.
@@ -169,6 +209,6 @@ Check transaction account links, recent valuations, active/closed state, workboo
 
 See [SECURITY_MODEL.md](SECURITY_MODEL.md) for technical controls and residual risks.
 
-## 16. Updates and removal
+## 18. Updates and removal
 
 Close ContaMì and keep a workbook copy before updating, then install the new release over the old one. Use the operating system’s standard process to remove the app. User-selected workbooks and backups remain in their folders and are removed only manually.

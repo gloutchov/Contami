@@ -4,8 +4,9 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 import { APP_CONFIG } from "../../config/appConfig";
 import { computeDashboard } from "../../domain/finance";
+import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -23,6 +24,15 @@ function toExcelDate(value: string): Date {
 
 function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
+}
+
+function readTimestampValue(value: ExcelJS.CellValue): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "number") {
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    return new Date(excelEpoch + Math.round(value * 86_400_000)).toISOString();
+  }
+  return readCellValue(value);
 }
 
 function readCellValue(value: ExcelJS.CellValue): unknown {
@@ -64,7 +74,7 @@ function configureDataSheet(sheet: ExcelJS.Worksheet, definition: WorkbookTableD
     }
   });
   for (const column of definition.dateColumns ?? []) sheet.getColumn(column).numFmt = "yyyy-mm-dd";
-  for (const column of ["amount", "openingBalance", "purchasePrice", "ownerShare", "partnerShare", "income", "expenses", "netCashFlow", "closingNetWorth"]) {
+  for (const column of ["amount", "openingBalance", "purchasePrice", "salePrice", "fuelUnitPrice", "cadastralValue", "expectedMonthlyRent", "periodicAmount", "ownerShare", "partnerShare", "income", "expenses", "netCashFlow", "closingNetWorth", "liquidBalance", "propertyValue", "investmentValue", "pensionValue", "monthlyRecurring", "vehicleCosts", "closingValue", "contributions", "withdrawals", "totalCosts", "fuelCosts", "installments", "taxes", "insurance", "tires", "maintenance", "repairs", "electricityCost", "gasCost", "waterCost"]) {
     if (definition.columns.includes(column)) sheet.getColumn(column).numFmt = '#,##0.00 [$€-it-IT]';
   }
   if (definition.columns.includes("ownershipShare")) sheet.getColumn("ownershipShare").numFmt = "0%";
@@ -86,8 +96,10 @@ function addOverview(workbook: ExcelJS.Workbook, data: FinanceData): void {
     ["Liquidity / Liquidità", metrics.liquidBalance, "D4"],
     ["Properties / Immobili", metrics.propertyValue, "A7"],
     ["Investments / Investimenti", metrics.investmentValue, "D7"],
-    ["Year income / Entrate anno", metrics.yearIncome, "A10"],
-    ["Year expenses / Uscite anno", metrics.yearExpenses, "D10"],
+    ["Private pensions / Pensioni integrative", metrics.pensionValue, "A10"],
+    ["Monthly commitments / Impegni mensili", metrics.monthlyRecurring, "D10"],
+    ["Year income / Entrate anno", metrics.yearIncome, "A13"],
+    ["Year expenses / Uscite anno", metrics.yearExpenses, "D13"],
   ];
   for (const [label, value, anchor] of cards) {
     const cell = sheet.getCell(anchor);
@@ -99,12 +111,12 @@ function addOverview(workbook: ExcelJS.Workbook, data: FinanceData): void {
     valueCell.numFmt = '#,##0.00 [$€-it-IT]';
     valueCell.font = { bold: true, size: 18, color: { argb: HEADER_FILL } };
   }
-  sheet.getCell("A14").value = "This overview is refreshed whenever ContaMì saves the workbook.";
-  sheet.getCell("A15").value = "La panoramica viene aggiornata a ogni salvataggio di ContaMì.";
-  sheet.getCell("A17").value = "Schema version";
-  sheet.getCell("B17").value = WORKBOOK_SCHEMA_VERSION;
-  sheet.getCell("D17").value = "Updated";
-  sheet.getCell("E17").value = data.meta.updatedAt;
+  sheet.getCell("A17").value = "This overview is refreshed whenever ContaMì saves the workbook.";
+  sheet.getCell("A18").value = "La panoramica viene aggiornata a ogni salvataggio di ContaMì.";
+  sheet.getCell("A20").value = "Schema version";
+  sheet.getCell("B20").value = WORKBOOK_SCHEMA_VERSION;
+  sheet.getCell("D20").value = "Updated";
+  sheet.getCell("E20").value = data.meta.updatedAt;
 }
 
 function addSchemaSheet(workbook: ExcelJS.Workbook): void {
@@ -114,23 +126,30 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
   const descriptions: Record<string, [string, string]> = {
     Categories: ["Categorie disponibili per classificare le registrazioni.", "Categories available for classifying entries."],
     "Payment Methods": ["Metodi di pagamento selezionabili.", "Selectable payment methods."],
+    "Investment Types": ["Tipologie personalizzabili di investimento.", "Customizable investment types."],
     Accounts: ["Conti e saldi iniziali.", "Accounts and opening balances."],
     Transactions: ["Entrate, uscite e trasferimenti quotidiani.", "Daily income, expenses and transfers."],
     Properties: ["Anagrafica degli immobili.", "Property registry."],
     "Property Entries": ["Entrate, spese, valutazioni e consumi degli immobili.", "Property income, expenses, valuations and consumption."],
-    Investments: ["Anagrafica di investimenti e risparmi.", "Investment and savings registry."],
-    "Investment Entries": ["Versamenti, prelievi, valutazioni, redditi e costi.", "Contributions, withdrawals, valuations, income and fees."],
+    Investments: ["Anagrafica di investimenti e pensioni integrative, con pensioni raccoglitore e comparti collegati.", "Investment and private-pension registry, including pension collectors and linked compartments."],
+    "Investment Entries": ["Versamenti, liquidazioni e valutazioni di investimenti e comparti pensione.", "Contributions, liquidations, and valuations for investments and pension compartments."],
     "Recurring Items": ["Abbonamenti, servizi, rate e versamenti periodici.", "Subscriptions, services, installments and recurring contributions."],
     "Shared Expenses": ["Spese condivise e relativo saldo.", "Shared expenses and related balance."],
+    Vehicles: ["Anagrafica delle automobili attuali e precedenti.", "Registry of current and previous vehicles."],
+    "Vehicle Entries": ["Rifornimenti, rate, bollo, assicurazione, pneumatici, manutenzione e riparazioni.", "Fuel, installments, road tax, insurance, tyres, maintenance and repairs."],
     "Annual Summaries": ["Consuntivi degli anni archiviati.", "Archived annual summaries."],
+    "Property History": ["Consuntivi annuali per immobile, inclusi consumi, costi delle utenze e valore commerciale.", "Annual property actuals, including utility consumption, utility costs, and commercial value."],
+    "Investment History": ["Valori e movimenti annuali per investimento e comparto pensione.", "Annual values and movements for each investment and pension compartment."],
+    "Vehicle History": ["Consuntivi annuali per il confronto tra automobili.", "Annual actuals for comparing vehicles."],
   };
   for (const definition of WORKBOOK_TABLES) {
     const description = descriptions[definition.sheet];
     sheet.addRow([definition.sheet, description[0], description[1]]);
   }
   styleHeader(sheet.getRow(1));
-  sheet.getCell("A15").value = "Do not rename columns if you want to keep the workbook compatible with ContaMì.";
-  sheet.getCell("A16").value = "Non rinominare le colonne se vuoi mantenere il workbook compatibile con ContaMì.";
+  const footerRow = WORKBOOK_TABLES.length + 3;
+  sheet.getCell(`A${footerRow}`).value = "Do not rename columns if you want to keep the workbook compatible with ContaMì.";
+  sheet.getCell(`A${footerRow + 1}`).value = "Non rinominare le colonne se vuoi mantenere il workbook compatibile con ContaMì.";
 }
 
 export class ExcelWorkbookRepository {
@@ -146,7 +165,11 @@ export class ExcelWorkbookRepository {
     metaSheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const key = readCellValue(row.getCell(1).value);
-      if (typeof key === "string") metaValues[key] = readCellValue(row.getCell(2).value);
+      if (typeof key === "string") {
+        metaValues[key] = key === "createdAt" || key === "updatedAt"
+          ? readTimestampValue(row.getCell(2).value)
+          : readCellValue(row.getCell(2).value);
+      }
     });
     const raw: Record<string, unknown> = {
       meta: {
@@ -156,7 +179,9 @@ export class ExcelWorkbookRepository {
         updatedAt: metaValues.updatedAt,
       },
     };
-    for (const definition of WORKBOOK_TABLES) {
+    const schemaVersion = Number(metaValues.schemaVersion);
+    const definitions = schemaVersion === 1 ? WORKBOOK_TABLES_V1 : schemaVersion === 2 ? WORKBOOK_TABLES_V2 : WORKBOOK_TABLES;
+    for (const definition of definitions) {
       const sheet = workbook.getWorksheet(definition.sheet);
       if (!sheet) throw new Error("INVALID_WORKBOOK_SCHEMA");
       const rows: Record<string, unknown>[] = [];
@@ -165,7 +190,10 @@ export class ExcelWorkbookRepository {
         const record: Record<string, unknown> = {};
         let hasValue = false;
         definition.columns.forEach((column, index) => {
-          const value = readCellValue(row.getCell(index + 1).value);
+          const cellValue = row.getCell(index + 1).value;
+          const value = column === "createdAt" || column === "updatedAt"
+            ? readTimestampValue(cellValue)
+            : readCellValue(cellValue);
           if (value !== undefined) {
             record[column] = value;
             hasValue = true;
@@ -175,7 +203,7 @@ export class ExcelWorkbookRepository {
       });
       raw[definition.key] = rows;
     }
-    return financeDataSchema.parse(raw);
+    return migrateFinanceData(raw);
   }
 
   async save(filePath: string, data: FinanceData): Promise<void> {

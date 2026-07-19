@@ -7,7 +7,7 @@
 - Fonte analizzata in sola lettura: `sources/Gestione Conti 2026.numbers`.
 - Il file originale è escluso da Git e dal packaging.
 - L’analisi è stata eseguita localmente; nessun contenuto del documento è stato caricato su servizi remoti.
-- Hash SHA-256 iniziale: `bc225a98c320fff660470ba40c6d84068d1bc4252b8111fd30db53594385b931`.
+- Hash SHA-256 della copia analizzata: `56865720777d894953239b1238e0e545d52320b53e13fe20a7c73a0973a44e19`.
 
 ## Struttura osservata
 
@@ -40,8 +40,8 @@ Il documento contiene undici fogli e numerose tabelle, con queste aree funzional
 
 Il nuovo workbook non replica la disposizione grafica né la proliferazione di tabelle per singolo immobile, mese o investimento. Usa invece tabelle normalizzate con identificativi stabili e colonne coerenti. Dashboard e consuntivi sono viste derivate; la fonte durevole resta leggibile e filtrabile con Numbers, Excel o software compatibile.
 
-## Limiti rilevati
+## Metodo e limiti
 
-- Il file usa un formato Numbers recente che il parser locale segnala come non ancora dichiarato ufficialmente, pur riuscendo a leggerne struttura e valori.
-- Numbers non è installato nell’ambiente di sviluppo corrente: la sincronizzazione nativa `.numbers` dovrà essere testata in CI/manuale su un Mac che disponga dell’app Apple.
+- L’analisi è stata eseguita su una copia tecnica `.xlsx` esportata localmente da Apple Numbers/Numbers Creator Studio; la fonte `.numbers` è rimasta invariata.
+- Le tabelle normalizzate conservano valori e consuntivi, non la grafica o le formule del documento originario.
 - Windows non dispone di Apple Numbers; in quel sistema il formato nativo supportato è `.xlsx`.

@@ -6,6 +6,7 @@ release/
 coverage/
 playwright-report/
 test-results/
+output/
 
 # Local application state and generated workbooks
 *.log
@@ -36,4 +37,3 @@ Thumbs.db
 # Local analysis/tooling
 .playwright-cli/
 .cache/
-

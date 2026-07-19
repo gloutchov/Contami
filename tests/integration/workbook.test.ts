@@ -17,7 +17,7 @@ describe("ExcelWorkbookRepository", () => {
     data.transactions.push({
       id: crypto.randomUUID(), date: "2026-05-10", description: "Test entry",
       categoryId: data.categories[0].id, paymentMethodId: data.paymentMethods[0].id,
-      kind: "income", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
+      kind: "transfer", cashFlowDirection: "outflow", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
     });
     const repository = new ExcelWorkbookRepository();
     await repository.save(filePath, data);
