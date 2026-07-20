@@ -6,6 +6,7 @@ import {
   syncRecurringLink,
   syncRecurringTransactions,
   upsertInvestmentEntryWithLinks,
+  upsertPropertyExpenseWithLinks,
   upsertPropertyEntryWithLinks,
   upsertSharedExpenseWithLinks,
   upsertTransactionWithLinks,
@@ -76,8 +77,22 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
       if (!next.properties.some((item) => item.id === command.value.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
       upsertPropertyEntryWithLinks(next, command.value); break;
     case "updatePropertyEntry": ensureExists(next.propertyEntries, command.value.id); upsertPropertyEntryWithLinks(next, command.value); break;
+    case "addPropertyExpense":
+      ensureUnique(next.propertyEntries, command.value.entry.id);
+      if (!next.properties.some((item) => item.id === command.value.entry.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
+      if (command.value.shared) ensureUnique(next.sharedExpenses, command.value.shared.id);
+      upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
+    case "updatePropertyExpense":
+      ensureExists(next.propertyEntries, command.value.entry.id);
+      upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
     case "addInvestment":
       ensureUnique(next.investments, command.value.id); next.investments.push(command.value); syncInvestmentPlan(next, command.value); break;
+    case "addInvestmentWithInitialContribution":
+      ensureUnique(next.investments, command.value.investment.id);
+      ensureUnique(next.investmentEntries, command.value.initialContribution.id);
+      next.investments.push(command.value.investment);
+      syncInvestmentPlan(next, command.value.investment);
+      upsertInvestmentEntryWithLinks(next, command.value.initialContribution); break;
     case "updateInvestment": replace(next.investments, command.value); syncInvestmentPlan(next, command.value); break;
     case "addInvestmentEntry":
       ensureUnique(next.investmentEntries, command.value.id);

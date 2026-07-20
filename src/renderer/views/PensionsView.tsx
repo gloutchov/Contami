@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FinanceCommand } from "../../domain/commands";
-import { investmentPositionValue, pensionCompartments, pensionInvestmentIds, pensionPlans, portfolioValues } from "../../domain/investments";
+import { confirmedInvestmentEntries, investmentPositionValue, pensionCompartments, pensionInvestmentIds, pensionPlans, portfolioValues } from "../../domain/investments";
 import type { FinanceData, Investment, InvestmentEntry } from "../../domain/models";
 import { DetailDialog } from "../components/DetailDialog";
 import { EmptyState } from "../components/EmptyState";
@@ -28,7 +28,7 @@ export function PensionsView({ data, onSave }: { data: FinanceData; onSave: (com
   const compartments = pensionCompartments(data);
   const pensionIds = pensionInvestmentIds(data);
   const totalValue = portfolioValues(data).pensions;
-  const currentEntries = data.investmentEntries.filter((item) => pensionIds.has(item.investmentId) && item.date.startsWith(String(data.meta.activeYear)));
+  const currentEntries = confirmedInvestmentEntries(data).filter((item) => pensionIds.has(item.investmentId) && item.date.startsWith(String(data.meta.activeYear)));
   const contributions = currentEntries.filter((item) => item.kind === "contribution").reduce((sum, item) => sum + item.amount, 0);
   const withdrawals = currentEntries.filter((item) => item.kind === "withdrawal").reduce((sum, item) => sum + item.amount, 0);
   const selectedIsPension = Boolean(selected && plans.some((item) => item.id === selected.id));

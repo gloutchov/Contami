@@ -55,6 +55,7 @@ ContaMì/
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
+│   │   │   ├── PropertyExpenseForms.tsx # utenze/tasse, consumi e quote condivise
 │   │   │   └── VehicleForms.tsx     # anagrafica automobile e costi/consumi
 │   │   ├── i18n/                       # dizionari IT/EN e provider lingua
 │   │   ├── services/api.ts             # bridge reale + demo locale di sviluppo

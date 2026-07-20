@@ -104,9 +104,13 @@ Apri un immobile dall’elenco e usa **Nuova registrazione** per:
 - valutazioni, cioè valore commerciale a una certa data;
 - consumi, con quantità e unità (per esempio kWh o m³), oltre all’eventuale costo.
 
+Per una valutazione puoi inserire direttamente il valore totale oppure il valore al metro quadro: in questo secondo caso ContaMì usa la superficie dell’anagrafica per calcolare e salvare il totale dell’immobile.
+
+I comandi dedicati **Utenze** e **Tasse** rendono più strutturate le spese ricorrenti dell’abitazione. Utenze comprende Elettricità, Gas, Acqua e Telefono/Internet; per l’elettricità sono disponibili F1, F2, F3 oppure il dato aggregato F2+F3, mentre gas e acqua accettano i metri cubi. Tasse comprende Canone TV, IMU e TARI; IMU e TARI possono essere marcate come pagamento unico, prima rata o seconda rata. Una tassa può essere inclusa nel riepilogo delle Spese comuni degli immobili tramite l’apposita checkbox. Separatamente, ogni costo crea la Transazione collegata e può essere aggiunto anche alle Spese condivise tra persone, indicando pagante e quote.
+
 Per entrate e spese, **Categoria** usa le stesse categorie delle Transazioni e richiede anche il metodo di pagamento. La registrazione viene riportata automaticamente nelle Transazioni; vale anche il percorso opposto.
 
-Il dettaglio può essere filtrato per mese e descrizione e mostra i relativi parziali. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale; quelli affittati mostrano consuntivi e grafico entrate/uscite e segnalano il canone atteso non registrato entro la scadenza. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
+Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sulle date delle registrazioni e segnalano il canone atteso non registrato entro la scadenza. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
 
 ## 7. Automobile
 
@@ -118,11 +122,11 @@ La dashboard mostra costi dell’anno, carburante e percorrenza. Ogni scheda vet
 
 ## 8. Investimenti e risparmio
 
-Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazioni o altre forme di risparmio non pensionistiche. Indica tipologia, gestore, data di apertura ed eventuale investimento padre. Gli investimenti sono raggruppati per tipologia e ogni gruppo mostra il proprio totale.
+Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazioni o altre forme di risparmio non pensionistiche. Indica tipologia, gestore, data di apertura, eventuale investimento padre e, quando disponibile, il versamento iniziale. Il versamento iniziale diventa subito controvalore e genera il trasferimento collegato nelle Transazioni. Gli investimenti sono raggruppati per tipologia e ogni gruppo mostra il proprio totale.
 
 Apri un investimento per il dettaglio. **Nuovo movimento** registra soltanto **Versamento** o **Liquidazione**; **Aggiorna valore** aggiunge invece una valutazione, che alimenta dashboard e patrimonio netto. Puoi modificare e cancellare investimenti e movimenti con conferma.
 
-Un versamento/liquidazione genera un trasferimento collegato con uscita/entrata dalla liquidità; una transazione associata a un investimento genera il movimento corrispondente. Il dettaglio confronta cifra investita e controvalore usando tutte le osservazioni datate disponibili, non soltanto l’ultimo valore annuale. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
+Un versamento/liquidazione genera un trasferimento collegato con uscita/entrata dalla liquidità; una transazione associata a un investimento genera il movimento corrispondente. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non lo modificano. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
 
 ContaMì è uno strumento di registrazione, non fornisce consulenza finanziaria né quotazioni di mercato.
 
@@ -133,7 +137,7 @@ La sezione **Pensione integrativa** è separata dagli altri investimenti e usa d
 - **Crea pensione** aggiunge il raccoglitore principale, per esempio **Fondo Pensione Fideuram**;
 - **Crea comparto** aggiunge una posizione associata a una pensione esistente, per esempio **Linea Equilibrio**, **Linea Crescita** o **Linea Valore**.
 
-Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni e mostra il grafico cifra investita/controvalore; il raccoglitore aggrega le stesse serie dei comparti. Può inoltre avere un versamento periodico collegato automaticamente a Ricorrenze e Transazioni.
+Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni: il controvalore include i movimenti confermati, usa le valutazioni come nuovo riferimento e il raccoglitore aggrega le stesse serie senza duplicarle. Può inoltre avere un versamento periodico collegato automaticamente a Ricorrenze e Transazioni.
 
 Nel workbook pensioni e comparti restano nella tabella `Investments`, identificati dal tipo pensione e dalla relazione padre/figlio. In questo modo i file già creati restano compatibili e leggibili senza migrazioni distruttive.
 

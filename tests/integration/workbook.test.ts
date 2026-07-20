@@ -19,6 +19,12 @@ describe("ExcelWorkbookRepository", () => {
       categoryId: data.categories[0].id, paymentMethodId: data.paymentMethods[0].id,
       kind: "transfer", cashFlowDirection: "outflow", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
     });
+    const propertyId = crypto.randomUUID();
+    data.properties.push({ id: propertyId, name: "Synthetic home", kind: "apartment", usage: "residence", areaSqm: 80, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
+    data.propertyEntries.push({
+      id: crypto.randomUUID(), propertyId, date: "2026-06-01", kind: "valuation", category: "Valutazione",
+      description: "Value per square metre", amount: 240_000, valuePerSqm: 3_000, notes: "",
+    });
     const repository = new ExcelWorkbookRepository();
     await repository.save(filePath, data);
     const loaded = await repository.load(filePath);

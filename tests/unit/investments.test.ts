@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyFinanceCommand, computeDashboard, createAnnualSummary, createEmptyFinanceData } from "../../src/domain/finance";
-import { pensionCompartments, pensionPlans, portfolioValues, regularInvestments, selectableFinancialPositions } from "../../src/domain/investments";
+import { investmentPositionValue, pensionCompartments, pensionPlans, portfolioValues, regularInvestments, selectableFinancialPositions } from "../../src/domain/investments";
 
 describe("investment and private-pension classification", () => {
   it("applies investment transfers to liquidity without treating them as income or expenses", () => {
@@ -43,6 +43,27 @@ describe("investment and private-pension classification", () => {
     expect(portfolioValues(data)).toEqual({ investments: 30_000, pensions: 20_000, combined: 50_000 });
     expect(computeDashboard(data)).toMatchObject({ investmentValue: 30_000, pensionValue: 20_000, netWorth: 50_000 });
     expect(createAnnualSummary(data)).toMatchObject({ investmentValue: 30_000, pensionValue: 20_000 });
+  });
+
+  it("updates investment and pension countervalues with movements around valuations", () => {
+    const data = createEmptyFinanceData(2026);
+    const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")!.id;
+    const pensionId = crypto.randomUUID();
+    const compartmentId = crypto.randomUUID();
+    data.investments.push(
+      { id: pensionId, name: "Pension", kind: "pension", typeId: pensionTypeId, provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "" },
+      { id: compartmentId, name: "Compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId, provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "" },
+    );
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2026-01-10", kind: "contribution", amount: 1_000, description: "Initial", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2026-02-10", kind: "valuation", amount: 1_080, description: "Value", notes: "" },
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2026-03-10", kind: "contribution", amount: 200, description: "Extra", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2026-04-10", kind: "withdrawal", amount: 80, description: "Withdrawal", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+    );
+
+    expect(investmentPositionValue(data, data.investments.find((item) => item.id === compartmentId)!)).toBe(1_200);
+    expect(investmentPositionValue(data, data.investments[0])).toBe(1_200);
+    expect(portfolioValues(data).pensions).toBe(1_200);
   });
 
   it("closes a pension collector together with its compartments", () => {

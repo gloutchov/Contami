@@ -1,5 +1,5 @@
 import { createInvestmentAnnualSummaries } from "../../domain/annualHistory";
-import { investmentChildren } from "../../domain/investments";
+import { confirmedInvestmentEntries, investmentChildren } from "../../domain/investments";
 import type { FinanceData } from "../../domain/models";
 
 export interface InvestmentHistoryPoint {
@@ -19,7 +19,7 @@ export interface InvestmentTimelinePoint {
 function ownHistory(data: FinanceData, investmentId: string): InvestmentHistoryPoint[] {
   const current = createInvestmentAnnualSummaries(data).find((item) => item.investmentId === investmentId);
   const byYear = new Map(data.investmentAnnualSummaries.filter((item) => item.investmentId === investmentId).map((item) => [item.year, item]));
-  const hasCurrentEntries = data.investmentEntries.some((item) => item.investmentId === investmentId && item.date.startsWith(String(data.meta.activeYear)));
+  const hasCurrentEntries = confirmedInvestmentEntries(data, investmentId).some((item) => item.date.startsWith(String(data.meta.activeYear)));
   if (current && hasCurrentEntries) byYear.set(current.year, current);
   let investedValue = 0;
   return [...byYear.values()].sort((a, b) => a.year - b.year).map((item) => {
@@ -52,8 +52,7 @@ export function investmentValueHistory(data: FinanceData, investmentId: string):
 }
 
 function ownTimeline(data: FinanceData, investmentId: string): InvestmentTimelinePoint[] {
-  const entries = data.investmentEntries
-    .filter((item) => item.investmentId === investmentId)
+  const entries = confirmedInvestmentEntries(data, investmentId)
     .sort((a, b) => a.date.localeCompare(b.date) || ({ contribution: 0, withdrawal: 1, valuation: 2 }[a.kind] - { contribution: 0, withdrawal: 1, valuation: 2 }[b.kind]));
   const entryYears = new Set(entries.map((item) => Number(item.date.slice(0, 4))));
   const events = [
@@ -70,8 +69,13 @@ function ownTimeline(data: FinanceData, investmentId: string): InvestmentTimelin
       if ("summary" in event) {
         investedValue = Math.max(0, investedValue + event.summary.contributions - event.summary.withdrawals);
         closingValue = event.summary.closingValue;
-      } else if (event.entry.kind === "contribution") investedValue += event.entry.amount;
-      else if (event.entry.kind === "withdrawal") investedValue = Math.max(0, investedValue - event.entry.amount);
+      } else if (event.entry.kind === "contribution") {
+        investedValue += event.entry.amount;
+        closingValue += event.entry.amount;
+      } else if (event.entry.kind === "withdrawal") {
+        investedValue = Math.max(0, investedValue - event.entry.amount);
+        closingValue = Math.max(0, closingValue - event.entry.amount);
+      }
       else closingValue = event.entry.amount;
     }
     points.push({ date, investedValue, closingValue });

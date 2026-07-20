@@ -17,6 +17,33 @@ import {
 
 const entityId = z.string().uuid();
 const month = z.string().regex(/^\d{4}-\d{2}$/);
+const commandMoney = z.number().finite().nonnegative().max(1_000_000_000_000);
+const sharedSplitSchema = z.object({
+  id: entityId,
+  ownerShare: commandMoney,
+  partnerShare: commandMoney,
+  paidBy: z.enum(["owner", "partner"]),
+  settled: z.boolean(),
+});
+const propertyExpenseBundleSchema = z.object({
+  entry: propertyEntrySchema,
+  shared: sharedSplitSchema.optional(),
+}).superRefine((value, context) => {
+  if (value.entry.kind !== "expense" || value.entry.amount <= 0) {
+    context.addIssue({ code: "custom", message: "A bundled property expense must be a positive expense", path: ["entry", "amount"] });
+  }
+  if (value.shared && Math.abs(value.shared.ownerShare + value.shared.partnerShare - value.entry.amount) > 0.01) {
+    context.addIssue({ code: "custom", message: "The two shares must match the property expense", path: ["shared", "partnerShare"] });
+  }
+});
+const investmentWithInitialContributionSchema = z.object({
+  investment: investmentSchema,
+  initialContribution: investmentEntrySchema,
+}).superRefine((value, context) => {
+  if (value.initialContribution.investmentId !== value.investment.id || value.initialContribution.kind !== "contribution" || value.initialContribution.amount <= 0) {
+    context.addIssue({ code: "custom", message: "The initial contribution must be positive and linked to the new investment", path: ["initialContribution"] });
+  }
+});
 
 export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("addTransaction"), value: transactionSchema }),
@@ -27,7 +54,10 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("updateProperty"), value: propertySchema }),
   z.object({ type: z.literal("addPropertyEntry"), value: propertyEntrySchema }),
   z.object({ type: z.literal("updatePropertyEntry"), value: propertyEntrySchema }),
+  z.object({ type: z.literal("addPropertyExpense"), value: propertyExpenseBundleSchema }),
+  z.object({ type: z.literal("updatePropertyExpense"), value: propertyExpenseBundleSchema }),
   z.object({ type: z.literal("addInvestment"), value: investmentSchema }),
+  z.object({ type: z.literal("addInvestmentWithInitialContribution"), value: investmentWithInitialContributionSchema }),
   z.object({ type: z.literal("updateInvestment"), value: investmentSchema }),
   z.object({ type: z.literal("addInvestmentEntry"), value: investmentEntrySchema }),
   z.object({ type: z.literal("updateInvestmentEntry"), value: investmentEntrySchema }),
