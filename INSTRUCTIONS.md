@@ -91,9 +91,11 @@ Linking a transaction to a property, investment, or shared expense creates/updat
 
 Use **New property** for name, type, use (residence, rental, or other), address, area, ownership share, cadastral value, purchase date/price, and notes. A rental can also define expected rent and due day.
 
-Open a property and choose **New entry** for income, expense, valuation, or consumption. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too.
+Open a property and choose **New entry** for income, expense, valuation, or consumption. A valuation accepts either the total value or a per-square-metre value calculated against the property floor area. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too.
 
-Details can be filtered by month and description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property shows commercial-value history; rentals also show income/expense actuals and trends and flag overdue expected rent.
+Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. Use **Taxes** for TV licence, IMU, and TARI, with single/first/second-instalment markers where applicable. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
+
+Details can be filtered across all twelve months of the active year and by description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent.
 
 ## 7. Vehicles
 
@@ -105,11 +107,11 @@ The dashboard shows current-year costs, fuel, and distance. Each vehicle card sh
 
 ## 8. Investments and savings
 
-**New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, and an optional parent/group. Investments are grouped by customizable type, with a subtotal for each group.
+**New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, optional parent/group, and an optional initial contribution. The initial contribution immediately establishes countervalue and creates its linked Transaction. Investments are grouped by customizable type, with a subtotal for each group.
 
 Open an investment for its detail. **New movement** records only **Contribution** or **Liquidation**; **Update value** adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
 
-A contribution/liquidation creates a linked cash-outflow/inflow transfer; a transaction assigned to an investment creates its movement. Detail charts compare invested amount with countervalue using every dated observation available, rather than only the last point in each year. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
+A contribution/liquidation creates a linked cash-outflow/inflow transfer; a transaction assigned to an investment creates its movement. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions do not change it. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
 
 ContaMì is a record-keeping tool. It does not provide financial advice or market prices.
 
@@ -120,7 +122,7 @@ The **Private pension** section is separate from other investments and uses two 
 - **Create pension** adds the main collector, such as **Fondo Pensione Fideuram**;
 - **Create compartment** adds a position associated with an existing pension, such as **Linea Equilibrio**, **Linea Crescita**, or **Linea Valore**.
 
-The pension card totals its active compartments without duplication. Each compartment keeps valuations, contributions, and liquidations and charts invested amount against countervalue; the collector aggregates those compartment series. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
+The pension card totals its active compartments without duplication. Each compartment countervalue includes confirmed contributions and liquidations, with each valuation establishing a new reference value; the collector aggregates those compartment series without duplication. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
 
 In the workbook, pensions and compartments remain in the `Investments` table, identified by the reserved pension type and parent/child relationship. Existing workbooks therefore remain compatible and readable without a destructive migration.
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyFinanceData } from "../../src/domain/finance";
 import { investmentValueHistory, investmentValueTimeline } from "../../src/renderer/utils/investmentHistory";
-import { filterPropertyEntries, propertyEntryMonths } from "../../src/renderer/utils/propertyHistory";
+import { calculatePropertyValuation, filterPropertyEntries, propertyCashFlowTimeline, propertyEntryMonths, propertyValueTimeline } from "../../src/renderer/utils/propertyHistory";
 import { vehicleCostComparison, vehicleHistory, vehicleLifetimeSummary } from "../../src/renderer/utils/vehicleHistory";
 
 describe("historical view helpers", () => {
@@ -12,8 +12,42 @@ describe("historical view helpers", () => {
       { id: crypto.randomUUID(), propertyId, date: "2026-01-10", kind: "expense" as const, category: "Luce", description: "Bolletta", amount: 50, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-02-10", kind: "expense" as const, category: "Gas", description: "Bolletta", amount: 60, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
     ];
-    expect(propertyEntryMonths(entries)).toEqual(["2026-02", "2026-01"]);
+    expect(propertyEntryMonths(2026)).toEqual([
+      "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06",
+      "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12",
+    ]);
     expect(filterPropertyEntries(entries, "2026-02", "gas")).toEqual([entries[1]]);
+  });
+
+  it("calculates a total property valuation from its floor area", () => {
+    const data = createEmptyFinanceData(2026);
+    const property = { id: crypto.randomUUID(), name: "Home", kind: "apartment" as const, usage: "residence" as const, areaSqm: 92, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" };
+    expect(calculatePropertyValuation(property, "sqm", 0, 3_250)).toBe(299_000);
+    expect(calculatePropertyValuation(property, "total", 310_000, 0)).toBe(310_000);
+    expect(calculatePropertyValuation(undefined, "sqm", 0, 3_250)).toBe(0);
+    data.properties.push(property);
+  });
+
+  it("keeps dated property valuations and cash flows on adaptive timelines", () => {
+    const data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    data.properties.push({ id: propertyId, name: "Home", kind: "apartment", usage: "rental", purchaseDate: "2025-10-01", purchasePrice: 200_000, ownershipShare: 1, active: true, notes: "" });
+    data.propertyEntries.push(
+      { id: crypto.randomUUID(), propertyId, date: "2026-01-15", kind: "valuation", category: "Valutazione", description: "First value", amount: 210_000, notes: "" },
+      { id: crypto.randomUUID(), propertyId, date: "2026-07-20", kind: "valuation", category: "Valutazione", description: "Second value", amount: 225_000, notes: "" },
+      { id: crypto.randomUUID(), propertyId, date: "2026-07-05", kind: "income", category: "Rent", description: "Rent", amount: 900, categoryId: data.categories[1].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), propertyId, date: "2026-07-18", kind: "expense", category: "Maintenance", description: "Maintenance", amount: 150, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+    );
+
+    expect(propertyValueTimeline(data, propertyId)).toEqual([
+      { date: "2025-10-01", commercialValue: 200_000 },
+      { date: "2026-01-15", commercialValue: 210_000 },
+      { date: "2026-07-20", commercialValue: 225_000 },
+    ]);
+    expect(propertyCashFlowTimeline(data, propertyId)).toEqual([
+      { date: "2026-07-05", income: 900, expenses: 0 },
+      { date: "2026-07-18", income: 0, expenses: 150 },
+    ]);
   });
 
   it("carries forward compartment values in an aggregated pension history", () => {

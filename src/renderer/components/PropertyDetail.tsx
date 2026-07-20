@@ -2,7 +2,7 @@ import { Pencil, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
 import { formatCurrency, formatDate } from "../utils/format";
-import { filterPropertyEntries, propertyEntryMonths, propertyHistory } from "../utils/propertyHistory";
+import { filterPropertyEntries, propertyCashFlowTimeline, propertyEntryMonths, propertyHistory, propertyValueTimeline } from "../utils/propertyHistory";
 import { summarizeResidenceEntries } from "../utils/propertyIndicators";
 import { useI18n } from "../i18n/I18nContext";
 import { HistoryChart } from "./HistoryChart";
@@ -24,13 +24,15 @@ export function PropertyDetail({
   const [search, setSearch] = useState("");
   const entries = useMemo(() => data.propertyEntries.filter((item) => item.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [data.propertyEntries, property.id]);
   const filtered = useMemo(() => filterPropertyEntries(entries, month, search), [entries, month, search]);
-  const months = useMemo(() => propertyEntryMonths(entries), [entries]);
+  const months = useMemo(() => propertyEntryMonths(data.meta.activeYear), [data.meta.activeYear]);
   const history = useMemo(() => propertyHistory(data, property.id), [data, property.id]);
+  const valueTimeline = useMemo(() => propertyValueTimeline(data, property.id), [data, property.id]);
+  const cashFlowTimeline = useMemo(() => propertyCashFlowTimeline(data, property.id), [data, property.id]);
   const currentIndicators = summarizeResidenceEntries(entries, data.meta.activeYear);
   const filteredIncome = filtered.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
   const filteredExpenses = filtered.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
   const current = history.find((item) => item.year === data.meta.activeYear);
-  const commercialValue = current?.closingValue ?? property.purchasePrice;
+  const commercialValue = valueTimeline.at(-1)?.commercialValue ?? property.purchasePrice;
   const monthLabel = (value: string) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}-01T12:00:00Z`));
 
   return <>
@@ -54,10 +56,10 @@ export function PropertyDetail({
 
     {property.usage === "rental" && <>
       <div className="type-totals property-detail-totals"><span><small>{t("commercialValue")}</small><strong>{formatCurrency(commercialValue * property.ownershipShare, language)}</strong></span><span><small>{t("income")}</small><strong>{formatCurrency(current?.income ?? 0, language)}</strong></span><span><small>{t("expenses")}</small><strong>{formatCurrency(current?.expenses ?? 0, language)}</strong></span></div>
-      <section className="detail-history-section"><h3>{t("propertyIncomeExpenseHistory")}</h3><HistoryChart ariaLabel={t("propertyIncomeExpenseHistory")} type="bar" data={history.map((item) => ({ year: item.year, income: item.income, expenses: item.expenses }))} series={[{ key: "income", label: t("income"), color: "#72d5b0" }, { key: "expenses", label: t("expenses"), color: "#f48572" }]} format={(value) => formatCurrency(value, language)} /></section>
+      <section className="detail-history-section"><h3>{t("propertyIncomeExpenseHistory")}</h3><HistoryChart ariaLabel={t("propertyIncomeExpenseHistory")} type="bar" data={cashFlowTimeline} xKey="date" xTickFormatter={(value) => formatDate(String(value), language)} series={[{ key: "income", label: t("income"), color: "#72d5b0" }, { key: "expenses", label: t("expenses"), color: "#f48572" }]} format={(value) => formatCurrency(value, language)} /></section>
     </>}
 
-    <section className="detail-history-section"><h3>{t("commercialValueHistory")}</h3><HistoryChart ariaLabel={t("commercialValueHistory")} data={history.map((item) => ({ year: item.year, commercialValue: item.closingValue * property.ownershipShare }))} series={[{ key: "commercialValue", label: t("commercialValue"), color: "#ffb842" }]} format={(value) => formatCurrency(value, language)} /></section>
+    <section className="detail-history-section"><h3>{t("commercialValueHistory")}</h3><HistoryChart ariaLabel={t("commercialValueHistory")} data={valueTimeline.map((item) => ({ ...item, commercialValue: item.commercialValue * property.ownershipShare }))} xKey="date" xTickFormatter={(value) => formatDate(String(value), language)} series={[{ key: "commercialValue", label: t("commercialValue"), color: "#ffb842" }]} format={(value) => formatCurrency(value, language)} /></section>
 
     <section className="detail-filters" aria-label={t("filters")}>
       <label className="search-field"><Search size={16}/><input aria-label={t("searchByDescription")} placeholder={t("searchByDescription")} value={search} onChange={(event) => setSearch(event.target.value)} /></label>

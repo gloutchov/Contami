@@ -19,18 +19,24 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 ## Strategia Git e versioni
 
-| Milestone | Branch previsto | Versione | Stato |
+Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il numero della milestone né la percentuale aritmetica di codice scritto. Una versione viene promossa soltanto dopo la revisione dei criteri di accettazione pertinenti; le correzioni che non cambiano checkpoint incrementano la patch. La `v1.0.0` resta la prima release stabile installabile e verificata su macOS e Windows.
+
+La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
+
+| Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
 | M0 — Piano e analisi | `milestone/00-plan-and-discovery` | `0.0.0` | Completata |
 | M1 — Fondazioni dell’app | `milestone/01-foundation` | `0.1.0` | Completata; CI macOS/Windows verde |
-| M2 — Motore dati spreadsheet-first | `milestone/02-spreadsheet-engine` | `0.2.0` | Funzionale; collaudo Numbers pendente |
-| M3 — Flussi finanziari principali | `milestone/03-finance-workflows` | `0.4.0` | Funzionale |
-| M4 — Dashboard e reporting | `milestone/04-dashboards` | `0.6.0` | Funzionale |
-| M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | `0.8.0` | Funzionale e testata |
+| M2 — Motore dati spreadsheet-first | `milestone/02-spreadsheet-engine` | `0.2.0` | Completata; adattatore Numbers collaudato |
+| M3 — Flussi finanziari principali | `milestone/03-finance-workflows` | `0.4.0` | Completata |
+| M4 — Dashboard e reporting | `milestone/04-dashboards` | `0.6.0` | Completata |
+| M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | confluisce in `0.8.0` | Completata e testata |
+| M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | In corso |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso |
-| M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.2.0` | Completata; CI verde e tag `v0.2.0` |
-| M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata |
+| M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata e subordinata al gate provider/privacy |
+
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → funzionalità di rete opzionali `v1.1.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -294,6 +300,8 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 
 ## Checklist obbligatoria di chiusura per ogni milestone
 
+La checklist seguente è un gate riutilizzabile da verificare alla chiusura di ciascuna milestone; non è il registro cumulativo dello stato del progetto. Gli esiti effettivi sono riportati nella tabella e nei registri di avanzamento.
+
 - [ ] Branch milestone creato.
 - [ ] Implementazione e migrazioni completate.
 - [ ] Lint, typecheck e test pertinenti eseguiti.
@@ -317,7 +325,7 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 - M2: schema workbook aggiornato alla v2 con 15 fogli, lettura/migrazione v1, round-trip validato, scrittura temporanea e rilettura, backup (10), rollback e rilevamento modifiche esterne. Il mirror `.numbers` è stato collaudato con successo sulla nuova installazione **Numbers Creator Studio**, rilevata tramite bundle id `com.apple.Numbers`.
 - M3/M4: inserimenti guidati, CRUD controllato, dettagli, filtri e dashboard generale/tematiche completati; chiusura/riapertura logica e transazioni pianificate da ricorrenze implementate.
 - M5: rollover estratto in funzione di dominio e coperto da casi di test per saldi, posizioni attive, valutazioni, ricorrenze e spese condivise.
-- M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete implementati; audit npm 0 vulnerabilità; 21 test automatici passano localmente. Restano da completare misure prestazionali su dataset molto ampi e la nuova verifica CI del branch M8.
+- M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete implementati; audit npm 0 vulnerabilità e CI M8 verde. Restano da completare misure prestazionali su dataset molto ampi, smoke test finali dei pacchetti installati e revisione conclusiva di accessibilità e supply chain per il checkpoint `v0.9.0`.
 - M7: repository privato e workflow CI/release macOS+Windows con checksum configurati; CI cross-platform verde nel run `29643193163`. Per scelta progettuale le preview sono prodotte senza certificati e senza firma ad-hoc del bundle. Il crash del primo bundle Apple Silicon dipendeva dai metadati Unicode del pacchetto, non da Gatekeeper: bundle, metadati tecnici ed eseguibile usano `Contami`, mentre logo, titolo e UI mantengono `ContaMì`. Il bundle ARM non firmato supera lo smoke locale mantenendo l’Hardened Runtime predefinito. Manuali e note release documentano Gatekeeper, SmartScreen e Smart App Control senza suggerire di disattivare globalmente le protezioni. La preview `v0.1.0` precede la futura stabile `v1.0.0`.
 - M8: schema v3 con migrazione v1/v2, sincronizzazione bidirezionale, CRUD, filtri/parziali, viste di dettaglio, dashboard storiche, grafici dei consumi domestici e sezione Automobile completati. Investimenti e Pensione Integrativa restano aree distinte; il rollover conserva consuntivi dettagliati per immobile/utenza, investimento/comparto e veicolo. Il workbook personale 2026 è stato ricostruito localmente dalla nuova copia Numbers, validato con rilettura dell’adapter applicativo e mantenuto escluso da Git e release; nessun dato reale è usato nei test o nella documentazione. Preflight locale completato con 29 test automatici, build renderer/Electron, controllo documenti, audit npm senza vulnerabilità e verifica Playwright IT/EN, chiaro/scuro a 1080 px senza errori console. CI cross-platform verde sul branch nel run `29694831210` e su `main` nel run `29694927686`; la versione è marcata dal tag `v0.2.0` e resta non firmata come documentato.
 - M9: registrate come funzionalità future la stima immobiliare automatica €/m² e i grafici di mercato tramite ISIN; l’implementazione resta subordinata alla scelta consapevole dei provider e delle condizioni di privacy/licenza.
@@ -333,6 +341,16 @@ ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che
 - Spese condivise: l’importazione privata è stata ricostruita dai dodici prospetti mensili `SPESE ORDINARIE`, riconciliando le quote al centesimo e collegando soltanto le corrispondenze certe con le Transazioni.
 - Investimenti e Pensione Integrativa: i grafici cifra investita/controvalore usano tutte le valutazioni e i movimenti datati disponibili, con etichette temporali compatte e aggregazione dei comparti.
 - Automobile: il confronto usa i nomi delle vetture sull’asse X e il costo/km sull’asse Y; per la vettura corrente distanza e costi provengono dalle registrazioni di dettaglio, mentre i consuntivi storici restano disponibili per le vetture precedenti.
+
+## Revisione del piano — 2026-07-20
+
+- Ripristinata la progressione di maturità originaria: la `v0.2.0` resta la preview storica precedente e il perimetro funzionale completato con M8 è stato promosso alla `v0.8.0`; `v0.9.0` e `v1.0.0` restano rispettivamente i gate di hardening e stabilità installabile.
+- Corretti gli stati superati: il mirror Numbers e la CI M8 risultano collaudati; la checklist generale è esplicitamente un modello di gate e non un elenco globale di attività ancora aperte.
+- `npm install` conclude con 0 vulnerabilità note ma segnala pacchetti transitivi deprecati. Le catene correnti partono da `exceljs` (`lodash.isequal`, `fstream`, `rimraf`, `glob`, `inflight`) e dalla toolchain `electron-builder` (`boolean`, `rimraf`, `glob`, `inflight`); nessuno di questi pacchetti è una dipendenza diretta di ContaMì. Il gate `v0.9.0` deve rivalutare gli aggiornamenti upstream o alternative compatibili senza usare override non verificati.
+- npm richiede inoltre di autorizzare consapevolmente gli script di installazione di `esbuild` e `electron-winstaller`; la decisione e l’eventuale configurazione riproducibile vanno verificate insieme alla build e al packaging, senza approvazioni automatiche indiscriminate.
+- Revisione applicativa `v0.8.0`: corretti controvalori di investimenti e comparti pensione includendo movimenti confermati e valutazioni in ordine temporale; aggiunto il versamento iniziale con Transazione collegata e limitato il badge Ricorrente ai soli collegamenti espliciti.
+- Immobili: aggiunta valutazione per totale o €/m²; introdotti flussi dedicati Utenze (fasce F1/F2/F3/F2+F3, m³ gas/acqua) e Tasse (Canone TV, IMU, TARI, numero rata e checkbox per il riepilogo delle Spese comuni), collegati atomicamente a Transazioni e opzionalmente a Spese condivise tra persone. I dettagli propongono tutti i dodici mesi e i grafici di valore commerciale ed entrate/uscite seguono le date effettive degli inserimenti.
+- Preflight della revisione completato con lint, typecheck, build renderer/Electron e 42 test automatici; controllo documentale superato. La verifica visiva interattiva delle nuove modali resta da ripetere quando è disponibile un browser integrato o sull'app Electron locale.
 
 ## Rischi e mitigazioni iniziali
 

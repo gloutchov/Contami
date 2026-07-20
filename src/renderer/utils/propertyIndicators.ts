@@ -6,7 +6,7 @@ const matches = (item: PropertyEntry, tokens: string[]) => tokens.some((token) =
 export function summarizeResidenceEntries(entries: PropertyEntry[], year: number) {
   const current = entries.filter((item) => item.date.startsWith(String(year)));
   const consumption = (...tokens: string[]) => current
-    .filter((item) => item.kind === "consumption" && matches(item, tokens))
+    .filter((item) => (item.kind === "consumption" || item.detailKind?.startsWith("utility_")) && matches(item, tokens))
     .reduce((sum, item) => sum + (item.quantity ?? 0), 0);
   const expense = (...tokens: string[]) => current
     .filter((item) => item.kind === "expense" && matches(item, tokens))
@@ -19,7 +19,7 @@ export function summarizeResidenceEntries(entries: PropertyEntry[], year: number
     electricityCost: expense("electric", "luce"),
     gasCost: expense("gas"),
     waterCost: expense("water", "acqua"),
-    condominium: expense("condomin"),
+    condominium: expense("condomin", "spese comuni", "common expense"),
     phoneInternet: expense("telefono", "internet", "phone", "broadband"),
     tvLicence: expense("canone tv", "canone rai", "tv licence", "tv license"),
   };

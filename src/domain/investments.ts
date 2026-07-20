@@ -27,10 +27,21 @@ export function investmentChildren(data: FinanceData, investmentId: string, acti
   return data.investments.filter((item) => item.parentInvestmentId === investmentId && (!activeOnly || item.active));
 }
 
+export function confirmedInvestmentEntries(data: FinanceData, investmentId?: string) {
+  const plannedTransactionIds = new Set(data.transactions.filter((item) => item.planned).map((item) => item.id));
+  return data.investmentEntries.filter((entry) => (!investmentId || entry.investmentId === investmentId)
+    && (!entry.transactionId || !plannedTransactionIds.has(entry.transactionId)));
+}
+
 export function latestInvestmentValue(data: FinanceData, investmentId: string): number {
-  return [...data.investmentEntries]
-    .filter((entry) => entry.investmentId === investmentId && entry.kind === "valuation")
-    .sort((left, right) => right.date.localeCompare(left.date))[0]?.amount ?? 0;
+  const order = { contribution: 0, withdrawal: 1, valuation: 2 } as const;
+  return confirmedInvestmentEntries(data, investmentId)
+    .sort((left, right) => left.date.localeCompare(right.date) || order[left.kind] - order[right.kind])
+    .reduce((value, entry) => {
+      if (entry.kind === "contribution") return value + entry.amount;
+      if (entry.kind === "withdrawal") return Math.max(0, value - entry.amount);
+      return entry.amount;
+    }, 0);
 }
 
 export function investmentPositionValue(data: FinanceData, investment: Investment): number {

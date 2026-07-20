@@ -1,6 +1,14 @@
 import type { FinanceData, Investment, InvestmentEntry, PropertyEntry, RecurringItem, SharedExpense, Transaction, VehicleEntry } from "./models";
 import { catalogUsageCount } from "./catalogUsage";
 
+export interface SharedExpenseSplit {
+  id: string;
+  ownerShare: number;
+  partnerShare: number;
+  paidBy: SharedExpense["paidBy"];
+  settled: boolean;
+}
+
 const nowIso = () => new Date().toISOString();
 const randomUUID = () => globalThis.crypto.randomUUID();
 
@@ -120,6 +128,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
   if (transaction.propertyId && transaction.kind !== "transfer") {
     const existing = data.propertyEntries.find((item) => item.id === transaction.propertyEntryId || item.transactionId === transaction.id);
     const entry: PropertyEntry = {
+      ...existing,
       id: existing?.id ?? randomUUID(), propertyId: transaction.propertyId, date: transaction.date,
       kind: transaction.kind, category: categoryName(data, transaction.categoryId), categoryId: transaction.categoryId,
       description: transaction.description, amount: transaction.amount, paymentMethodId: transaction.paymentMethodId,
@@ -171,11 +180,16 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
   }
   if (transaction.shared && transaction.kind === "expense") {
     const existing = data.sharedExpenses.find((item) => item.id === transaction.sharedExpenseId || item.transactionId === transaction.id);
-    const ownerShare = Math.round(transaction.amount * 50) / 100;
+    const ownerRatio = existing && existing.amount > 0 ? existing.ownerShare / existing.amount : 0.5;
+    const ownerShare = existing && Math.abs(existing.amount - transaction.amount) <= 0.01
+      ? existing.ownerShare
+      : Math.round(transaction.amount * ownerRatio * 100) / 100;
     const entry: SharedExpense = {
       id: existing?.id ?? randomUUID(), date: transaction.date, description: transaction.description,
       categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, amount: transaction.amount,
-      ownerShare, partnerShare: Math.round((transaction.amount - ownerShare) * 100) / 100,
+      ownerShare, partnerShare: existing && Math.abs(existing.amount - transaction.amount) <= 0.01
+        ? existing.partnerShare
+        : Math.round((transaction.amount - ownerShare) * 100) / 100,
       paidBy: transaction.sharedPaidBy ?? "owner", settled: transaction.sharedSettled ?? false, transactionId: transaction.id, notes: transaction.notes,
     };
     replaceOrAdd(data.sharedExpenses, entry);
@@ -197,6 +211,30 @@ export function upsertPropertyEntryWithLinks(data: FinanceData, value: PropertyE
     data.transactions = data.transactions.filter((item) => item.id !== previous.transactionId);
     value.transactionId = undefined;
     replaceOrAdd(data.propertyEntries, value);
+  }
+}
+
+export function upsertPropertyExpenseWithLinks(data: FinanceData, value: PropertyEntry, shared?: SharedExpenseSplit): void {
+  upsertPropertyEntryWithLinks(data, value);
+  const transaction = data.transactions.find((item) => item.id === value.transactionId || item.propertyEntryId === value.id);
+  if (!transaction) throw new Error("TRANSACTION_NOT_FOUND");
+  if (shared) {
+    upsertSharedExpenseWithLinks(data, {
+      id: shared.id,
+      date: value.date,
+      description: value.description,
+      categoryId: value.categoryId!,
+      paymentMethodId: value.paymentMethodId!,
+      amount: value.amount,
+      ownerShare: shared.ownerShare,
+      partnerShare: shared.partnerShare,
+      paidBy: shared.paidBy,
+      settled: shared.settled,
+      transactionId: transaction.id,
+      notes: value.notes,
+    });
+  } else if (transaction.shared || transaction.sharedExpenseId) {
+    upsertTransactionWithLinks(data, { ...transaction, shared: false, sharedExpenseId: transaction.sharedExpenseId });
   }
 }
 
@@ -331,35 +369,36 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
   if (entity === "propertyEntry") {
     const item = data.propertyEntries.find((candidate) => candidate.id === id);
     if (!item) throw new Error("ENTITY_NOT_FOUND");
-    data.propertyEntries = data.propertyEntries.filter((candidate) => candidate.id !== id);
-    if (item.transactionId) data.transactions = data.transactions.filter((candidate) => candidate.id !== item.transactionId);
+    if (item.transactionId && data.transactions.some((candidate) => candidate.id === item.transactionId)) deleteLinkedEntity(data, "transaction", item.transactionId);
+    else data.propertyEntries = data.propertyEntries.filter((candidate) => candidate.id !== id);
     return;
   }
   if (entity === "investmentEntry") {
     const item = data.investmentEntries.find((candidate) => candidate.id === id);
     if (!item) throw new Error("ENTITY_NOT_FOUND");
-    data.investmentEntries = data.investmentEntries.filter((candidate) => candidate.id !== id);
-    if (item.transactionId) data.transactions = data.transactions.filter((candidate) => candidate.id !== item.transactionId);
+    if (item.transactionId && data.transactions.some((candidate) => candidate.id === item.transactionId)) deleteLinkedEntity(data, "transaction", item.transactionId);
+    else data.investmentEntries = data.investmentEntries.filter((candidate) => candidate.id !== id);
     return;
   }
   if (entity === "sharedExpense") {
     const item = data.sharedExpenses.find((candidate) => candidate.id === id);
     if (!item) throw new Error("ENTITY_NOT_FOUND");
-    data.sharedExpenses = data.sharedExpenses.filter((candidate) => candidate.id !== id);
-    if (item.transactionId) data.transactions = data.transactions.filter((candidate) => candidate.id !== item.transactionId);
+    if (item.transactionId && data.transactions.some((candidate) => candidate.id === item.transactionId)) deleteLinkedEntity(data, "transaction", item.transactionId);
+    else data.sharedExpenses = data.sharedExpenses.filter((candidate) => candidate.id !== id);
     return;
   }
   if (entity === "vehicleEntry") {
     const item = data.vehicleEntries.find((candidate) => candidate.id === id);
     if (!item) throw new Error("ENTITY_NOT_FOUND");
-    data.vehicleEntries = data.vehicleEntries.filter((candidate) => candidate.id !== id);
-    if (item.transactionId) data.transactions = data.transactions.filter((candidate) => candidate.id !== item.transactionId);
+    if (item.transactionId && data.transactions.some((candidate) => candidate.id === item.transactionId)) deleteLinkedEntity(data, "transaction", item.transactionId);
+    else data.vehicleEntries = data.vehicleEntries.filter((candidate) => candidate.id !== id);
     return;
   }
   if (entity === "property") {
     const entryIds = new Set(data.propertyEntries.filter((item) => item.propertyId === id).map((item) => item.id));
+    const transactionIds = data.transactions.filter((item) => item.propertyId === id || (item.propertyEntryId && entryIds.has(item.propertyEntryId))).map((item) => item.id);
+    transactionIds.forEach((transactionId) => deleteLinkedEntity(data, "transaction", transactionId));
     data.propertyEntries = data.propertyEntries.filter((item) => item.propertyId !== id);
-    data.transactions = data.transactions.filter((item) => item.propertyId !== id && (!item.propertyEntryId || !entryIds.has(item.propertyEntryId)));
     data.recurringItems = data.recurringItems.filter((item) => item.propertyId !== id);
     data.properties = data.properties.filter((item) => item.id !== id);
     data.propertyAnnualSummaries = data.propertyAnnualSummaries.filter((item) => item.propertyId !== id);
@@ -368,8 +407,9 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
   if (entity === "investment") {
     const ids = new Set([id, ...data.investments.filter((item) => item.parentInvestmentId === id).map((item) => item.id)]);
     const entryIds = new Set(data.investmentEntries.filter((item) => ids.has(item.investmentId)).map((item) => item.id));
+    const transactionIds = data.transactions.filter((item) => (item.investmentId && ids.has(item.investmentId)) || (item.investmentEntryId && entryIds.has(item.investmentEntryId))).map((item) => item.id);
+    transactionIds.forEach((transactionId) => deleteLinkedEntity(data, "transaction", transactionId));
     data.investmentEntries = data.investmentEntries.filter((item) => !ids.has(item.investmentId));
-    data.transactions = data.transactions.filter((item) => !item.investmentId || (!ids.has(item.investmentId) && (!item.investmentEntryId || !entryIds.has(item.investmentEntryId))));
     data.recurringItems = data.recurringItems.filter((item) => !item.investmentId || !ids.has(item.investmentId));
     data.investments = data.investments.filter((item) => !ids.has(item.id));
     data.investmentAnnualSummaries = data.investmentAnnualSummaries.filter((item) => !ids.has(item.investmentId));
@@ -377,8 +417,9 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
   }
   if (entity === "vehicle") {
     const entryIds = new Set(data.vehicleEntries.filter((item) => item.vehicleId === id).map((item) => item.id));
+    const transactionIds = data.transactions.filter((item) => item.vehicleId === id || (item.vehicleEntryId && entryIds.has(item.vehicleEntryId))).map((item) => item.id);
+    transactionIds.forEach((transactionId) => deleteLinkedEntity(data, "transaction", transactionId));
     data.vehicleEntries = data.vehicleEntries.filter((item) => item.vehicleId !== id);
-    data.transactions = data.transactions.filter((item) => item.vehicleId !== id && (!item.vehicleEntryId || !entryIds.has(item.vehicleEntryId)));
     data.recurringItems = data.recurringItems.filter((item) => item.vehicleId !== id);
     data.vehicleAnnualSummaries = data.vehicleAnnualSummaries.filter((item) => item.vehicleId !== id);
     data.vehicles = data.vehicles.filter((item) => item.id !== id);

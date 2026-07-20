@@ -4,6 +4,7 @@ import type {
   PropertyAnnualSummary,
   VehicleAnnualSummary,
 } from "./models";
+import { confirmedInvestmentEntries, latestInvestmentValue } from "./investments";
 
 const total = (values: number[]) => values.reduce((sum, value) => sum + value, 0);
 
@@ -25,7 +26,7 @@ export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnual
     const entries = data.propertyEntries.filter((entry) => entry.propertyId === property.id && entry.date.startsWith(String(year)));
     const latestValuation = entries.filter((entry) => entry.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0];
     const consumption = (kind: "electricity" | "gas" | "water") => total(entries
-      .filter((entry) => entry.kind === "consumption" && entryUtilityKind(entry) === kind)
+      .filter((entry) => (entry.kind === "consumption" || entry.detailKind?.startsWith("utility_")) && entryUtilityKind(entry) === kind)
       .map((entry) => entry.quantity ?? 0));
     const utilityCost = (kind: "electricity" | "gas" | "water") => total(entries
       .filter((entry) => entry.kind === "expense" && entryUtilityKind(entry) === kind)
@@ -49,12 +50,11 @@ export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnual
 export function createInvestmentAnnualSummaries(data: FinanceData): InvestmentAnnualSummary[] {
   const year = data.meta.activeYear;
   return data.investments.map((investment) => {
-    const entries = data.investmentEntries.filter((entry) => entry.investmentId === investment.id && entry.date.startsWith(String(year)));
-    const latest = entries.filter((entry) => entry.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0];
+    const entries = confirmedInvestmentEntries(data, investment.id).filter((entry) => entry.date.startsWith(String(year)));
     return {
       investmentId: investment.id,
       year,
-      closingValue: latest?.amount ?? 0,
+      closingValue: latestInvestmentValue(data, investment.id),
       contributions: total(entries.filter((entry) => entry.kind === "contribution").map((entry) => entry.amount)),
       withdrawals: total(entries.filter((entry) => entry.kind === "withdrawal").map((entry) => entry.amount)),
     };

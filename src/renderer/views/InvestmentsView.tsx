@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Landmark, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FinanceCommand } from "../../domain/commands";
-import { investmentChildren, investmentPositionValue, latestInvestmentValue, regularInvestments } from "../../domain/investments";
+import { confirmedInvestmentEntries, investmentChildren, investmentPositionValue, latestInvestmentValue, regularInvestments } from "../../domain/investments";
 import type { FinanceData, Investment, InvestmentEntry } from "../../domain/models";
 import { DetailDialog } from "../components/DetailDialog";
 import { EmptyState } from "../components/EmptyState";
@@ -26,7 +26,7 @@ export function InvestmentsView({ data, onSave }: { data: FinanceData; onSave: (
   const valueOf = (item: Investment) => investmentPositionValue(data, item);
   const leaves = regular.filter((item) => item.active && !childrenOf(item).length);
   const totalValue = leaves.reduce((sum, item) => sum + latestInvestmentValue(data, item.id), 0);
-  const currentEntries = data.investmentEntries.filter((item) => regularIds.has(item.investmentId) && item.date.startsWith(String(data.meta.activeYear)));
+  const currentEntries = confirmedInvestmentEntries(data).filter((item) => regularIds.has(item.investmentId) && item.date.startsWith(String(data.meta.activeYear)));
   const contributions = currentEntries.filter((item) => item.kind === "contribution").reduce((sum, item) => sum + item.amount, 0);
   const withdrawals = currentEntries.filter((item) => item.kind === "withdrawal").reduce((sum, item) => sum + item.amount, 0);
   const typeName = (item: Investment) => { const type = data.investmentTypes.find((candidate) => candidate.id === item.typeId); return type ? (language === "it" ? type.nameIt : type.nameEn) : t(item.kind); };

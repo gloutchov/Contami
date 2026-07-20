@@ -6,15 +6,15 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **0.2.0 — development preview** · Licenza / License: **Apache-2.0**
+> Stato / Status: **0.8.0 — functional checkpoint** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
 - Dashboard generale con confronti storici per patrimonio, liquidità, immobili, investimenti e pensioni integrative, entrate, uscite e impegni periodici.
 - Registrazioni collegate e bidirezionali: un movimento inserito in Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze o Spese condivise viene riflesso nelle viste pertinenti senza reinserirlo.
 - Ricerca e filtri mensili con parziali; dettaglio e CRUD controllato per immobili, automobili, investimenti, pensioni/comparti, movimenti, ricorrenze e spese condivise.
-- Schede immobili filtrabili per mese/descrizione con consuntivi e grafici annuali di consumi, costi delle utenze, entrate/uscite e valore commerciale; area Automobile con rifornimenti, percorrenze, rate, bollo, assicurazione, pneumatici e manutenzione, inclusi i costi complessivi delle vetture precedenti.
-- Grafici per ogni investimento e comparto pensione che confrontano nel tempo cifra investita e controvalore. I movimenti patrimoniali usano trasferimenti con direzione di cassa: aggiornano la liquidità senza gonfiare entrate o uscite correnti.
+- Schede immobili filtrabili sui dodici mesi e per descrizione, con valutazione totale o calcolata in €/m², inserimenti guidati per utenze (incluse fasce elettriche) e tasse, opzione di inclusione nel riepilogo delle spese comuni, consuntivi annuali e grafici che seguono le date delle registrazioni; i costi confluiscono nelle Transazioni e possono essere condivisi.
+- Grafici per ogni investimento e comparto pensione che confrontano nel tempo cifra investita e controvalore. Versamenti, liquidazioni e valutazioni aggiornano il controvalore in ordine temporale; il versamento iniziale crea anche la Transazione collegata. I movimenti patrimoniali usano trasferimenti con direzione di cassa senza gonfiare entrate o uscite correnti.
 - Area Pensione Integrativa separata: ogni pensione è un raccoglitore e ogni comparto collegato conserva valore, movimenti ed eventuale versamento periodico; il totale del raccoglitore non duplica quello dei comparti.
 - Data, descrizione, categoria, metodo di pagamento e importo validati a ogni inserimento pertinente.
 - Chiusura e riapertura logica di conti, immobili, investimenti, pensioni/comparti e ricorrenze senza perdere lo storico.
@@ -29,8 +29,8 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Overall dashboard with historical comparisons for net worth, liquidity, properties, investments and private pensions, income, expenses, and recurring commitments.
 - Bidirectional linked records: a movement entered under Transactions, Properties, Vehicles, Investments, Private Pension, Recurring Items, or Shared Expenses is reflected in every relevant view without re-entry.
 - Monthly search/filters with subtotals; controlled detail and CRUD for properties, vehicles, investments, pensions/compartments, movements, recurring items, and shared expenses.
-- Property records can be filtered by month/description and include yearly charts for consumption, utility costs, income/expenses, and commercial value; the Vehicles area tracks fuel, distance, installments, road tax, insurance, tyres, and maintenance, including lifetime totals for prior cars.
-- Per-position investment and pension-compartment charts compare invested amount with countervalue over time. Asset movements use cash-directed transfers, updating liquidity without inflating current income or expenses.
+- Property records can be filtered across all twelve months and by description, and support total or per-square-metre valuations, guided utility entries (including electricity bands), taxes, optional inclusion in the common property-expense summary, yearly actuals, date-based charts, and optional shared-expense links; costs are mirrored to Transactions.
+- Per-position investment and pension-compartment charts compare invested amount with countervalue over time. Contributions, withdrawals, and valuations update countervalue chronologically, and an initial contribution creates its linked Transaction. Asset movements update liquidity without inflating current income or expenses.
 - A dedicated Private Pension area: every pension is a collector and each linked compartment keeps its value, movements, and optional periodic contribution; collector totals never double-count compartments.
 - Date, description, category, payment method, and amount validation wherever applicable.
 - Logical close/reopen for accounts, properties, investments, pensions/compartments, and recurring items without losing history.

@@ -1,5 +1,9 @@
 import { createPropertyAnnualSummaries } from "../../domain/annualHistory";
-import type { FinanceData, PropertyEntry } from "../../domain/models";
+import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
+
+export function calculatePropertyValuation(property: Property | undefined, mode: "total" | "sqm", totalValue: number, valuePerSqm: number): number {
+  return mode === "sqm" ? valuePerSqm * (property?.areaSqm ?? 0) : totalValue;
+}
 
 export function propertyHistory(data: FinanceData, propertyId: string) {
   const current = createPropertyAnnualSummaries(data).find((item) => item.propertyId === propertyId);
@@ -11,8 +15,39 @@ export function propertyHistory(data: FinanceData, propertyId: string) {
 
 export const propertyConsumptionHistory = propertyHistory;
 
-export function propertyEntryMonths(entries: PropertyEntry[]): string[] {
-  return [...new Set(entries.map((item) => item.date.slice(0, 7)))].sort((a, b) => b.localeCompare(a));
+export function propertyValueTimeline(data: FinanceData, propertyId: string) {
+  const property = data.properties.find((item) => item.id === propertyId);
+  const detailedYears = new Set(data.propertyEntries.filter((item) => item.propertyId === propertyId && item.kind === "valuation").map((item) => item.date.slice(0, 4)));
+  const byDate = new Map<string, number>();
+  if (property?.purchaseDate && property.purchasePrice > 0) byDate.set(property.purchaseDate, property.purchasePrice);
+  data.propertyAnnualSummaries
+    .filter((item) => item.propertyId === propertyId && !detailedYears.has(String(item.year)))
+    .forEach((item) => byDate.set(`${item.year}-12-31`, item.closingValue));
+  data.propertyEntries
+    .filter((item) => item.propertyId === propertyId && item.kind === "valuation")
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .forEach((item) => byDate.set(item.date, item.amount));
+  return [...byDate].sort(([left], [right]) => left.localeCompare(right)).map(([date, commercialValue]) => ({ date, commercialValue }));
+}
+
+export function propertyCashFlowTimeline(data: FinanceData, propertyId: string) {
+  const detailedYears = new Set(data.propertyEntries.filter((item) => item.propertyId === propertyId && (item.kind === "income" || item.kind === "expense")).map((item) => item.date.slice(0, 4)));
+  const byDate = new Map<string, { income: number; expenses: number }>();
+  data.propertyAnnualSummaries
+    .filter((item) => item.propertyId === propertyId && !detailedYears.has(String(item.year)))
+    .forEach((item) => byDate.set(`${item.year}-12-31`, { income: item.income, expenses: item.expenses }));
+  data.propertyEntries
+    .filter((item) => item.propertyId === propertyId && (item.kind === "income" || item.kind === "expense"))
+    .forEach((item) => {
+      const point = byDate.get(item.date) ?? { income: 0, expenses: 0 };
+      point[item.kind === "income" ? "income" : "expenses"] += item.amount;
+      byDate.set(item.date, point);
+    });
+  return [...byDate].sort(([left], [right]) => left.localeCompare(right)).map(([date, values]) => ({ date, ...values }));
+}
+
+export function propertyEntryMonths(year: number): string[] {
+  return Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
 }
 
 export function filterPropertyEntries(entries: PropertyEntry[], month: string, search: string): PropertyEntry[] {

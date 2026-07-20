@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
+import { portfolioValues } from "../../src/domain/investments";
 
 describe("linked finance records", () => {
   it("keeps a property transaction and a shared expense synchronized", () => {
@@ -54,6 +55,72 @@ describe("linked finance records", () => {
     expect(data.transactions).toHaveLength(1);
     expect(data.transactions[0]).toMatchObject({ kind: "transfer", cashFlowDirection: "outflow", investmentId, investmentEntryId: entryId, amount: 250 });
     expect(data.investmentEntries[0].transactionId).toBe(data.transactions[0].id);
+  });
+
+  it("creates an investment with an initial countervalue and a non-recurring transaction", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const next = applyFinanceCommand(data, { type: "addInvestmentWithInitialContribution", value: {
+      investment: {
+        id: investmentId, name: "Synthetic fund", kind: "fund", typeId: data.investmentTypes[1].id,
+        provider: "", currency: "EUR", periodicAmount: 100, periodicFrequency: "monthly",
+        periodicNextDueDate: "2026-09-01", periodicCategoryId: categoryId, periodicPaymentMethodId: paymentMethodId,
+        active: true, openedAt: "2026-07-20", notes: "",
+      },
+      initialContribution: {
+        id: entryId, investmentId, date: "2026-07-20", kind: "contribution", amount: 2_500,
+        description: "Initial contribution", categoryId, paymentMethodId, notes: "",
+      },
+    } });
+
+    const initialTransaction = next.transactions.find((item) => item.investmentEntryId === entryId)!;
+    expect(initialTransaction).toMatchObject({ amount: 2_500, kind: "transfer", cashFlowDirection: "outflow" });
+    expect(initialTransaction.recurringId).toBeUndefined();
+    expect(initialTransaction.planned).toBeUndefined();
+    expect(next.investmentEntries.find((item) => item.id === entryId)?.transactionId).toBe(initialTransaction.id);
+    expect(portfolioValues(next).investments).toBe(2_500);
+  });
+
+  it("creates one linked property expense and an optional shared split", () => {
+    let data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addProperty", value: {
+      id: propertyId, name: "Home", kind: "apartment", usage: "residence", areaSqm: 100,
+      ownershipShare: 1, purchasePrice: 200_000, active: true, notes: "",
+    } });
+    const entryId = crypto.randomUUID();
+    const sharedId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addPropertyExpense", value: {
+      entry: {
+        id: entryId, propertyId, date: "2026-06-30", kind: "expense", category: "Electricity",
+        categoryId: data.categories[3].id, description: "Electricity bill", amount: 180,
+        quantity: 310, unit: "kWh", detailKind: "utility_electricity",
+        electricityKwhF1: 100, electricityKwhF2: 80, electricityKwhF3: 130,
+        paymentMethodId: data.paymentMethods[0].id, isCommonExpense: false, notes: "",
+      },
+      shared: { id: sharedId, ownerShare: 120, partnerShare: 60, paidBy: "owner", settled: false },
+    } });
+
+    expect(data.transactions).toHaveLength(1);
+    expect(data.transactions[0]).toMatchObject({ propertyId, propertyEntryId: entryId, sharedExpenseId: sharedId, amount: 180 });
+    expect(data.sharedExpenses[0]).toMatchObject({ id: sharedId, transactionId: data.transactions[0].id, ownerShare: 120, partnerShare: 60 });
+    expect(data.propertyEntries[0]).toMatchObject({ transactionId: data.transactions[0].id, quantity: 310, detailKind: "utility_electricity" });
+
+    data = applyFinanceCommand(data, { type: "updatePropertyExpense", value: { entry: { ...data.propertyEntries[0], amount: 200 } } });
+    expect(data.transactions[0]).toMatchObject({ amount: 200, shared: false });
+    expect(data.sharedExpenses).toHaveLength(0);
+
+    data = applyFinanceCommand(data, { type: "updatePropertyExpense", value: {
+      entry: data.propertyEntries[0],
+      shared: { id: crypto.randomUUID(), ownerShare: 100, partnerShare: 100, paidBy: "owner", settled: false },
+    } });
+    data = applyFinanceCommand(data, { type: "deleteEntity", entity: "propertyEntry", id: entryId });
+    expect(data.propertyEntries).toHaveLength(0);
+    expect(data.transactions).toHaveLength(0);
+    expect(data.sharedExpenses).toHaveLength(0);
   });
 
   it("turns a periodic investment into one recurrence and planned yearly transactions", () => {

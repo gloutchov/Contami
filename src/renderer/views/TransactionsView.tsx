@@ -16,7 +16,6 @@ export function TransactionsView({ data, onSave }: { data: FinanceData; onSave: 
   const [query, setQuery] = useState(""); const [kind, setKind] = useState("all");
   const [categoryId, setCategoryId] = useState("all"); const [paymentMethodId, setPaymentMethodId] = useState("all"); const [month, setMonth] = useState("all");
   const yearPrefix = String(data.meta.activeYear);
-  const recurringNames = useMemo(() => data.recurringItems.map((item) => item.name.toLocaleLowerCase()), [data.recurringItems]);
   const rows = useMemo(() => [...data.transactions].filter((item) => item.date.startsWith(yearPrefix))
     .filter((item) => kind === "all" || item.kind === kind)
     .filter((item) => categoryId === "all" || item.categoryId === categoryId)
@@ -33,7 +32,7 @@ export function TransactionsView({ data, onSave }: { data: FinanceData; onSave: 
   const throughToday = useMemo(() => total(rows.filter((item) => item.date <= todayIso() && !item.planned)), [rows]);
   const categoryName = (id: string) => { const item = data.categories.find((candidate) => candidate.id === id); return item ? (language === "it" ? item.nameIt : item.nameEn) : "—"; };
   const methodName = (id: string) => data.paymentMethods.find((item) => item.id === id)?.name ?? "—";
-  const isRecurring = (item: Transaction) => Boolean(item.recurringId) || recurringNames.some((name) => item.description.toLocaleLowerCase().includes(name));
+  const isRecurring = (item: Transaction) => Boolean(item.recurringId);
   const remove = (id: string) => { if (window.confirm(t("deleteConfirm"))) runUiAction(() => onSave({ type: "deleteEntity", entity: "transaction", id })); };
   const months = Array.from({ length: 12 }, (_, index) => `${data.meta.activeYear}-${String(index + 1).padStart(2, "0")}`);
   const monthLabel = (value: string) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { month: "long", year: "numeric" }).format(new Date(`${value}-01T12:00:00Z`));
