@@ -33,7 +33,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | confluisce in `0.8.0` | Completata e testata |
 | M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
-| M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso |
+| M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso; gate di installazione e rimozione in verifica |
 | M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata e subordinata al gate provider/privacy |
 
 **Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → funzionalità di rete opzionali `v1.1.0`.
@@ -364,6 +364,12 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Gate locale M6 superato: lint, typecheck, build renderer/Electron, 48 test Vitest, Playwright Chromium, controllo documentale e `npm audit` con 0 vulnerabilità; i successivi gate CI e release hanno poi completato la verifica multipiattaforma riportata nei punti seguenti.
 - PR M6 `#12` unita nel commit `8f0d663`; CI macOS/Windows verde sulla PR nel run `29820819987` e su `main` nel run `29821309419`. Manifest e lockfile sono sincronizzati a `0.9.0`; resta il solo gate del workflow release sul tag con artifact, smoke e checksum.
 - Preparazione release unita con PR `#13` nel commit `3db6cbd`; CI finale verde su PR e `main`. Il tag annotato `v0.9.0` ha completato CI nel run `29822581872` e Release nel run `29822581930`: packaging e smoke degli eseguibili superati su macOS e Windows, sei artifact `0.9.0` pubblicati e digest riconciliati con `SHA256SUMS.txt`. M6 è completata; la release resta una preview privata non firmata.
+
+## Avvio M7 — 2026-07-21
+
+- Creato `milestone/07-release` dalla `main` pulita successiva a M6 e corrette le due descrizioni storiche che presentavano ancora come incompleti gate già superati da `v0.9.0`.
+- Sincronizzati manifest e lockfile a `1.0.0`; aggiunti ispezione del contenuto effettivo di `app.asar` e delle risorse, installazione temporanea da DMG/NSIS, avvio smoke e rimozione automatica sui runner macOS/Windows.
+- Aggiornati workflow, README, quick start, manuali IT/EN, mappa e modello di sicurezza per descrivere la release stabile e le procedure esplicite di installazione/disinstallazione; gli artifact restano privati e non firmati.
 
 ## Rischi e mitigazioni iniziali
 

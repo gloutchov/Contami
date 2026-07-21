@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **0.8.0 — functional checkpoint** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.0.0 — stable release** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -42,14 +42,14 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 
 ## Installazione rapida / Quick install
 
-Le build della preview sono generate da GitHub Actions senza certificati e senza applicare una firma ad-hoc al bundle. Quando gli artifact saranno pubblicati nella sezione Releases:
+Le build di release sono generate da GitHub Actions senza certificati e senza applicare una firma ad-hoc al bundle. Gli artifact sono pubblicati nella sezione Releases:
 
 1. scarica il pacchetto per macOS o Windows e il file `SHA256SUMS.txt`;
 2. verifica il checksum;
 3. installa e avvia ContaMì seguendo, se necessario, le istruzioni per l’avviso del sistema riportate sotto;
 4. scegli **Crea nuovo foglio** oppure **Apri foglio esistente**.
 
-Preview builds are produced by GitHub Actions without certificates and without applying an ad-hoc signature to the bundle. Once artifacts are available under Releases:
+Release builds are produced by GitHub Actions without certificates and without applying an ad-hoc signature to the bundle. Artifacts are published under Releases:
 
 1. download the macOS or Windows package and `SHA256SUMS.txt`;
 2. verify the checksum;
@@ -111,10 +111,16 @@ Build e pacchetti:
 npm run build
 npm run dist:mac
 npm run dist:win
+npm run test:package:inspect
 npm run test:smoke:packaged
+npm run test:smoke:installed
 ```
 
 `test:e2e:install` scarica Chromium una sola volta per il collaudo Playwright. `dist:mac` va eseguito su macOS e `dist:win` preferibilmente su Windows; dopo il packaging, `test:smoke:packaged` avvia l’eseguibile unpacked compatibile con la macchina corrente. La CI esegue questi controlli sulle rispettive piattaforme. Nessun file in `sources/` o workbook locale viene incluso nel pacchetto.
+
+Il workflow di release esegue inoltre `test:package:inspect` sul contenuto effettivo di `app.asar` e `test:smoke:installed`: monta e copia il DMG in un’area temporanea su macOS oppure installa l’NSIS in una directory temporanea su Windows, avvia l’app e ne verifica la rimozione. Questi gate vengono eseguiti soltanto sui runner della piattaforma corrispondente.
+
+The release workflow also runs `test:package:inspect` against the actual `app.asar` content and `test:smoke:installed`: it mounts and copies the DMG into a temporary macOS location or installs NSIS into a temporary Windows directory, launches the app, and verifies removal. These gates run only on matching platform runners.
 
 ## Sicurezza e privacy / Security and privacy
 
