@@ -100,6 +100,8 @@ Controlli completi:
 
 ```bash
 npm run preflight
+npm run test:e2e:install
+npm run test:e2e
 npm audit
 ```
 
@@ -109,9 +111,10 @@ Build e pacchetti:
 npm run build
 npm run dist:mac
 npm run dist:win
+npm run test:smoke:packaged
 ```
 
-`dist:mac` va eseguito su macOS e `dist:win` preferibilmente su Windows. La CI genera entrambe le piattaforme. Nessun file in `sources/` o workbook locale viene incluso nel pacchetto.
+`test:e2e:install` scarica Chromium una sola volta per il collaudo Playwright. `dist:mac` va eseguito su macOS e `dist:win` preferibilmente su Windows; dopo il packaging, `test:smoke:packaged` avvia l’eseguibile unpacked compatibile con la macchina corrente. La CI esegue questi controlli sulle rispettive piattaforme. Nessun file in `sources/` o workbook locale viene incluso nel pacchetto.
 
 ## Sicurezza e privacy / Security and privacy
 

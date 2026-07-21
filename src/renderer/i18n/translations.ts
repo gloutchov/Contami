@@ -2,6 +2,7 @@ export const translations = {
   it: {
     appName: "ContaMì",
     appTagline: "Le tue finanze, finalmente semplici.",
+    mainNavigation: "Navigazione principale",
     overview: "Panoramica",
     transactions: "Transazioni",
     properties: "Immobili",
@@ -365,6 +366,7 @@ export const translations = {
   en: {
     appName: "ContaMì",
     appTagline: "Your finances, finally simple.",
+    mainNavigation: "Main navigation",
     overview: "Overview",
     transactions: "Transactions",
     properties: "Properties",
