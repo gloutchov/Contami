@@ -20,7 +20,8 @@ ContaMì/
 │   ├── after-pack.mjs                  # chiude eccezioni di rete nel bundle macOS
 │   ├── check-required-docs.mjs         # controllo documenti e file privati
 │   ├── generate-demo-workbook.ts       # workbook sintetico per QA, mai dati reali
-│   └── numbers-mirror.applescript      # import xlsx in Numbers su macOS
+│   ├── numbers-mirror.applescript      # import xlsx in Numbers su macOS
+│   └── smoke-packaged.mjs              # avvio controllato del pacchetto unpacked macOS/Windows
 ├── sources/                            # input privati locali, esclusi da Git/build
 ├── src/
 │   ├── config/
@@ -76,9 +77,12 @@ ContaMì/
 │   │   └── styles.css                  # design system ContaMì responsive
 │   ├── shared/
 │   │   ├── contracts.ts                # contratti tipizzati main/preload/renderer
-│   │   └── ipc.ts                      # nomi canali IPC consentiti
+│   │   ├── ipc.ts                      # nomi canali IPC consentiti
+│   │   └── ipcValidation.ts            # tuple e limiti degli argomenti IPC
 │   └── test/setup.ts                   # ambiente comune Vitest
 ├── tests/
+│   ├── e2e/
+│   │   └── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
@@ -86,6 +90,9 @@ ContaMì/
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
 │       ├── finance.test.ts              # comandi e KPI finanziari
+│       ├── dialogAccessibility.test.tsx # focus trap, ripristino focus e nomi accessibili
+│       ├── ipcValidation.test.ts         # payload e arità dei canali privilegiati
+│       ├── performance.test.ts           # budget dashboard su dataset sintetico ampio
 │       ├── annualHistory.test.ts        # aggregati utenze e automobili
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
@@ -108,6 +115,7 @@ ContaMì/
 ├── index.html                           # host renderer e CSP
 ├── package.json / package-lock.json     # comandi, dipendenze e packaging
 ├── eslint.config.js                     # qualità TypeScript/React
+├── playwright.config.ts                 # browser QA riproducibile a 1080 px
 ├── tsconfig.json                        # compilazione e tipi
 ├── vite.config.ts                       # build renderer
 └── vitest.config.ts                     # test unitari e integrazione

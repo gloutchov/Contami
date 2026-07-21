@@ -5,7 +5,7 @@ import type { FinanceCommand } from "../domain/commands";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../shared/contracts";
 import { AppShell, type AppView } from "./components/AppShell";
 import { I18nProvider, useI18n } from "./i18n/I18nContext";
-import type { Language, TranslationKey } from "./i18n/translations";
+import { translations, type Language, type TranslationKey } from "./i18n/translations";
 import { getApi } from "./services/api";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { runUiAction } from "./utils/save";
@@ -111,9 +111,9 @@ export default function App() {
     }
   }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover]);
 
-  if (!snapshot) return <ThemeProvider theme={settings.theme} capabilities={capabilities}><div className="splash"><div><img src={logo} alt="ContaMì" /><p>Loading…</p></div></div></ThemeProvider>;
+  if (!snapshot) return <ThemeProvider theme={settings.theme} capabilities={capabilities}><div className="splash"><div><img src={logo} alt="ContaMì" /><p>{translations[language].loading}</p></div></div></ThemeProvider>;
 
-  return <I18nProvider language={language}><ThemeProvider theme={settings.theme} capabilities={capabilities}><AppShell view={view} onNavigate={setView} workbookName={snapshot.workbookDisplayName} busy={busy}>{notice && <Notice messageKey={notice} values={noticeValues} onClose={dismissNotice} />}<Suspense fallback={<div className="empty-state">Loading…</div>}>{content}</Suspense></AppShell></ThemeProvider></I18nProvider>;
+  return <I18nProvider language={language}><ThemeProvider theme={settings.theme} capabilities={capabilities}><AppShell view={view} onNavigate={setView} workbookName={snapshot.workbookDisplayName} busy={busy}>{notice && <Notice messageKey={notice} values={noticeValues} onClose={dismissNotice} />}<Suspense fallback={<div className="empty-state">{translations[language].loading}</div>}>{content}</Suspense></AppShell></ThemeProvider></I18nProvider>;
 }
 
 function Notice({ messageKey, values, onClose }: { messageKey: TranslationKey; values?: Record<string, string | number>; onClose: () => void }) {

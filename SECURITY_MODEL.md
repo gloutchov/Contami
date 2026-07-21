@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-20 · Applicazione / Application: 0.8.0
+Versione del documento / Document version: 2026-07-21 · Applicazione / Application: 0.8.0
 
 ## Italiano
 
@@ -37,17 +37,17 @@ Non sono risolvibili dall’app, da soli, un sistema operativo compromesso, malw
 
 - Electron usa `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity: true` e `allowRunningInsecureContent: false`.
 - Il preload espone un oggetto congelato con soli metodi ContaMì; non espone `ipcRenderer`, Node.js o primitive filesystem generiche.
-- I canali IPC sono una allowlist centralizzata. Ogni richiesta verifica l’identità del renderer, valida il payload con Zod e restituisce soltanto codici errore redatti.
+- I canali IPC sono una allowlist centralizzata. Ogni richiesta deve provenire dal frame principale e dall’URL già caricato nella finestra autorizzata; tuple, arità e payload sono validati con Zod e gli errori sono redatti.
 - Il renderer non sceglie né invia percorsi file: creazione e apertura passano dai dialoghi nativi nel main process.
 - Main, preload, dominio, persistenza, configurazione e renderer sono moduli separati.
 - È ammessa una sola istanza dell’app, riducendo scritture concorrenti tra processi ContaMì.
 
 ### 5. Rete, navigazione e contenuti attivi
 
-- In produzione la sessione Electron annulla richieste `http` e `https`.
+- In produzione la sessione Electron annulla richieste `http`, `https`, `ws` e `wss`.
 - La Content Security Policy consente soltanto risorse locali; `object-src` e `base-uri` sono disabilitati. In sviluppo è ammesso solo il server locale Vite.
-- Popup e nuove finestre sono negati; navigazioni fuori dalla pagina corrente e download avviati dal renderer sono bloccati.
-- Tutte le richieste di permesso Electron sono negate.
+- Popup, nuove finestre e tentativi di collegare `webview` sono negati; navigazioni fuori dalla pagina corrente, drag-and-drop navigabile e download avviati dal renderer sono bloccati.
+- Tutte le richieste e le verifiche di permesso Electron sono negate.
 - Non vengono caricati font, immagini, script o analytics remoti.
 
 La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato dall’assenza di HTML non fidato e dall’escaping predefinito di React; una futura rimozione di `style-src 'unsafe-inline'` è auspicabile.
@@ -105,12 +105,13 @@ I workbook e i backup sono file normali non cifrati dall’app. La riservatezza 
 ### 11. Dipendenze e supply chain
 
 - `package-lock.json` rende riproducibili le versioni installate con `npm ci`.
-- L’audit npm è eseguito localmente e in CI; al 2026-07-18 riporta 0 vulnerabilità note dopo l’override compatibile di `uuid >=11.1.1` usato indirettamente da ExcelJS.
-- Dependabot controlla settimanalmente npm e GitHub Actions.
-- CI esegue document hygiene, lint, typecheck, test, build e audit su macOS e Windows.
-- Le release su tag sono costruite da GitHub Actions e includono checksum SHA-256.
+- L’audit npm è eseguito localmente e in CI; al 2026-07-21 riporta 0 vulnerabilità note dopo gli override compatibili di `uuid >=11.1.1` per ExcelJS e `shell-quote >=1.10.0` per la toolchain di sviluppo.
+- Gli script di installazione sono negati per default da npm 11; la allowlist versionata consente soltanto `esbuild@0.28.1` ed `electron-winstaller@5.4.0`, necessari alla build e al pacchetto Windows.
+- Dependabot controlla settimanalmente npm e GitHub Actions; tutte le Actions usate da CI e release sono fissate a commit SHA verificati nei repository ufficiali.
+- CI esegue document hygiene, lint, typecheck, test, build, Playwright a 1080 px e audit su macOS e Windows.
+- Le release su tag sono costruite da GitHub Actions, avviano l’eseguibile unpacked sulla piattaforma di build e includono checksum SHA-256.
 
-Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; una futura milestone dovrebbe fissare commit verificati. Gli artifact sono deliberatamente generati senza certificati, firma ad-hoc del bundle o notarizzazione. Bundle, metadati tecnici ed eseguibile macOS usano il nome ASCII `Contami` per evitare un crash del runtime unsigned su Apple Silicon; logo, titolo e UI mantengono il marchio `ContaMì`. Lo smoke test locale del bundle ARM non firmato, con Hardened Runtime predefinito, è riuscito. Gatekeeper richiede comunque l’approvazione esplicita in Privacy e Sicurezza e Windows può mostrare SmartScreen o bloccare l’app con Smart App Control. Checksum e istruzioni riducono il rischio operativo, ma non sostituiscono l’identità crittografica del produttore.
+Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` includono pacchetti deprecati pur senza vulnerabilità note correnti; vanno rivalutate con gli aggiornamenti upstream. Gli artifact sono deliberatamente generati senza certificati, firma ad-hoc del bundle o notarizzazione. Bundle, metadati tecnici ed eseguibile macOS usano il nome ASCII `Contami` per evitare un crash del runtime unsigned su Apple Silicon; logo, titolo e UI mantengono il marchio `ContaMì`. Lo smoke test locale del bundle ARM non firmato, con Hardened Runtime predefinito, è riuscito. Gatekeeper richiede comunque l’approvazione esplicita in Privacy e Sicurezza e Windows può mostrare SmartScreen o bloccare l’app con Smart App Control. Checksum e istruzioni riducono il rischio operativo, ma non sostituiscono l’identità crittografica del produttore.
 
 ### 12. Verifiche implementate
 
@@ -118,9 +119,12 @@ Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; 
 - integrazione round-trip workbook e controllo file modificato esternamente;
 - integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
+- test delle tuple IPC, inclusi argomenti inattesi e payload non validi;
+- test del focus intrappolato/ripristinato nelle modali e riduzione del movimento;
+- budget prestazionale su 25.000 transazioni, 1.200 immobili e 1.200 investimenti sintetici;
 - lint, typecheck e build separata main/preload/renderer;
 - audit dipendenze;
-- verifica visiva e funzionale Playwright di tutte le viste, IT/EN e chiaro/scuro;
+- verifica Playwright riproducibile IT/EN, chiaro/scuro, focus e assenza di overflow a 1080 px, oltre al collaudo visivo esteso delle viste;
 - rendering indipendente di un workbook sintetico, senza dati dell’utente;
 - controllo CI che impedisce di tracciare `sources/`, `.numbers`, `.xlsx`, chiavi e certificati.
 
@@ -135,7 +139,6 @@ Rischi residui: le Actions sono referenziate con major tag, non SHA immutabili; 
 ### 14. Miglioramenti pianificati
 
 - firma Developer ID/notarizzazione macOS e firma Authenticode Windows;
-- pin SHA delle GitHub Actions;
 - limiti preventivi sull’espansione ZIP e test fuzz per workbook ostili;
 - test automatici del pacchetto installato su entrambi i sistemi;
 - lock cooperativo e hash contenuto per una protezione concorrenza ancora più forte;
@@ -162,14 +165,14 @@ Threats considered include malformed `.xlsx` input, a compromised renderer attem
 
 - Electron enables context isolation, disabled Node integration, sandboxing, web security, and no insecure content.
 - The preload exposes only a frozen, minimal ContaMì API—never raw IPC, Node.js, or generic filesystem methods.
-- IPC uses a centralized allowlist, verifies the sender, validates all payloads with Zod, and returns redacted error codes.
+- IPC uses a centralized allowlist. Every call must originate from the authorized window's main frame and currently loaded URL; Zod validates argument tuples, arity, and payloads, and errors are redacted.
 - File paths come only from native main-process dialogs.
 - Main, preload, domain, persistence, settings, and renderer remain separate modules.
 - A single-instance lock reduces concurrent ContaMì writers.
 
 ### 4. Network and active content
 
-Production Electron sessions cancel HTTP/HTTPS requests. CSP allows local resources only, disables objects and base URLs, and permits only the local Vite server during development. Popups, external navigation, renderer downloads, and all permission requests are denied. No remote font, image, script, or analytics endpoint is loaded.
+Production Electron sessions cancel HTTP/HTTPS and WS/WSS requests. CSP allows local resources only, disables objects and base URLs, and permits only the local Vite server during development. Popups, webviews, external navigation, navigable drag-and-drop, renderer downloads, permission requests, and permission checks are denied. No remote font, image, script, or analytics endpoint is loaded.
 
 Inline styles remain allowed for the current UI. React escaping and the absence of untrusted HTML mitigate this, but removing `style-src 'unsafe-inline'` is a future hardening target.
 
@@ -201,16 +204,16 @@ Workbooks and backups are not encrypted by ContaMì. Use filesystem permissions,
 
 ### 9. Supply chain and verification
 
-`package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-07-18, npm audit reports zero known vulnerabilities after a compatible `uuid >=11.1.1` override for ExcelJS. Dependabot monitors npm and Actions weekly. CI runs hygiene checks, lint, typecheck, tests, build, and audit on macOS and Windows. Tagged releases are CI-built with SHA-256 checksums.
+`package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-07-21, npm audit reports zero known vulnerabilities after compatible `uuid >=11.1.1` and `shell-quote >=1.10.0` overrides for ExcelJS and the development toolchain. npm 11 denies unlisted install scripts; the versioned allowlist permits only `esbuild@0.28.1` and `electron-winstaller@5.4.0`, required for builds and Windows packaging. Dependabot monitors npm and Actions weekly; every Action used by CI and release is pinned to a commit SHA resolved from its official repository. CI runs hygiene checks, lint, typecheck, tests, build, 1080-px Playwright checks, and audit on macOS and Windows. Tagged releases launch the unpacked executable on the build platform and publish SHA-256 checksums.
 
-Residual risks: Actions use major tags rather than immutable SHAs; pinning verified commits is planned. Artifacts are deliberately built without certificates, bundle-level ad-hoc signing, or notarization. The macOS bundle, technical metadata, and executable use the ASCII name `Contami` to avoid an unsigned-runtime crash on Apple Silicon; the logo, title, and UI retain the `ContaMì` brand. The local unsigned ARM-bundle smoke test passed with the default Hardened Runtime. Gatekeeper still requires explicit approval under Privacy & Security, and Windows may show SmartScreen or block the app through Smart App Control. Checksums and instructions reduce operational risk but do not provide cryptographic publisher identity.
+Residual risks: transitive `exceljs` and `electron-builder` chains still contain deprecated packages despite having no current known vulnerabilities; upstream updates must be reassessed. Artifacts are deliberately built without certificates, bundle-level ad-hoc signing, or notarization. The macOS bundle, technical metadata, and executable use the ASCII name `Contami` to avoid an unsigned-runtime crash on Apple Silicon; the logo, title, and UI retain the `ContaMì` brand. The local unsigned ARM-bundle smoke test passed with the default Hardened Runtime. Gatekeeper still requires explicit approval under Privacy & Security, and Windows may show SmartScreen or block the app through Smart App Control. Checksums and instructions reduce operational risk but do not provide cryptographic publisher identity.
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, builds, dependency audit, Playwright UI flows in both languages/themes, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, packaged-executable smoke infrastructure, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, Action SHA pinning, ZIP-expansion limits and hostile-workbook fuzzing, packaged-app smoke tests on both systems, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.
+Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, ZIP-expansion limits and hostile-workbook fuzzing, final installed-package smoke verification on both systems, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.
