@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -33,7 +34,9 @@ jobs:
       - run: npm ci
       - run: npm run preflight
       - run: ${{ matrix.command }}
+      - run: npm run test:package:inspect
       - run: npm run test:smoke:packaged
+      - run: npm run test:smoke:installed
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: contami-${{ matrix.label }}
@@ -46,6 +49,7 @@ jobs:
 
   publish:
     name: Publish private GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: package
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +74,7 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
           body: |
-            ContaMì desktop preview for macOS and Windows.
+            ContaMì desktop release for macOS and Windows.
 
             Questi artifact sono generati da GitHub Actions senza certificati e senza firma ad-hoc del bundle. Verificare `SHA256SUMS.txt` prima dell’installazione.
 
