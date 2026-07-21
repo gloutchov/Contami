@@ -13,7 +13,7 @@ The app is local-first: it requires no account, uses no cloud service, and sends
 - Apple Numbers only if you want a native `.numbers` mirror;
 - Excel is not required: ContaMì reads and writes `.xlsx` directly.
 
-Early builds are produced by GitHub Actions without certificates and without a bundle-level ad-hoc signature. Always verify the SHA-256 checksum shipped with the release. macOS Gatekeeper or Windows SmartScreen may warn: proceed only when the file comes from the official private release.
+Release builds are produced by GitHub Actions without certificates and without a bundle-level ad-hoc signature. Always verify the SHA-256 checksum shipped with the release. macOS Gatekeeper or Windows SmartScreen may warn: proceed only when the file comes from the official private release.
 
 ### Unsigned macOS installation
 
@@ -213,4 +213,6 @@ See [SECURITY_MODEL.md](SECURITY_MODEL.md) for technical controls and residual r
 
 ## 18. Updates and removal
 
-Close ContaMì and keep a workbook copy before updating, then install the new release over the old one. Use the operating system’s standard process to remove the app. User-selected workbooks and backups remain in their folders and are removed only manually.
+Close ContaMì and keep a workbook copy before updating, then install the new release over the old one.
+
+To remove the app on macOS, close ContaMì and move `Contami` from **Applications** to the Trash. On Windows open **Settings → Apps → Installed apps**, find `Contami`, and choose **Uninstall**. Removing the app does not delete user-selected workbooks or `.contami-backups`; they stay in their folders and should be removed only manually after reviewing their contents.
