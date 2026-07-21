@@ -34,9 +34,12 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
-| M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata e subordinata al gate provider/privacy |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.1.0` | Pianificata |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.2.0` | Pianificata |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.3.0` | Pianificata |
+| M12 — Cifratura portabile | `milestone/12-portable-encryption` | `1.4.0` se approvata | Pianificata con gate di fattibilità |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → funzionalità di rete opzionali `v1.1.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → apertura workbook `v1.1.0` → integrità salvataggi `v1.2.0` → CSP rigorosa `v1.3.0` → cifratura portabile `v1.4.0` soltanto se supera il gate di fattibilità.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -279,24 +282,93 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** aggiornamento di manuali, README, MAP, SECURITY_MODEL e schema del workbook.
 
-## M9 — Valutazioni immobiliari web e andamento titoli tramite ISIN
+## M9 — Hardening dell’apertura dei workbook
 
-**Obiettivo:** arricchire le valutazioni con dati esterni verificabili mantenendo controllo manuale, privacy e funzionamento offline.
+**Obiettivo:** respingere file `.xlsx` con espansione ZIP o struttura ostile prima che il parser possa consumare quantità eccessive di memoria o tempo.
 
 **Attività pianificate**
 
-- Aggiungere il codice ISIN agli investimenti e validarne il formato senza assumere che identifichi sempre un titolo quotato.
-- Integrare un fornitore di dati di mercato con licenza e limiti d’uso compatibili, cache locale, indicazione di fonte/data/valuta e grafico storico; lasciare sempre disponibile l’inserimento manuale.
-- Integrare uno o più fornitori autorizzati di quotazioni immobiliari per zona, con indirizzo minimizzato o livello geografico configurabile, consenso esplicito e tracciamento di fonte/data del valore al metro quadrato.
-- Calcolare una stima automatica dal valore €/m², superficie e quota di proprietà, distinguendola visivamente dalle valutazioni manuali e consentendo override e disattivazione.
-- Eseguire l’aggiornamento all’avvio solo se abilitato, con timeout breve, cache e fallback offline; non bloccare mai l’apertura dell’app.
-- Documentare chiavi API, privacy, condizioni d’uso, accuratezza e limiti: i dati esterni sono indicativi e non costituiscono consulenza finanziaria o perizia immobiliare.
+- Introdurre un preflight ZIP isolato dall’adapter Excel che controlli numero di entry, dimensione totale e per-entry non compressa, rapporto di compressione, duplicati e percorsi anomali prima del parsing del workbook.
+- Definire limiti espliciti, centralizzati e documentati, con errori sicuri che non espongano percorsi completi o contenuti finanziari.
+- Conservare i limiti di schema e collezione già applicati dopo l’apertura, evitando che il preflight sostituisca la validazione del dominio.
+- Valutare l’esecuzione del parsing in un worker/processo terminabile con budget di tempo e memoria, se il solo preflight non offre un confine sufficiente sulle piattaforme supportate.
+- Aggiungere corpus e generatori esclusivamente sintetici per workbook troncati, archivi annidati, rapporti di compressione estremi, entry duplicate e metadati incoerenti.
 
-**Gate di avvio:** selezione del fornitore e approvazione delle relative condizioni/costi e dell’invio dei dati strettamente necessari. Questa milestone introduce rete in un’app oggi local-first e richiede quindi una decisione esplicita prima dell’implementazione.
+**Criteri di accettazione**
 
-**Test richiesti:** mock dei provider, rete assente/lenta, rate limit, dati obsoleti o incoerenti, conversioni valutarie, cache, consenso/opt-out, accessibilità dei grafici e assenza di segreti nei pacchetti.
+- I workbook ContaMì validi e i file v1/v2 migrabili continuano ad aprirsi senza regressioni su macOS e Windows.
+- I casi ostili noti vengono rifiutati prima del caricamento completo, entro budget riproducibili di tempo e memoria.
+- Nessun workbook privato entra in fixture, log, Git, CI o artifact.
 
-**Documentazione:** privacy e sicurezza di rete, fonti e disclaimer, configurazione provider, manuali IT/EN, MAP e note di rilascio.
+**Test richiesti:** unit test del preflight, fuzz/property test con seed riproducibili, integrazione con l’adapter, regressione round-trip/migrazioni, file troncati e zip bomb sintetiche, budget di risorse in CI.
+
+**Documentazione:** limiti workbook, messaggi di recupero, SECURITY_MODEL, MAP e note di rilascio.
+
+## M10 — Integrità e concorrenza dei salvataggi
+
+**Obiettivo:** ridurre ulteriormente il rischio di sovrascrivere modifiche esterne o concorrenti, senza compromettere backup, rollback e compatibilità con Excel/Numbers.
+
+**Attività pianificate**
+
+- Affiancare a dimensione e timestamp un hash crittografico del contenuto acquisito dopo apertura e dopo ogni salvataggio verificato.
+- Ricontrollare l’impronta immediatamente prima della sostituzione atomica e bloccare il salvataggio quando la copia su disco non corrisponde alla revisione caricata.
+- Introdurre un lock cooperativo con identità non sensibile, lease/scadenza e recupero guidato dei lock obsoleti; non assumere che applicazioni esterne rispettino il lock.
+- Definire in modo deterministico i casi di crash, doppia istanza, file spostato, filesystem senza primitive attese e modifica durante la finestra tra verifica e rename.
+- Mantenere copie recuperabili e richiedere conferma prima di ogni eventuale recupero distruttivo.
+
+**Criteri di accettazione**
+
+- Una modifica esterna viene rilevata anche quando dimensione e timestamp non cambiano.
+- Due istanze o due salvataggi sovrapposti non producono una perdita silenziosa di dati.
+- Lock obsoleti e crash hanno un percorso di recupero documentato e testato; l’ultima copia valida resta recuperabile.
+
+**Test richiesti:** hash e revision guard, gare controllate tra writer, lock attivo/obsoleto, crash recovery, modifica con stesso timestamp/dimensione, filesystem macOS/Windows, backup e rollback.
+
+**Documentazione:** flussi di conflitto e recupero IT/EN, SECURITY_MODEL, MAP e note di rilascio.
+
+## M11 — CSP senza stili inline
+
+**Obiettivo:** rimuovere `style-src 'unsafe-inline'` dalla Content Security Policy del renderer senza regressioni visive o di accessibilità.
+
+**Attività pianificate**
+
+- Inventariare attributi `style`, stili React dinamici e dipendenze che iniettano CSS nel renderer.
+- Migrare gli stili applicativi verso classi e fogli locali; sostituire le varianti dinamiche con un insieme limitato e validato di classi o attributi sicuri.
+- Definire una CSP di produzione che neghi gli stili inline e mantenere separata la sola eccezione strettamente necessaria allo sviluppo locale.
+- Aggiungere controlli automatici che falliscano in presenza di nuove violazioni o di un allargamento non autorizzato della policy.
+
+**Criteri di accettazione**
+
+- La build pacchettizzata funziona con stili inline negati e senza errori CSP.
+- Tutte le viste restano leggibili in IT/EN, chiaro/scuro e a 1080 px, inclusi grafici, modali, focus e stati vuoti/errore/disabilitato.
+- Il renderer non acquisisce nuove capacità di rete, script o contenuto attivo.
+
+**Test richiesti:** unit/integration test per le varianti dinamiche, verifica CSP in build, Playwright IT/EN e chiaro/scuro, focus tastiera, screenshot/overflow e smoke Electron pacchettizzato.
+
+**Documentazione:** SECURITY_MODEL, MAP, manuali se cambia la resa visibile e note di rilascio.
+
+## M12 — Cifratura portabile con gate di fattibilità
+
+**Obiettivo:** stabilire se i workbook e i backup possano essere protetti con una cifratura interoperabile senza perdere leggibilità, recuperabilità e apertura diretta con Excel e Numbers.
+
+**Gate di fattibilità obbligatorio**
+
+- Verificare su macOS e Windows almeno apertura, modifica, salvataggio, importazione Numbers, backup e recupero con file sintetici protetti secondo formati standard documentati.
+- Valutare librerie e formati per manutenzione, licenza, auditabilità, consumo di risorse e assenza di esecuzione tramite shell.
+- Definire gestione password/chiavi, perdita credenziali, rotazione, copie temporanee, memoria, backup e UX senza introdurre telemetria o servizi remoti.
+- Non implementare né assegnare `v1.4.0` se la soluzione richiede un contenitore proprietario, rende il `.xlsx` illeggibile nelle applicazioni dichiarate compatibili o non offre un recupero accettabile. In tal caso la milestone si chiude con una decisione motivata e resta raccomandata la cifratura del dispositivo tramite FileVault/BitLocker.
+
+**Attività successive al gate, solo se approvate**
+
+- Implementare cifratura opt-in per workbook, file temporanei e backup, con migrazione esplicita e reversibile.
+- Conservare le chiavi soltanto tramite i meccanismi sicuri del sistema operativo quando l’utente abilita tale opzione; non inserirle in preferenze, log o pacchetti.
+- Rendere chiari blocco, sblocco, cambio password, esportazione portabile e conseguenze della perdita delle credenziali.
+
+**Criteri di accettazione:** interoperabilità dimostrata su entrambe le piattaforme e con Excel/Numbers, nessun dato in chiaro residuo prodotto da ContaMì oltre alle copie esplicitamente esportate, round-trip e recovery verificati, opt-in reversibile e documentazione completa; oppure decisione di non procedere documentata con evidenze del gate.
+
+**Test richiesti:** vettori sintetici noti, password errata, file troncato, migrazione cifrato/non cifrato, temporanei e backup, crash recovery, rollover, packaging senza chiavi e collaudo indipendente Excel/Numbers.
+
+**Documentazione:** decisione architetturale, modello di minaccia, istruzioni IT/EN, recupero, SECURITY_MODEL, MAP e note di rilascio.
 
 ## Checklist obbligatoria di chiusura per ogni milestone
 
@@ -328,7 +400,6 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - M6: sandbox/isolamento/CSP/IPC allowlist/blocco rete, misure prestazionali su dataset ampi, accessibilità, supply chain e smoke dei pacchetti completati; audit npm con 0 vulnerabilità e checkpoint `v0.9.0` verificato su macOS e Windows.
 - M7: repository privato e workflow CI/release macOS+Windows con checksum configurati; CI cross-platform verde nel run `29643193163`. Per scelta progettuale le preview sono prodotte senza certificati e senza firma ad-hoc del bundle. Il crash del primo bundle Apple Silicon dipendeva dai metadati Unicode del pacchetto, non da Gatekeeper: bundle, metadati tecnici ed eseguibile usano `Contami`, mentre logo, titolo e UI mantengono `ContaMì`. Il bundle ARM non firmato supera lo smoke locale mantenendo l’Hardened Runtime predefinito. Manuali e note release documentano Gatekeeper, SmartScreen e Smart App Control senza suggerire di disattivare globalmente le protezioni. La preview `v0.1.0` precede la futura stabile `v1.0.0`.
 - M8: schema v3 con migrazione v1/v2, sincronizzazione bidirezionale, CRUD, filtri/parziali, viste di dettaglio, dashboard storiche, grafici dei consumi domestici e sezione Automobile completati. Investimenti e Pensione Integrativa restano aree distinte; il rollover conserva consuntivi dettagliati per immobile/utenza, investimento/comparto e veicolo. Il workbook personale 2026 è stato ricostruito localmente dalla nuova copia Numbers, validato con rilettura dell’adapter applicativo e mantenuto escluso da Git e release; nessun dato reale è usato nei test o nella documentazione. Preflight locale completato con 29 test automatici, build renderer/Electron, controllo documenti, audit npm senza vulnerabilità e verifica Playwright IT/EN, chiaro/scuro a 1080 px senza errori console. CI cross-platform verde sul branch nel run `29694831210` e su `main` nel run `29694927686`; il checkpoint fu inizialmente pubblicato come preview storica `v0.2.0` ed è stato successivamente promosso, senza cambiare il perimetro funzionale, al tag di maturità `v0.8.0`. Gli artifact restano non firmati come documentato.
-- M9: registrate come funzionalità future la stima immobiliare automatica €/m² e i grafici di mercato tramite ISIN; l’implementazione resta subordinata alla scelta consapevole dei provider e delle condizioni di privacy/licenza.
 
 ## Registro ritocchi — 2026-07-19
 
@@ -373,6 +444,12 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Gate locali superati: preflight con 48 test, Playwright IT/EN e chiaro/scuro a 1080 px, controllo documentale, audit con 0 vulnerabilità, packaging Windows, ispezione `app.asar`, smoke unpacked e ciclo NSIS di installazione/avvio/rimozione.
 - PR M7 `#15` unita nel commit `956c826`; CI macOS/Windows verde sulla PR nel run `29832816551` e su `main` nel run `29834535669`. La release candidate manuale `29834862508` ha verificato i pacchetti installati su entrambi i sistemi senza eseguire il job di pubblicazione.
 - Il tag annotato `v1.0.0` ha completato CI nel run `29837197589` e Release nel run `29837197402`: packaging, ispezione, smoke unpacked e installato superati su macOS e Windows; sei artifact stabili pubblicati e tutti i digest riconciliati con `SHA256SUMS.txt`. La release privata resta deliberatamente non firmata, come documentato.
+
+## Revisione roadmap — 2026-07-21
+
+- Rimossa la precedente M9 dedicata a dati web, quotazioni immobiliari e mercati ISIN perché non più richiesta; ContaMì resta interamente local-first e continua a bloccare la rete.
+- Pianificati hardening dell’apertura workbook (M9), integrità e concorrenza dei salvataggi (M10), CSP senza stili inline (M11) e un gate di fattibilità per la cifratura portabile (M12).
+- Firma, notarizzazione e Authenticode restano fuori dalle milestone finché non saranno disponibili le relative credenziali.
 
 ## Rischi e mitigazioni iniziali
 
