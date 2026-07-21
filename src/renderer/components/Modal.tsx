@@ -1,7 +1,8 @@
 import { X } from "lucide-react";
-import { useEffect, type FormEvent, type ReactNode } from "react";
+import { useId, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../i18n/I18nContext";
+import { useDialogFocus } from "./useDialogFocus";
 
 export function Modal({ title, children, onClose, onSubmit, submitDisabled = false }: {
   title: string;
@@ -11,15 +12,12 @@ export function Modal({ title, children, onClose, onSubmit, submitDisabled = fal
   submitDisabled?: boolean;
 }) {
   const { t } = useI18n();
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  const titleId = useId();
+  const dialogRef = useDialogFocus(onClose);
   return createPortal(
     <div className="modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={(event) => event.stopPropagation()}>
-        <header><h2 id="modal-title">{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}><X size={20} /></button></header>
+      <section ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onClick={(event) => event.stopPropagation()}>
+        <header><h2 id={titleId}>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}><X size={20} /></button></header>
         <form onSubmit={onSubmit}>
           <div className="modal-body">{children}</div>
           <footer><button type="button" className="secondary-button" onClick={onClose}>{t("cancel")}</button><button type="submit" className="primary-button" disabled={submitDisabled}>{t("save")}</button></footer>

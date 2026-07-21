@@ -5,16 +5,20 @@ export function pensionInvestmentIds(data: FinanceData): Set<string> {
   const ids = new Set(data.investments
     .filter((item) => item.kind === "pension" || (item.typeId && pensionTypeIds.has(item.typeId)))
     .map((item) => item.id));
-
-  for (let pass = 0; pass < data.investments.length; pass += 1) {
-    let changed = false;
-    for (const item of data.investments) {
-      if (item.parentInvestmentId && ids.has(item.parentInvestmentId) && !ids.has(item.id)) {
-        ids.add(item.id);
-        changed = true;
-      }
+  const childrenByParent = new Map<string, string[]>();
+  for (const item of data.investments) {
+    if (!item.parentInvestmentId) continue;
+    const children = childrenByParent.get(item.parentInvestmentId) ?? [];
+    children.push(item.id);
+    childrenByParent.set(item.parentInvestmentId, children);
+  }
+  const pending = [...ids];
+  for (let index = 0; index < pending.length; index += 1) {
+    for (const childId of childrenByParent.get(pending[index]) ?? []) {
+      if (ids.has(childId)) continue;
+      ids.add(childId);
+      pending.push(childId);
     }
-    if (!changed) break;
   }
   return ids;
 }
@@ -80,8 +84,28 @@ export function regularInvestments(data: FinanceData): Investment[] {
 
 export function portfolioValues(data: FinanceData): { investments: number; pensions: number; combined: number } {
   const pensionIds = pensionInvestmentIds(data);
-  const leaves = data.investments.filter((item) => item.active && !investmentChildren(data, item.id).length);
-  const pensions = leaves.filter((item) => pensionIds.has(item.id)).reduce((sum, item) => sum + latestInvestmentValue(data, item.id), 0);
-  const investments = leaves.filter((item) => !pensionIds.has(item.id)).reduce((sum, item) => sum + latestInvestmentValue(data, item.id), 0);
+  const parents = new Set(data.investments.flatMap((item) => item.parentInvestmentId ? [item.parentInvestmentId] : []));
+  const plannedTransactionIds = new Set(data.transactions.filter((item) => item.planned).map((item) => item.id));
+  const entriesByInvestment = new Map<string, typeof data.investmentEntries>();
+  for (const entry of data.investmentEntries) {
+    if (entry.transactionId && plannedTransactionIds.has(entry.transactionId)) continue;
+    const entries = entriesByInvestment.get(entry.investmentId) ?? [];
+    entries.push(entry);
+    entriesByInvestment.set(entry.investmentId, entries);
+  }
+  const order = { contribution: 0, withdrawal: 1, valuation: 2 } as const;
+  const valueByInvestment = new Map<string, number>();
+  for (const [investmentId, entries] of entriesByInvestment) {
+    const value = entries.sort((left, right) => left.date.localeCompare(right.date) || order[left.kind] - order[right.kind])
+      .reduce((current, entry) => {
+        if (entry.kind === "contribution") return current + entry.amount;
+        if (entry.kind === "withdrawal") return Math.max(0, current - entry.amount);
+        return entry.amount;
+      }, 0);
+    valueByInvestment.set(investmentId, value);
+  }
+  const leaves = data.investments.filter((item) => item.active && !parents.has(item.id));
+  const pensions = leaves.filter((item) => pensionIds.has(item.id)).reduce((sum, item) => sum + (valueByInvestment.get(item.id) ?? 0), 0);
+  const investments = leaves.filter((item) => !pensionIds.has(item.id)).reduce((sum, item) => sum + (valueByInvestment.get(item.id) ?? 0), 0);
   return { investments, pensions, combined: investments + pensions };
 }

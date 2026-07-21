@@ -13,6 +13,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 
 let mainWindow: BrowserWindow | null = null;
+const smokeTest = process.argv.includes("--contami-smoke-test");
 
 function scriptPath(): string {
   return app.isPackaged
@@ -43,18 +44,41 @@ function createWindow(): BrowserWindow {
       sandbox: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
+      webviewTag: false,
+      navigateOnDragDrop: false,
+      devTools: !app.isPackaged,
       spellcheck: false,
     },
   });
   window.removeMenu();
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-attach-webview", (event) => event.preventDefault());
   window.webContents.on("will-navigate", (event, url) => {
     const current = window.webContents.getURL();
     if (url !== current) event.preventDefault();
   });
   window.webContents.session.on("will-download", (event) => event.preventDefault());
-  window.once("ready-to-show", () => window.show());
-  window.on("closed", () => { if (mainWindow === window) mainWindow = null; });
+  window.once("ready-to-show", () => { if (!smokeTest) window.show(); });
+  let smokeTimeout: NodeJS.Timeout | undefined;
+  if (smokeTest) {
+    smokeTimeout = setTimeout(() => app.exit(1), 20_000);
+    window.webContents.once("did-fail-load", () => app.exit(1));
+    window.webContents.once("did-finish-load", async () => {
+      try {
+        const healthy = await window.webContents.executeJavaScript(
+          "Boolean(document.getElementById('root')?.childElementCount && window.contami && typeof window.contami.getSnapshot === 'function')",
+          true,
+        );
+        app.exit(healthy ? 0 : 1);
+      } catch {
+        app.exit(1);
+      }
+    });
+  }
+  window.on("closed", () => {
+    if (smokeTimeout) clearTimeout(smokeTimeout);
+    if (mainWindow === window) mainWindow = null;
+  });
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl === "http://127.0.0.1:5173") void window.loadURL(devUrl);
   else void window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
@@ -71,7 +95,8 @@ function bootstrapWindow(): void {
 
 app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
-  session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*"] }, (details, callback) => {
+  session.defaultSession.setPermissionCheckHandler(() => false);
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*"] }, (details, callback) => {
     const isDevelopmentAsset = process.env.VITE_DEV_SERVER_URL === "http://127.0.0.1:5173" && details.url.startsWith("http://127.0.0.1:5173");
     callback({ cancel: !isDevelopmentAsset });
   });

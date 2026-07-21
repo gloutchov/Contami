@@ -13,7 +13,7 @@ import {
   upsertVehicleEntryWithLinks,
 } from "./linkedRecords";
 import { portfolioValues } from "./investments";
-import type { AnnualSummary, FinanceData, InvestmentEntry, PropertyEntry } from "./models";
+import type { AnnualSummary, FinanceData } from "./models";
 import { financeDataSchema } from "./models";
 
 const nowIso = () => new Date().toISOString();
@@ -189,11 +189,6 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
   return financeDataSchema.parse(next);
 }
 
-function latestValue(entries: Array<PropertyEntry | InvestmentEntry>, targetId: string, idKey: "propertyId" | "investmentId"): number {
-  return entries.filter((entry) => entry[idKey as keyof typeof entry] === targetId && entry.kind === "valuation")
-    .sort((a, b) => b.date.localeCompare(a.date))[0]?.amount ?? 0;
-}
-
 export const monthlyAmount = (amount: number, frequency: "weekly" | "monthly" | "quarterly" | "yearly") => ({
   weekly: amount * 52 / 12, monthly: amount, quarterly: amount / 3, yearly: amount / 12,
 })[frequency];
@@ -220,29 +215,53 @@ export interface DashboardMetrics {
 
 export function computeDashboard(data: FinanceData): DashboardMetrics {
   const year = String(data.meta.activeYear);
-  const yearTransactions = data.transactions.filter((item) => item.date.startsWith(year));
-  const yearIncome = yearTransactions.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
-  const yearExpenses = yearTransactions.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
-  const liquidBalance = data.accounts.reduce((sum, account) => sum + account.openingBalance + data.transactions.filter((item) => item.accountId === account.id).reduce((subtotal, item) => {
-    if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) return subtotal + item.amount;
-    if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) return subtotal - item.amount;
-    return subtotal;
-  }, 0), 0);
-  const propertyValue = data.properties.filter((item) => item.active).reduce((sum, item) => sum + (latestValue(data.propertyEntries, item.id, "propertyId") || item.purchasePrice) * item.ownershipShare, 0);
+  let yearIncome = 0;
+  let yearExpenses = 0;
+  const accountMovements = new Map<string, number>();
+  const categoryExpenses = new Map<string, number>();
+  const months = Array.from({ length: 12 }, (_, index) => ({
+    month: `${year}-${String(index + 1).padStart(2, "0")}`,
+    income: 0,
+    expenses: 0,
+  }));
+  for (const item of data.transactions) {
+    if (item.accountId) {
+      const current = accountMovements.get(item.accountId) ?? 0;
+      if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) accountMovements.set(item.accountId, current + item.amount);
+      else if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) accountMovements.set(item.accountId, current - item.amount);
+    }
+    if (!item.date.startsWith(year)) continue;
+    const month = months[Number(item.date.slice(5, 7)) - 1];
+    if (item.kind === "income") {
+      yearIncome += item.amount;
+      if (month) month.income += item.amount;
+    } else if (item.kind === "expense") {
+      yearExpenses += item.amount;
+      if (month) month.expenses += item.amount;
+      categoryExpenses.set(item.categoryId, (categoryExpenses.get(item.categoryId) ?? 0) + item.amount);
+    }
+  }
+  const liquidBalance = data.accounts.reduce((sum, account) => sum + account.openingBalance + (accountMovements.get(account.id) ?? 0), 0);
+  const latestPropertyValues = new Map<string, { date: string; amount: number }>();
+  let propertyIncome = 0;
+  let propertyExpenses = 0;
+  for (const item of data.propertyEntries) {
+    if (item.kind === "valuation") {
+      const current = latestPropertyValues.get(item.propertyId);
+      if (!current || item.date > current.date) latestPropertyValues.set(item.propertyId, { date: item.date, amount: item.amount });
+    }
+    if (!item.date.startsWith(year)) continue;
+    if (item.kind === "income") propertyIncome += item.amount;
+    else if (item.kind === "expense") propertyExpenses += item.amount;
+  }
+  const propertyValue = data.properties.filter((item) => item.active)
+    .reduce((sum, item) => sum + ((latestPropertyValues.get(item.id)?.amount ?? 0) || item.purchasePrice) * item.ownershipShare, 0);
   const { investments: investmentValue, pensions: pensionValue, combined: combinedInvestmentValue } = portfolioValues(data);
   const monthlyRecurring = data.recurringItems.filter((item) => item.active && item.direction !== "income").reduce((sum, item) => sum + monthlyAmount(item.amount, item.frequency), 0);
   const sharedBalance = data.sharedExpenses.filter((item) => !item.settled).reduce((sum, item) => item.paidBy === "owner" ? sum + item.partnerShare : sum - item.ownerShare, 0);
-  const propertyYearEntries = data.propertyEntries.filter((item) => item.date.startsWith(year));
-  const propertyIncome = propertyYearEntries.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
-  const propertyExpenses = propertyYearEntries.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
-  const months = Array.from({ length: 12 }, (_, index) => {
-    const month = `${year}-${String(index + 1).padStart(2, "0")}`;
-    const items = yearTransactions.filter((item) => item.date.startsWith(month));
-    return { month, income: items.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0), expenses: items.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0) };
-  });
   const categories = data.categories.map((category) => ({
     id: category.id, nameIt: category.nameIt, nameEn: category.nameEn,
-    amount: yearTransactions.filter((item) => item.kind === "expense" && item.categoryId === category.id).reduce((sum, item) => sum + item.amount, 0),
+    amount: categoryExpenses.get(category.id) ?? 0,
   })).filter((item) => item.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 6);
   const netWorth = liquidBalance + propertyValue + combinedInvestmentValue;
   const history = [
