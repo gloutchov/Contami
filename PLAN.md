@@ -32,7 +32,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M4 — Dashboard e reporting | `milestone/04-dashboards` | `0.6.0` | Completata |
 | M5 — Archiviazione annuale e resilienza | `milestone/05-year-rollover` | confluisce in `0.8.0` | Completata e testata |
 | M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
-| M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | In chiusura; CI qualità macOS/Windows verde, artifact del tag da verificare |
+| M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | In corso |
 | M9 — Valutazioni immobiliari web e mercati ISIN | `milestone/09-market-data` | `1.1.0` | Pianificata e subordinata al gate provider/privacy |
 
@@ -352,7 +352,7 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Immobili: aggiunta valutazione per totale o €/m²; introdotti flussi dedicati Utenze (fasce F1/F2/F3/F2+F3, m³ gas/acqua) e Tasse (Canone TV, IMU, TARI, numero rata e checkbox per il riepilogo delle Spese comuni), collegati atomicamente a Transazioni e opzionalmente a Spese condivise tra persone. I dettagli propongono tutti i dodici mesi e i grafici di valore commerciale ed entrate/uscite seguono le date effettive degli inserimenti.
 - Preflight della revisione completato con lint, typecheck, build renderer/Electron e 42 test automatici; controllo documentale superato. La verifica visiva interattiva delle nuove modali resta da ripetere quando è disponibile un browser integrato o sull'app Electron locale.
 
-## Avvio M6 — 2026-07-21
+## Avvio e chiusura M6 — 2026-07-21
 
 - Creato il branch `milestone/06-hardening` dal checkpoint pulito `v0.8.0`; chiarita nel registro M8 la distinzione tra preview storica `v0.2.0` e promozione di maturità `v0.8.0`.
 - Rafforzato il confine Electron: IPC accettato soltanto dal frame principale e dall’URL autorizzato, tuple e arità validate, blocco anche di WebSocket/webview/drag navigation, doppio diniego delle autorizzazioni e DevTools disabilitati nel pacchetto.
@@ -363,6 +363,7 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Il percorso di avvio Electron con profilo QA separato supera lo smoke locale. Il packaging Windows locale resta bloccato prima della copia applicativa da un lock `EPERM` sulla rinomina dell’Electron appena estratto, riprodotto anche fuori sandbox; la verifica dei pacchetti effettivi resta quindi affidata alla CI macOS/Windows prima di promuovere `v0.9.0`.
 - Gate locale della prima tranche M6 superato: lint, typecheck, build renderer/Electron, 48 test Vitest, Playwright Chromium, controllo documentale e `npm audit` con 0 vulnerabilità. M6 resta in corso fino allo smoke degli artifact in CI su macOS/Windows e alla revisione conclusiva del gate `v0.9.0`.
 - PR M6 `#12` unita nel commit `8f0d663`; CI macOS/Windows verde sulla PR nel run `29820819987` e su `main` nel run `29821309419`. Manifest e lockfile sono sincronizzati a `0.9.0`; resta il solo gate del workflow release sul tag con artifact, smoke e checksum.
+- Preparazione release unita con PR `#13` nel commit `3db6cbd`; CI finale verde su PR e `main`. Il tag annotato `v0.9.0` ha completato CI nel run `29822581872` e Release nel run `29822581930`: packaging e smoke degli eseguibili superati su macOS e Windows, sei artifact `0.9.0` pubblicati e digest riconciliati con `SHA256SUMS.txt`. M6 è completata; la release resta una preview privata non firmata.
 
 ## Rischi e mitigazioni iniziali
 
