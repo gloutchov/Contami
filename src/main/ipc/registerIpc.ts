@@ -1,13 +1,15 @@
 import { app, ipcMain, nativeTheme, type BrowserWindow, type IpcMainInvokeEvent } from "electron";
-import { z } from "zod";
-import { financeCommandSchema } from "../../domain/commands";
-import { appSettingsSchema, type SystemCapabilities } from "../../shared/contracts";
+import type { z } from "zod";
+import type { SystemCapabilities } from "../../shared/contracts";
 import { IPC } from "../../shared/ipc";
+import {
+  financeExecuteIpcArgumentsSchema,
+  noIpcArgumentsSchema,
+  settingsUpdateIpcArgumentsSchema,
+  workbookCreateIpcArgumentsSchema,
+} from "../../shared/ipcValidation";
 import type { SettingsService } from "../../infrastructure/settings/SettingsService";
 import type { FinanceFileService } from "../services/FinanceFileService";
-
-const preferencePatchSchema = appSettingsSchema.pick({ language: true, theme: true, workbookFormat: true }).partial().strict();
-const workbookFormatSchema = z.enum(["excel", "numbers"]);
 
 function safeError(error: unknown): Error {
   const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
@@ -22,27 +24,34 @@ function safeError(error: unknown): Error {
 export function registerIpc(window: BrowserWindow, settings: SettingsService, finance: FinanceFileService): void {
   for (const channel of Object.values(IPC)) ipcMain.removeHandler(channel);
   const trusted = (event: IpcMainInvokeEvent): void => {
-    if (event.sender.id !== window.webContents.id) throw new Error("UNTRUSTED_RENDERER");
+    const expectedUrl = window.webContents.getURL();
+    if (event.sender.id !== window.webContents.id
+      || event.senderFrame !== window.webContents.mainFrame
+      || event.senderFrame.url !== expectedUrl) throw new Error("UNTRUSTED_RENDERER");
   };
-  const handle = <TArgs extends unknown[], TResult>(channel: string, fn: (...args: TArgs) => Promise<TResult> | TResult) => {
-    ipcMain.handle(channel, async (event, ...args: TArgs) => {
-      trusted(event);
-      try { return await fn(...args); } catch (error) { throw safeError(error); }
+  const handle = <TArgs extends unknown[], TResult>(channel: string, schema: z.ZodType<TArgs>, fn: (args: TArgs) => Promise<TResult> | TResult) => {
+    ipcMain.handle(channel, async (event, ...args: unknown[]) => {
+      try {
+        trusted(event);
+        return await fn(schema.parse(args));
+      } catch (error) {
+        throw safeError(error);
+      }
     });
   };
 
-  handle(IPC.settingsGet, () => settings.get());
-  handle(IPC.settingsUpdate, (patch: unknown) => settings.update(preferencePatchSchema.parse(patch)));
-  handle(IPC.capabilitiesGet, async (): Promise<SystemCapabilities> => ({
+  handle(IPC.settingsGet, noIpcArgumentsSchema, () => settings.get());
+  handle(IPC.settingsUpdate, settingsUpdateIpcArgumentsSchema, ([patch]) => settings.update(patch));
+  handle(IPC.capabilitiesGet, noIpcArgumentsSchema, async (): Promise<SystemCapabilities> => ({
     platform: process.platform,
     systemLanguage: app.getLocale().toLowerCase().startsWith("it") ? "it" : "en",
     systemTheme: nativeTheme.shouldUseDarkColors ? "dark" : "light",
     numbersAvailable: await finance.numbersAvailable(),
   }));
-  handle(IPC.financeSnapshot, () => finance.snapshot());
-  handle(IPC.financeCreateWorkbook, (format: unknown) => finance.createWorkbook(workbookFormatSchema.parse(format)));
-  handle(IPC.financeOpenWorkbook, () => finance.openWorkbook());
-  handle(IPC.financeExecute, (command: unknown) => finance.execute(financeCommandSchema.parse(command)));
-  handle(IPC.financeRollover, () => finance.rollover());
-  handle(IPC.financeRevealWorkbook, () => finance.revealWorkbook());
+  handle(IPC.financeSnapshot, noIpcArgumentsSchema, () => finance.snapshot());
+  handle(IPC.financeCreateWorkbook, workbookCreateIpcArgumentsSchema, ([format]) => finance.createWorkbook(format));
+  handle(IPC.financeOpenWorkbook, noIpcArgumentsSchema, () => finance.openWorkbook());
+  handle(IPC.financeExecute, financeExecuteIpcArgumentsSchema, ([command]) => finance.execute(command));
+  handle(IPC.financeRollover, noIpcArgumentsSchema, () => finance.rollover());
+  handle(IPC.financeRevealWorkbook, noIpcArgumentsSchema, () => finance.revealWorkbook());
 }

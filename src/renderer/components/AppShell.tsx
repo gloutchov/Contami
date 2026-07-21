@@ -35,7 +35,7 @@ export function AppShell({ view, onNavigate, workbookName, busy, children }: {
           <span className="brand-icon"><img src={icon} alt="" /></span>
           <span className="brand-word">Conta<strong>Mì</strong></span>
         </button>
-        <nav aria-label="Main navigation">
+        <nav aria-label={t("mainNavigation")}>
           {navigation.map(({ view: itemView, icon: Icon, label }) => (
             <button
               key={itemView}
@@ -59,7 +59,7 @@ export function AppShell({ view, onNavigate, workbookName, busy, children }: {
             <span className={workbookName ? "status-dot connected" : "status-dot"} />
             <span>{workbookName ?? t("notConfigured")}</span>
           </div>
-          {busy && <span className="saving-indicator"><LoaderCircle className="spin" size={16} />{t("saving")}</span>}
+          {busy && <span className="saving-indicator" role="status" aria-live="polite"><LoaderCircle className="spin" size={16} aria-hidden="true" />{t("saving")}</span>}
         </header>
         <main>{children}</main>
       </section>
