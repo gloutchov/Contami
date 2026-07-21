@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const root = path.resolve(process.argv[2] ?? "release");
+const manifest = JSON.parse(await readFile("package.json", "utf8"));
+const root = path.resolve(process.argv[2] ?? path.join("release", manifest.version));
 
 async function findExecutables(directory) {
   const matches = [];
