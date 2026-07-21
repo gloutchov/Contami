@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-21 · Applicazione / Application: 0.9.0
+Versione del documento / Document version: 2026-07-21 · Applicazione / Application: 1.0.0
 
 ## Italiano
 
@@ -109,7 +109,7 @@ I workbook e i backup sono file normali non cifrati dall’app. La riservatezza 
 - Gli script di installazione sono negati per default da npm 11; la allowlist versionata consente soltanto `esbuild@0.28.1` ed `electron-winstaller@5.4.0`, necessari alla build e al pacchetto Windows.
 - Dependabot controlla settimanalmente npm e GitHub Actions; tutte le Actions usate da CI e release sono fissate a commit SHA verificati nei repository ufficiali.
 - CI esegue document hygiene, lint, typecheck, test, build, Playwright a 1080 px e audit su macOS e Windows.
-- Le release su tag sono costruite da GitHub Actions, avviano l’eseguibile unpacked sulla piattaforma di build e includono checksum SHA-256.
+- Le release su tag sono costruite da GitHub Actions, ispezionano il contenuto effettivo di `app.asar`, avviano l’eseguibile unpacked, installano il DMG/NSIS in un’area temporanea della piattaforma di build, verificano avvio e rimozione e includono checksum SHA-256.
 
 Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` includono pacchetti deprecati pur senza vulnerabilità note correnti; vanno rivalutate con gli aggiornamenti upstream. La Action fissata `softprops/action-gh-release@v2` dichiara ancora il runtime Node.js 20 e GitHub la forza su Node.js 24 con un’annotazione: va aggiornata quando l’upstream pubblica un runtime nativo supportato. Gli artifact sono deliberatamente generati senza certificati, firma ad-hoc del bundle o notarizzazione. Bundle, metadati tecnici ed eseguibile macOS usano il nome ASCII `Contami` per evitare un crash del runtime unsigned su Apple Silicon; logo, titolo e UI mantengono il marchio `ContaMì`. Lo smoke test locale del bundle ARM non firmato, con Hardened Runtime predefinito, è riuscito. Gatekeeper richiede comunque l’approvazione esplicita in Privacy e Sicurezza e Windows può mostrare SmartScreen o bloccare l’app con Smart App Control. Checksum e istruzioni riducono il rischio operativo, ma non sostituiscono l’identità crittografica del produttore.
 
@@ -127,6 +127,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 - verifica Playwright riproducibile IT/EN, chiaro/scuro, focus e assenza di overflow a 1080 px, oltre al collaudo visivo esteso delle viste;
 - rendering indipendente di un workbook sintetico, senza dati dell’utente;
 - controllo CI che impedisce di tracciare `sources/`, `.numbers`, `.xlsx`, chiavi e certificati.
+- ispezione di `app.asar` e delle risorse effettive, più installazione, avvio e rimozione automatica del DMG/NSIS su runner macOS e Windows.
 
 ### 13. Risposta a incidenti e recupero
 
@@ -140,7 +141,6 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 - firma Developer ID/notarizzazione macOS e firma Authenticode Windows;
 - limiti preventivi sull’espansione ZIP e test fuzz per workbook ostili;
-- test automatici del pacchetto installato su entrambi i sistemi;
 - lock cooperativo e hash contenuto per una protezione concorrenza ancora più forte;
 - opzione di cifratura documentata, se compatibile con Excel e Numbers senza compromettere il principio di portabilità.
 - eventuali quotazioni immobiliari web e dati di mercato ISIN soltanto dopo scelta esplicita del provider, consenso, minimizzazione dei dati, cache, timeout, opt-out e gestione sicura delle chiavi; la versione corrente continua a bloccare la rete.
@@ -204,16 +204,16 @@ Workbooks and backups are not encrypted by ContaMì. Use filesystem permissions,
 
 ### 9. Supply chain and verification
 
-`package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-07-21, npm audit reports zero known vulnerabilities after compatible `uuid >=11.1.1` and `shell-quote >=1.10.0` overrides for ExcelJS and the development toolchain. npm 11 denies unlisted install scripts; the versioned allowlist permits only `esbuild@0.28.1` and `electron-winstaller@5.4.0`, required for builds and Windows packaging. Dependabot monitors npm and Actions weekly; every Action used by CI and release is pinned to a commit SHA resolved from its official repository. CI runs hygiene checks, lint, typecheck, tests, build, 1080-px Playwright checks, and audit on macOS and Windows. Tagged releases launch the unpacked executable on the build platform and publish SHA-256 checksums.
+`package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-07-21, npm audit reports zero known vulnerabilities after compatible `uuid >=11.1.1` and `shell-quote >=1.10.0` overrides for ExcelJS and the development toolchain. npm 11 denies unlisted install scripts; the versioned allowlist permits only `esbuild@0.28.1` and `electron-winstaller@5.4.0`, required for builds and Windows packaging. Dependabot monitors npm and Actions weekly; every Action used by CI and release is pinned to a commit SHA resolved from its official repository. CI runs hygiene checks, lint, typecheck, tests, build, 1080-px Playwright checks, and audit on macOS and Windows. Tagged releases inspect the actual `app.asar` content, launch the unpacked executable, install the DMG/NSIS in a temporary platform-specific location, verify launch and removal, and publish SHA-256 checksums.
 
 Residual risks: transitive `exceljs` and `electron-builder` chains still contain deprecated packages despite having no current known vulnerabilities; upstream updates must be reassessed. The pinned `softprops/action-gh-release@v2` still declares the Node.js 20 runtime and GitHub forces it onto Node.js 24 with an annotation; update it when upstream publishes a natively supported runtime. Artifacts are deliberately built without certificates, bundle-level ad-hoc signing, or notarization. The macOS bundle, technical metadata, and executable use the ASCII name `Contami` to avoid an unsigned-runtime crash on Apple Silicon; the logo, title, and UI retain the `ContaMì` brand. The local unsigned ARM-bundle smoke test passed with the default Hardened Runtime. Gatekeeper still requires explicit approval under Privacy & Security, and Windows may show SmartScreen or block the app through Smart App Control. Checksums and instructions reduce operational risk but do not provide cryptographic publisher identity.
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, packaged-executable smoke infrastructure, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, ZIP-expansion limits and hostile-workbook fuzzing, final installed-package smoke verification on both systems, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.
+Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, ZIP-expansion limits and hostile-workbook fuzzing, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.
