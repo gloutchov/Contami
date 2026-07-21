@@ -13,7 +13,7 @@ L’app è local-first: non richiede account, non usa servizi cloud e non invia 
 - Apple Numbers installato solo se vuoi una copia `.numbers` nativa;
 - Excel non è richiesto: ContaMì legge e scrive `.xlsx` direttamente.
 
-Le build iniziali sono generate da GitHub Actions senza certificati e senza firma ad-hoc del bundle. Verifica sempre il checksum SHA-256 pubblicato con la release. macOS Gatekeeper o Windows SmartScreen possono mostrare un avviso: procedi solo se il file proviene dalla release privata ufficiale.
+Le build di release sono generate da GitHub Actions senza certificati e senza firma ad-hoc del bundle. Verifica sempre il checksum SHA-256 pubblicato con la release. macOS Gatekeeper o Windows SmartScreen possono mostrare un avviso: procedi solo se il file proviene dalla release privata ufficiale.
 
 ### Installazione macOS non firmata
 
@@ -244,4 +244,6 @@ Vedi [SECURITY_MODEL.md](SECURITY_MODEL.md) per dettagli tecnici e rischi residu
 
 ## 18. Aggiornamento e rimozione
 
-Prima di aggiornare, chiudi ContaMì e conserva una copia del workbook. Installa la nuova release sopra la precedente. Per rimuovere l’app, usa la normale procedura del sistema operativo: i workbook scelti e i backup restano nelle cartelle dell’utente e vanno eliminati solo manualmente.
+Prima di aggiornare, chiudi ContaMì e conserva una copia del workbook. Installa la nuova release sopra la precedente.
+
+Per rimuovere l’app su macOS, chiudi ContaMì e sposta `Contami` da **Applicazioni** al Cestino. Su Windows apri **Impostazioni → App → App installate**, cerca `Contami` e scegli **Disinstalla**. La rimozione dell’app non elimina i workbook scelti né `.contami-backups`: restano nelle cartelle dell’utente e vanno eliminati solo manualmente dopo averne verificato il contenuto.
