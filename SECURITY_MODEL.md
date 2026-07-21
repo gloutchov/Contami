@@ -139,11 +139,12 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 14. Miglioramenti pianificati
 
-- firma Developer ID/notarizzazione macOS e firma Authenticode Windows;
-- limiti preventivi sull’espansione ZIP e test fuzz per workbook ostili;
-- lock cooperativo e hash contenuto per una protezione concorrenza ancora più forte;
-- opzione di cifratura documentata, se compatibile con Excel e Numbers senza compromettere il principio di portabilità.
-- eventuali quotazioni immobiliari web e dati di mercato ISIN soltanto dopo scelta esplicita del provider, consenso, minimizzazione dei dati, cache, timeout, opt-out e gestione sicura delle chiavi; la versione corrente continua a bloccare la rete.
+- M9: limiti preventivi sull’espansione ZIP e test fuzz per workbook ostili;
+- M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
+- M11: rimozione di `style-src 'unsafe-inline'` dalla CSP;
+- M12: gate di fattibilità per una cifratura opt-in, solo se interoperabile con Excel e Numbers e senza compromettere portabilità e recupero.
+
+La firma Developer ID/notarizzazione macOS e Authenticode Windows non è una milestone pianificata in assenza delle relative credenziali. Le build restano non firmate e accompagnate da checksum e istruzioni Gatekeeper/SmartScreen. Non sono pianificate integrazioni web o dati di mercato: il blocco della rete resta invariato.
 
 ---
 
@@ -216,4 +217,6 @@ For recovery: close all workbook users, preserve a copy of the suspect file, res
 
 ### 11. Planned improvements
 
-Planned work includes macOS Developer ID signing/notarization and Windows Authenticode, ZIP-expansion limits and hostile-workbook fuzzing, stronger cooperative locking/content hashing, and an optional portable encryption design if it remains compatible with Excel and Numbers. Web property estimates and ISIN market data remain gated on explicit provider selection, consent, data minimization, caching, timeouts, opt-out, and safe secret handling; current builds continue to block network access.
+M9 covers ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP; M12 is a feasibility gate for opt-in encryption, only if it remains interoperable with Excel and Numbers without compromising portability or recovery.
+
+macOS Developer ID signing/notarization and Windows Authenticode are not scheduled milestones while the required credentials are unavailable. Builds remain unsigned and accompanied by checksums and Gatekeeper/SmartScreen instructions. No web integrations or market-data features are planned, and the network block remains unchanged.
