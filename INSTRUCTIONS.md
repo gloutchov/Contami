@@ -149,14 +149,24 @@ Create a shared expense in its dedicated view or select **Shared expense** on a 
 
 Under **Settings** you can add accounts and close/reopen them; create, edit, and delete bilingual categories with distinct income/expense/both badges; create, edit, and delete payment methods; manage custom investment types; and create or edit property taxes with their scope and number of instalments. A usage counter is shown for catalogs. Referenced taxes can be archived and reopened but can be permanently deleted only when their usage count is zero. Other catalog items already referenced by financial history cannot be deleted, preventing orphaned records.
 
-## 13. Language, theme, and preferences
+## 13. Excel templates for previous data
+
+Under **Settings → Data import** you can generate eight `.xlsx` templates: residence, rental properties, transactions, investments, pension fund, shared expenses, recurring items, and vehicles. This version prepares files for completion; automatic import will be added in the next milestone.
+
+Each file has one visible `Dati - Data` sheet, stable technical headers, bilingual descriptions, colors distinguishing required, conditional, and optional fields, and up to 5,000 rows. Dates and amounts remain real Excel values. Closed fields provide drop-down lists; when a workbook is open, active categories, methods, accounts, investment types, and taxes are embedded with unambiguous UUIDs.
+
+Templates can also be generated without a workbook: available system values are included without temporary UUIDs, and missing references will be resolved during the future import. The generator does not modify the active workbook and returns only the saved file name to the renderer.
+
+Do not rename the sheet or headers and do not add formulas, macros, external links, or additional sheets. The full specification is in [docs/import-template-spec.md](docs/import-template-spec.md).
+
+## 14. Language, theme, and preferences
 
 - **Language → Automatic**: Italian only on an Italian system, English otherwise.
 - **Theme → Automatic**: follows system theme changes in real time.
 - Manual Italian/English and Light/Dark overrides are immediate and persistent.
 - User-authored content is never translated.
 
-## 14. Year rollover
+## 15. Year rollover
 
 1. Ensure another application is not editing the workbook.
 2. In **Settings**, select **Close year** and confirm.
@@ -167,7 +177,7 @@ The new workbook contains categories, methods, investment types, the complete ta
 
 It does not contain prior-year individual transactions/movements, closed items, or settled shared expenses. The prior workbook remains the detailed source for that year.
 
-## 15. Workbook and backups
+## 16. Workbook and backups
 
 Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v4; v1, v2, and v3 workbooks migrate on opening.
 
@@ -175,7 +185,7 @@ Do not rename sheets or columns if you want ContaMì to reopen the file. You may
 
 Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file.
 
-## 16. Troubleshooting
+## 17. Troubleshooting
 
 ### The configured file was moved or deleted
 
@@ -201,7 +211,7 @@ The local settings file may be missing or invalid. Financial data remains in the
 
 Check transaction account links, recent valuations, active/closed state, workbook year, and consistent currency usage.
 
-## 17. Security and limitations
+## 18. Security and limitations
 
 - Protect workbooks with operating-system permissions, FileVault/BitLocker, and encrypted backups when appropriate.
 - ContaMì does not encrypt workbooks or manage spreadsheet passwords.
@@ -211,7 +221,7 @@ Check transaction account links, recent valuations, active/closed state, workboo
 
 See [SECURITY_MODEL.md](SECURITY_MODEL.md) for technical controls and residual risks.
 
-## 18. Updates and removal
+## 19. Updates and removal
 
 Close ContaMì and keep a workbook copy before updating, then install the new release over the old one.
 

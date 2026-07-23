@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.1.0 — configurable taxes milestone** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.2.0 — Excel import templates milestone** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -19,6 +19,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Data, descrizione, categoria, metodo di pagamento e importo validati a ogni inserimento pertinente.
 - Chiusura e riapertura logica di conti, immobili, investimenti, pensioni/comparti e ricorrenze senza perdere lo storico.
 - Workbook `.xlsx` portabile su macOS e Windows; copia `.numbers` nativa su macOS quando Apple Numbers è installato.
+- Otto template Excel versionati e bilingui, generabili da Impostazioni anche senza workbook aperto, con intestazioni stabili, campi guidati e menu a discesa per preparare l’importazione di dati precedenti.
 - Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e consuntivi annuali dettagliati per immobili/utenze, investimenti/comparti e automobili.
 - Salvataggio locale verificato, sostituzione atomica, fino a 10 backup e blocco se il file è stato modificato da un’altra app.
 - Avvio recuperabile se il workbook configurato è stato spostato o cancellato: l’app torna allo stato non configurato e permette di aprire o creare un file.
@@ -35,6 +36,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Date, description, category, payment method, and amount validation wherever applicable.
 - Logical close/reopen for accounts, properties, investments, pensions/compartments, and recurring items without losing history.
 - Portable `.xlsx` workbook on macOS and Windows; native `.numbers` mirror on macOS when Apple Numbers is installed.
+- Eight versioned bilingual Excel templates generated from Settings, even without an open workbook, with stable headers, guided fields, and drop-down lists for preparing legacy-data imports.
 - Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and detailed annual actuals for properties/utilities, investments/compartments, and vehicles.
 - Verified local saves, atomic replacement, up to 10 backups, and conflict protection when another app changes the file.
 - Recoverable startup when the configured workbook was moved or deleted: the app returns to its unconfigured state and lets the user open or create a file.
@@ -83,9 +85,9 @@ The original Numbers file under `sources/` is private reference material: it is 
 
 ## Configurazione / Configuration
 
-Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook e gestire conti, categorie, metodi di pagamento, tipi di investimento e tasse immobiliari. Ogni tassa definisce nome, immobili applicabili e numero di rate da 1 a 24. Le tasse usate possono essere archiviate e riaperte, mentre la cancellazione definitiva è consentita soltanto quando non esistono registrazioni collegate. Categorie, metodi e tipi possono essere creati, modificati e cancellati quando non sono in uso; le categorie sono distinte come entrata, uscita o entrambe. Un badge mostra il numero di utilizzi. Il tipo tecnico `pension` è riservato alla sezione Pensione Integrativa e non è modificabile dal catalogo.
+Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook e gestire conti, categorie, metodi di pagamento, tipi di investimento e tasse immobiliari. Ogni tassa definisce nome, immobili applicabili e numero di rate da 1 a 24. Le tasse usate possono essere archiviate e riaperte, mentre la cancellazione definitiva è consentita soltanto quando non esistono registrazioni collegate. Categorie, metodi e tipi possono essere creati, modificati e cancellati quando non sono in uso; le categorie sono distinte come entrata, uscita o entrambe. Un badge mostra il numero di utilizzi. Il tipo tecnico `pension` è riservato alla sezione Pensione Integrativa e non è modificabile dal catalogo. La sezione **Importazione dati** genera otto template `.xlsx` vuoti per residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, ricorrenze e automobile; l’importazione automatica è prevista nella milestone successiva.
 
-Under **Settings** you can select language (`System`, `Italiano`, `English`), theme (`System`, `Light`, `Dark`), the format for new workbooks, and manage accounts, categories, payment methods, investment types, and property taxes. Each tax defines its name, applicable properties, and 1–24 instalments. Referenced taxes can be archived and reopened; permanent deletion is available only when no records use them. Categories, methods, and types can be created, edited, and deleted when unused; categories are classified as income, expense, or both. A compact badge shows usage counts. The technical `pension` type is reserved for the Private Pension section and cannot be changed through the catalog.
+Under **Settings** you can select language (`System`, `Italiano`, `English`), theme (`System`, `Light`, `Dark`), the format for new workbooks, and manage accounts, categories, payment methods, investment types, and property taxes. Each tax defines its name, applicable properties, and 1–24 instalments. Referenced taxes can be archived and reopened; permanent deletion is available only when no records use them. Categories, methods, and types can be created, edited, and deleted when unused; categories are classified as income, expense, or both. A compact badge shows usage counts. The technical `pension` type is reserved for the Private Pension section and cannot be changed through the catalog. The **Data import** section generates eight empty `.xlsx` templates for residence, rental properties, transactions, investments, pension fund, shared expenses, recurring items, and vehicles; automatic import is planned for the next milestone.
 
 ## Sviluppo locale / Local development
 
@@ -137,6 +139,7 @@ The Electron renderer is isolated and sandboxed, has no Node.js access, and uses
 - [Repository map / Mappa](MAP.md)
 - [Development plan / Piano](PLAN.md)
 - [Reference workbook analysis](docs/reference-analysis.md)
+- [Import template specification / Specifica template](docs/import-template-spec.md)
 
 ## Licenza / License
 

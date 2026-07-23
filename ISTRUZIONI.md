@@ -173,14 +173,24 @@ In **Impostazioni**:
 
 Un elemento già usato non può essere cancellato: ContaMì mostra un errore e conserva i riferimenti storici.
 
-## 13. Lingua, tema e preferenze
+## 13. Template Excel per dati precedenti
+
+In **Impostazioni → Importazione dati** puoi generare otto template `.xlsx`: immobile di residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, spese ricorrenti e automobile. Questa versione prepara i file da compilare; l’importazione automatica sarà aggiunta nella milestone successiva.
+
+Ogni file contiene un solo foglio visibile `Dati - Data`, intestazioni tecniche stabili, descrizioni bilingui, colori per distinguere campi obbligatori, condizionali e opzionali e fino a 5.000 righe. Date e importi restano valori Excel reali. I campi chiusi hanno menu a discesa; quando un workbook è aperto, categorie, metodi, conti, tipi di investimento e tasse attive vengono inclusi con UUID non ambiguo.
+
+Puoi generare i template anche senza workbook: saranno presenti i valori di sistema disponibili, senza UUID temporanei, e i riferimenti mancanti dovranno essere risolti durante la futura importazione. Il generatore non modifica il workbook attivo e al renderer comunica soltanto il nome del file salvato.
+
+Non rinominare il foglio o le intestazioni e non aggiungere formule, macro, link esterni o altri fogli. La specifica completa è in [docs/import-template-spec.md](docs/import-template-spec.md).
+
+## 14. Lingua, tema e preferenze
 
 - **Lingua → Automatico**: italiano solo se il sistema è italiano, inglese negli altri casi.
 - **Tema → Automatico**: segue in tempo reale il tema di sistema.
 - Gli override Italiano/English e Chiaro/Scuro sono immediati e persistenti.
 - I contenuti scritti dall’utente non vengono tradotti.
 
-## 14. Chiusura dell’anno
+## 15. Chiusura dell’anno
 
 1. Assicurati che il workbook non sia aperto e modificato in un’altra app.
 2. In **Impostazioni** premi **Chiudi anno** e conferma.
@@ -199,7 +209,7 @@ Il nuovo workbook contiene:
 
 Non contiene le singole transazioni dell’anno chiuso, i movimenti storici, gli elementi chiusi o le spese condivise già saldate. Il vecchio workbook resta la fonte dettagliata di quell’anno.
 
-## 15. Il workbook e i backup
+## 16. Il workbook e i backup
 
 I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v4; i workbook v1, v2 e v3 vengono migrati all’apertura.
 
@@ -207,7 +217,7 @@ Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi legger
 
 Prima di sostituire un file esistente, ContaMì crea un backup in `.contami-backups` accanto al `.xlsx` e conserva le ultime 10 copie. La scrittura avviene prima su un file temporaneo, viene riletta e solo dopo sostituisce il file attivo.
 
-## 16. Risoluzione problemi
+## 17. Risoluzione problemi
 
 ### Il file configurato è stato spostato o cancellato
 
@@ -233,7 +243,7 @@ Il file locale delle impostazioni può essere assente o non valido. I dati finan
 
 Controlla che le transazioni abbiano il conto corretto, che esista una valutazione recente e che gli elementi siano attivi. Verifica anche l’anno del workbook e l’uso di una sola valuta coerente.
 
-## 17. Sicurezza e limiti
+## 18. Sicurezza e limiti
 
 - Proteggi il workbook con i permessi del sistema, FileVault/BitLocker e backup cifrati se contiene dati sensibili.
 - ContaMì non cifra autonomamente il workbook e non gestisce password del foglio.
@@ -243,7 +253,7 @@ Controlla che le transazioni abbiano il conto corretto, che esista una valutazio
 
 Vedi [SECURITY_MODEL.md](SECURITY_MODEL.md) per dettagli tecnici e rischi residui.
 
-## 18. Aggiornamento e rimozione
+## 19. Aggiornamento e rimozione
 
 Prima di aggiornare, chiudi ContaMì e conserva una copia del workbook. Installa la nuova release sopra la precedente.
 

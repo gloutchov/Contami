@@ -114,6 +114,7 @@ function createDevelopmentApi(): ContaMiApi {
     execute: async (command) => { data = applyFinanceCommand(data, command); return snapshot(); },
     rolloverYear: async () => ({ canceled: false, year: data.meta.activeYear + 1, newWorkbookPath: "ContaMi-next.xlsx" }),
     revealWorkbook: async () => true,
+    generateImportTemplate: async (type) => ({ canceled: false, fileName: `ContaMi-template-${type.replaceAll("_", "-")}-v1.xlsx` }),
   };
 }
 
