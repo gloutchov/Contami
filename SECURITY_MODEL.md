@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-23 · Applicazione / Application: 1.1.0
+Versione del documento / Document version: 2026-07-23 · Applicazione / Application: 1.2.0
 
 ## Italiano
 
@@ -12,7 +12,7 @@ Il workbook è la fonte dati autorevole. I dati in memoria sono una copia valida
 
 ### 2. Asset da proteggere
 
-- transazioni, patrimonio, investimenti, pensioni integrative/comparti, immobili, consumi domestici, automobili, spese condivise e catalogo tasse;
+- transazioni, patrimonio, investimenti, pensioni integrative/comparti, immobili, consumi domestici, automobili, spese condivise, catalogo tasse e copie dei cataloghi inserite nei template di importazione;
 - percorsi locali del workbook e dei backup;
 - integrità dello schema e dei consuntivi annuali;
 - preferenze di lingua, tema e formato;
@@ -38,7 +38,7 @@ Non sono risolvibili dall’app, da soli, un sistema operativo compromesso, malw
 - Electron usa `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity: true` e `allowRunningInsecureContent: false`.
 - Il preload espone un oggetto congelato con soli metodi ContaMì; non espone `ipcRenderer`, Node.js o primitive filesystem generiche.
 - I canali IPC sono una allowlist centralizzata. Ogni richiesta deve provenire dal frame principale e dall’URL già caricato nella finestra autorizzata; tuple, arità e payload sono validati con Zod e gli errori sono redatti.
-- Il renderer non sceglie né invia percorsi file: creazione e apertura passano dai dialoghi nativi nel main process.
+- Il renderer non sceglie né invia percorsi file: creazione, apertura e destinazione dei template passano dai dialoghi nativi nel main process. Per i template il renderer invia soltanto tipo e lingua validati e riceve soltanto annullamento e nome del file, mai il percorso completo.
 - Main, preload, dominio, persistenza, configurazione e renderer sono moduli separati.
 - È ammessa una sola istanza dell’app, riducendo scritture concorrenti tra processi ContaMì.
 
@@ -65,6 +65,8 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - I consuntivi annuali dettagliati (`Property History`, `Investment History`, `Vehicle History`) contengono solo dati aggregati e identificativi interni; il rollover non copia le transazioni storiche nel nuovo workbook.
 - Le stringhe utente vengono scritte come valori, non concatenate in formule. Il loader non esegue macro o formule; se incontra una cella formula legge il risultato memorizzato.
 - Il file Numbers non viene modificato direttamente: su macOS è rigenerato importando il sidecar `.xlsx` tramite uno script AppleScript fisso.
+
+Il generatore M14 è separato dal repository del workbook autorevole e non lo modifica. Accetta soltanto uno degli otto tipi in allowlist e una lingua supportata, usa esclusivamente un percorso assoluto `.xlsx` scelto dal dialogo nativo e prepara al massimo 5.000 righe. Ogni template contiene un foglio dati visibile e due fogli tecnici molto nascosti e protetti, metadati di tipo/versione e liste tramite intervalli denominati. Non inserisce formule di cella, macro, collegamenti esterni o contenuto attivo; rilegge il file temporaneo e ne verifica firma, fogli, intestazioni e assenza di formule/link prima della sostituzione con rollback. I cataloghi incorporati provengono dalla copia `FinanceData` già validata; senza workbook vengono omessi gli UUID instabili.
 
 Limite residuo: un `.xlsx` compresso sotto 250 MB può espandersi molto durante il parsing e causare consumo elevato di memoria. Lo schema limita le righe accettate dopo l’apertura, ma non costituisce una difesa completa contro zip bomb. Aprire solo file ContaMì affidabili.
 
@@ -120,6 +122,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 - integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
 - test delle tuple IPC, inclusi argomenti inattesi e payload non validi;
+- test strutturali e round-trip degli otto template, cataloghi presenti/assenti, intervalli denominati, fogli protetti, limite di 5.000 righe, assenza di formule/link e dialogo che non espone il percorso;
 - test del focus intrappolato/ripristinato nelle modali e riduzione del movimento;
 - budget prestazionale su 25.000 transazioni, 1.200 immobili e 1.200 investimenti sintetici;
 - lint, typecheck e build separata main/preload/renderer;
@@ -139,7 +142,6 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 14. Miglioramenti pianificati
 
-- M14: generazione locale di template Excel versionati e privi di dati personali;
 - M15: importazione con preflight, anteprima, conferma, backup e applicazione atomica;
 - M9: limiti preventivi sull’espansione ZIP e test fuzz per tutti i workbook ostili;
 - M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
@@ -161,7 +163,7 @@ The workbook is authoritative. In-memory data is a validated copy used for calcu
 
 ### 2. Protected assets and threats
 
-Protected assets include financial records—including investments, private pensions and compartments, household consumption, vehicles, and the property-tax catalog—workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
+Protected assets include financial records—including investments, private pensions and compartments, household consumption, vehicles, the property-tax catalog, and catalog snapshots embedded in import templates—workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
 
 Threats considered include malformed `.xlsx` input, a compromised renderer attempting privileged access, concurrent external edits, interrupted saves, formula injection, invalid paths/oversized files, unexpected navigation or network access, and supply-chain compromise. A compromised operating system, same-user malware, or unlocked physical access remains outside what the app alone can defend.
 
@@ -170,7 +172,7 @@ Threats considered include malformed `.xlsx` input, a compromised renderer attem
 - Electron enables context isolation, disabled Node integration, sandboxing, web security, and no insecure content.
 - The preload exposes only a frozen, minimal ContaMì API—never raw IPC, Node.js, or generic filesystem methods.
 - IPC uses a centralized allowlist. Every call must originate from the authorized window's main frame and currently loaded URL; Zod validates argument tuples, arity, and payloads, and errors are redacted.
-- File paths come only from native main-process dialogs.
+- File paths come only from native main-process dialogs. For templates, the renderer sends only a validated type and language and receives only cancellation state and file name, never the complete path.
 - Main, preload, domain, persistence, settings, and renderer remain separate modules.
 - A single-instance lock reduces concurrent ContaMì writers.
 
@@ -187,6 +189,8 @@ Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amo
 Pensions and compartments reuse the schema-v4 Investments tables. The technical `pension` type is reserved and protected against editing/deletion. Countervalue applies dated valuations and confirmed movements only, excluding planned Transactions; domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
 
 User strings are written as values, not interpolated into formulas. The loader never executes macros or formulas. A compressed workbook may still expand heavily before schema validation and exhaust memory; open trusted ContaMì files only.
+
+The M14 generator is separate from the authoritative workbook repository and never modifies that workbook. It accepts only one of eight allowlisted types and a supported language, uses only an absolute `.xlsx` destination selected by the native dialog, and prepares at most 5,000 rows. Each template contains one visible data sheet and two very-hidden protected technical sheets, type/version metadata, and named-range validation lists. It adds no cell formulas, macros, external links, or active content; it reopens the temporary output and verifies its signature, sheets, headers, and absence of formulas/links before replacement with rollback. Embedded catalogs come from already validated `FinanceData`; without a workbook, unstable UUIDs are omitted.
 
 ### 6. Saves, backups, and conflicts
 
@@ -214,13 +218,13 @@ Residual risks: transitive `exceljs` and `electron-builder` chains still contain
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation (including utilities and vehicles), configurable-tax CRUD and constraints, investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2/v3→v4 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities and vehicles), configurable-tax CRUD and constraints, investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2/v3→v4 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, structural and round-trip verification of all eight templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-M14 generates local, versioned Excel templates without personal data; M15 imports them with preflight, preview, confirmation, backup, and atomic application. M9 then generalizes ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
+M15 imports the local versioned Excel templates with preflight, preview, confirmation, backup, and atomic application. M9 then generalizes ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
 
 Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 

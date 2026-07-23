@@ -25,8 +25,11 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await taxTypeDialog.getByRole("spinbutton", { name: /Numero di rate/ }).fill("3");
   await taxTypeDialog.getByRole("button", { name: "Salva" }).click();
   await expect(taxCard.getByText("Tassa sintetica")).toBeVisible();
+  const importCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Importazione dati", exact: true }) });
+  await importCard.getByRole("button", { name: "Transazioni" }).click();
+  await expect(page.getByRole("status")).toContainText("Creato il template ContaMi-template-transactions-v1.xlsx.");
 
-  await page.getByRole("button", { name: "Immobili" }).click();
+  await page.getByRole("button", { name: "Immobili", exact: true }).click();
   await page.getByRole("button", { name: "Utenze" }).click();
   const dialog = page.getByRole("dialog", { name: "Registra utenza" });
   await expect(dialog).toBeVisible();
@@ -47,6 +50,7 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await page.getByRole("button", { name: "Light" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.getByRole("heading", { name: "Data import", exact: true })).toBeVisible();
 
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FinanceCommand } from "../domain/commands";
 import type { DashboardMetrics } from "../domain/finance";
+import type { ImportTemplateType } from "../domain/importTemplates";
 import type { FinanceData } from "../domain/models";
 
 export const appSettingsSchema = z.object({
@@ -42,6 +43,11 @@ export interface RolloverResult {
   year?: number;
 }
 
+export interface ImportTemplateResult {
+  canceled: boolean;
+  fileName?: string;
+}
+
 export interface ContaMiApi {
   getSettings(): Promise<AppSettings>;
   updateSettings(patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">): Promise<AppSettings>;
@@ -52,6 +58,7 @@ export interface ContaMiApi {
   execute(command: FinanceCommand): Promise<FinanceSnapshot>;
   rolloverYear(): Promise<RolloverResult>;
   revealWorkbook(): Promise<boolean>;
+  generateImportTemplate(type: ImportTemplateType, language: "it" | "en"): Promise<ImportTemplateResult>;
 }
 
 declare global {
