@@ -6,7 +6,7 @@ import { APP_CONFIG } from "../../config/appConfig";
 import { computeDashboard } from "../../domain/finance";
 import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -127,6 +127,7 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
     Categories: ["Categorie disponibili per classificare le registrazioni.", "Categories available for classifying entries."],
     "Payment Methods": ["Metodi di pagamento selezionabili.", "Selectable payment methods."],
     "Investment Types": ["Tipologie personalizzabili di investimento.", "Customizable investment types."],
+    "Tax Types": ["Catalogo configurabile delle tasse immobiliari.", "Configurable property-tax catalog."],
     Accounts: ["Conti e saldi iniziali.", "Accounts and opening balances."],
     Transactions: ["Entrate, uscite e trasferimenti quotidiani.", "Daily income, expenses and transfers."],
     Properties: ["Anagrafica degli immobili.", "Property registry."],
@@ -180,7 +181,16 @@ export class ExcelWorkbookRepository {
       },
     };
     const schemaVersion = Number(metaValues.schemaVersion);
-    const definitions = schemaVersion === 1 ? WORKBOOK_TABLES_V1 : schemaVersion === 2 ? WORKBOOK_TABLES_V2 : WORKBOOK_TABLES;
+    const definitions = schemaVersion === 1
+      ? WORKBOOK_TABLES_V1
+      : schemaVersion === 2
+        ? WORKBOOK_TABLES_V2
+        : schemaVersion === 3
+          ? WORKBOOK_TABLES_V3
+          : schemaVersion === WORKBOOK_SCHEMA_VERSION
+            ? WORKBOOK_TABLES
+            : undefined;
+    if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     for (const definition of definitions) {
       const sheet = workbook.getWorksheet(definition.sheet);
       if (!sheet) throw new Error("INVALID_WORKBOOK_SCHEMA");

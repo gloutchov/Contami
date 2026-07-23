@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import type { FinanceCommand } from "../../domain/commands";
-import type { Category, InvestmentType, PaymentMethod } from "../../domain/models";
+import type { Category, InvestmentType, PaymentMethod, TaxType } from "../../domain/models";
 import { Field, Modal } from "../components/Modal";
 import { useI18n } from "../i18n/I18nContext";
 import { saveAndClose } from "../utils/save";
@@ -56,5 +56,30 @@ export function InvestmentTypeForm({ value, onClose, onSave }: { value?: Investm
     <Field label={t("categoryNameEn")}><input required value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></Field>
     <Field label={t("code")}><input required pattern="[a-z0-9_-]+" value={code} onChange={(event) => setCode(event.target.value.toLowerCase().replace(/\s+/g, "_"))} /></Field>
     {code === "pension" && <p className="form-error field wide">{t("pensionCodeReserved")}</p>}
+  </Modal>;
+}
+
+export function TaxTypeForm({ value, onClose, onSave }: { value?: TaxType; onClose: () => void; onSave: Save }) {
+  const { t } = useI18n();
+  const [name, setName] = useState(value?.name ?? "");
+  const [appliesTo, setAppliesTo] = useState<TaxType["appliesTo"]>(value?.appliesTo ?? "all");
+  const [installments, setInstallments] = useState(String(value?.installments ?? 1));
+  const installmentCount = Number(installments);
+  const valid = Boolean(name.trim() && Number.isInteger(installmentCount) && installmentCount >= 1 && installmentCount <= 24);
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); if (!valid) return;
+    const item: TaxType = {
+      id: value?.id ?? crypto.randomUUID(),
+      name,
+      appliesTo,
+      installments: installmentCount,
+      active: value?.active ?? true,
+    };
+    await saveAndClose(onSave, { type: value ? "updateTaxType" : "addTaxType", value: item }, onClose);
+  };
+  return <Modal title={value ? t("editTaxType") : t("newTaxType")} onClose={onClose} onSubmit={submit} submitDisabled={!valid}>
+    <Field label={t("taxName")} wide><input required maxLength={240} value={name} onChange={(event) => setName(event.target.value)} autoFocus /></Field>
+    <Field label={t("taxAppliesTo")}><select value={appliesTo} onChange={(event) => setAppliesTo(event.target.value as TaxType["appliesTo"])}><option value="all">{t("allProperties")}</option><option value="residence">{t("residence")}</option><option value="rental">{t("rental")}</option></select></Field>
+    <Field label={t("taxInstallmentCount")} hint={t("taxInstallmentCountHelp")}><input required type="number" min="1" max="24" step="1" value={installments} onChange={(event) => setInstallments(event.target.value)} /></Field>
   </Modal>;
 }

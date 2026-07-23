@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FinanceCommand } from "../../src/domain/commands";
 import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
 import { InvestmentForm } from "../../src/renderer/forms/InvestmentForms";
+import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
 import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
@@ -101,23 +102,26 @@ describe("v0.8 review forms", () => {
     }
   });
 
-  it("offers IMU and TARI instalments in English", async () => {
+  it("offers configured tax installments in English", async () => {
     const data = createEmptyFinanceData(2026);
     const propertyId = crypto.randomUUID();
+    const imu = data.taxTypes.find((item) => item.name === "IMU")!;
+    const tari = data.taxTypes.find((item) => item.name === "TARI")!;
     data.properties.push({ id: propertyId, name: "Home", kind: "apartment", usage: "residence", ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
     render(<I18nProvider language="en"><PropertyExpenseForm data={data} mode="tax" initialPropertyId={propertyId} onClose={() => undefined} onSave={async () => undefined} /></I18nProvider>);
     const user = userEvent.setup();
 
-    await user.selectOptions(screen.getByLabelText("Tax"), "tax_imu");
-    expect(screen.getByRole("option", { name: "First instalment" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Second instalment" })).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Tax"), "tax_tari");
+    await user.selectOptions(screen.getByLabelText("Tax"), imu.id);
+    expect(screen.getByRole("option", { name: "Instalment 1 of 2" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Instalment 2 of 2" })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Tax"), tari.id);
     expect((screen.getByRole("option", { name: "TARI" }) as HTMLOptionElement).selected).toBe(true);
   });
 
   it("keeps utility and tax controls interactive when opened from the properties view", async () => {
     const data = createEmptyFinanceData(2026);
     const propertyId = crypto.randomUUID();
+    const imu = data.taxTypes.find((item) => item.name === "IMU")!;
     data.properties.push({ id: propertyId, name: "Casa", kind: "apartment", usage: "residence", areaSqm: 100, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
     const user = userEvent.setup();
     renderIt(<PropertiesView data={data} onSave={async () => undefined} />);
@@ -136,8 +140,8 @@ describe("v0.8 review forms", () => {
     await user.click(screen.getByRole("button", { name: "Tasse" }));
     const taxSelect = screen.getByLabelText("Tassa");
     expect(taxSelect).toBeEnabled();
-    await user.selectOptions(taxSelect, "tax_imu");
-    expect((taxSelect as HTMLSelectElement).value).toBe("tax_imu");
+    await user.selectOptions(taxSelect, imu.id);
+    expect((taxSelect as HTMLSelectElement).value).toBe(imu.id);
     expect(screen.getByLabelText("Rata")).toBeEnabled();
   });
 
@@ -170,13 +174,14 @@ describe("v0.8 review forms", () => {
     const fixture = dataWithUnrelatedSharedExpense();
     let data = fixture.data;
     const { propertyId } = fixture;
+    const imu = data.taxTypes.find((item) => item.name === "IMU")!;
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderIt(<PropertyExpenseForm data={data} mode="tax" initialPropertyId={propertyId} onClose={() => undefined} onSave={onSave} />);
 
     expect(screen.getByRole("checkbox", { name: /Mostra anche nelle Spese condivise/ })).not.toBeChecked();
-    await user.selectOptions(screen.getByLabelText("Tassa"), "tax_imu");
-    await user.selectOptions(screen.getByLabelText("Rata"), "first");
+    await user.selectOptions(screen.getByLabelText("Tassa"), imu.id);
+    await user.selectOptions(screen.getByLabelText("Rata"), "1");
     await user.type(screen.getByLabelText("Descrizione"), "Prima rata IMU");
     await user.type(screen.getByLabelText("Importo"), "350");
     await user.click(screen.getByRole("button", { name: "Salva" }));
@@ -185,7 +190,8 @@ describe("v0.8 review forms", () => {
     const command = onSave.mock.calls[0][0];
     expect(command.type).toBe("addPropertyExpense");
     if (command.type === "addPropertyExpense") {
-      expect(command.value.entry).toMatchObject({ detailKind: "tax_imu", taxInstallment: "first", amount: 350 });
+      expect(command.value.entry).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 1, amount: 350 });
+      expect(command.value.entry.detailKind).toBeUndefined();
       expect(command.value.shared).toBeUndefined();
       expect(() => { data = applyFinanceCommand(data, command); }).not.toThrow();
       expect(data.propertyEntries).toHaveLength(1);
@@ -197,13 +203,14 @@ describe("v0.8 review forms", () => {
   it("can include an IMU payment in the common property-expense summary", async () => {
     const data = createEmptyFinanceData(2026);
     const propertyId = crypto.randomUUID();
+    const imu = data.taxTypes.find((item) => item.name === "IMU")!;
     data.properties.push({ id: propertyId, name: "Casa", kind: "apartment", usage: "residence", ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderIt(<PropertyExpenseForm data={data} mode="tax" initialPropertyId={propertyId} onClose={() => undefined} onSave={onSave} />);
 
-    await user.selectOptions(screen.getByLabelText("Tassa"), "tax_imu");
-    await user.selectOptions(screen.getByLabelText("Rata"), "first");
+    await user.selectOptions(screen.getByLabelText("Tassa"), imu.id);
+    await user.selectOptions(screen.getByLabelText("Rata"), "1");
     await user.click(screen.getByRole("checkbox", { name: /Mostra questa voce anche nel riepilogo delle spese comuni/ }));
     await user.type(screen.getByLabelText("Descrizione"), "Prima rata IMU comune");
     await user.type(screen.getByLabelText("Importo"), "350");
@@ -213,7 +220,26 @@ describe("v0.8 review forms", () => {
     const command = onSave.mock.calls[0][0];
     expect(command.type).toBe("addPropertyExpense");
     if (command.type === "addPropertyExpense") {
-      expect(command.value.entry).toMatchObject({ detailKind: "tax_imu", category: "IMU", taxInstallment: "first", isCommonExpense: true });
+      expect(command.value.entry).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 1, category: "IMU", isCommonExpense: true });
     }
+  });
+
+  it("creates a configurable property tax type", async () => {
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<TaxTypeForm onClose={() => undefined} onSave={onSave} />);
+
+    await user.type(screen.getByLabelText("Nome della tassa"), "Tassa sintetica");
+    await user.selectOptions(screen.getByLabelText("Immobili applicabili"), "rental");
+    const installmentCount = screen.getByRole("spinbutton", { name: /Numero di rate/ });
+    await user.clear(installmentCount);
+    await user.type(installmentCount, "4");
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "addTaxType",
+      value: { name: "Tassa sintetica", appliesTo: "rental", installments: 4, active: true },
+    });
   });
 });

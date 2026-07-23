@@ -106,7 +106,7 @@ Apri un immobile dall’elenco e usa **Nuova registrazione** per:
 
 Per una valutazione puoi inserire direttamente il valore totale oppure il valore al metro quadro: in questo secondo caso ContaMì usa la superficie dell’anagrafica per calcolare e salvare il totale dell’immobile.
 
-I comandi dedicati **Utenze** e **Tasse** rendono più strutturate le spese ricorrenti dell’abitazione. Utenze comprende Elettricità, Gas, Acqua e Telefono/Internet; per l’elettricità sono disponibili F1, F2, F3 oppure il dato aggregato F2+F3, mentre gas e acqua accettano i metri cubi. Tasse comprende Canone TV, IMU e TARI; IMU e TARI possono essere marcate come pagamento unico, prima rata o seconda rata. Una tassa può essere inclusa nel riepilogo delle Spese comuni degli immobili tramite l’apposita checkbox. Separatamente, ogni costo crea la Transazione collegata e può essere aggiunto anche alle Spese condivise tra persone, indicando pagante e quote.
+I comandi dedicati **Utenze** e **Tasse** rendono più strutturate le spese ricorrenti dell’abitazione. Utenze comprende Elettricità, Gas, Acqua e Telefono/Internet; per l’elettricità sono disponibili F1, F2, F3 oppure il dato aggregato F2+F3, mentre gas e acqua accettano i metri cubi. Il catalogo Tasse parte da Canone TV, IMU e TARI, ma può essere modificato in Impostazioni. Ogni tassa può applicarsi a tutti gli immobili, alla sola residenza o ai soli immobili in affitto e può prevedere da 1 a 24 rate. Una tassa può essere inclusa nel riepilogo delle Spese comuni degli immobili tramite l’apposita checkbox. Separatamente, ogni costo crea la Transazione collegata e può essere aggiunto anche alle Spese condivise tra persone, indicando pagante e quote.
 
 Per entrate e spese, **Categoria** usa le stesse categorie delle Transazioni e richiede anche il metodo di pagamento. La registrazione viene riportata automaticamente nelle Transazioni; vale anche il percorso opposto.
 
@@ -160,7 +160,7 @@ Puoi creare la spesa dalla vista dedicata oppure selezionare **Spesa condivisa**
 - **Stampa non saldate** prepara una lista stampabile delle sole pendenze del mese selezionato.
 - Modifica e cancellazione aggiornano automaticamente anche la Transazione collegata.
 
-## 12. Conti, categorie e metodi
+## 12. Conti, categorie, metodi e tasse
 
 In **Impostazioni**:
 
@@ -168,7 +168,8 @@ In **Impostazioni**:
 - chiudi o riapri conti;
 - crea, modifica e cancella categorie con nome italiano, nome inglese e tipo entrata/uscita/entrambi; badge distinti rendono visibile la tipologia e un contatore prima della matita mostra quante registrazioni la usano;
 - crea, modifica e cancella metodi di pagamento; anche qui il contatore mostra il numero di utilizzi;
-- crea, modifica e cancella tipi di investimento.
+- crea, modifica e cancella tipi di investimento;
+- crea e modifica tasse immobiliari specificando ambito e numero di rate; una tassa usata può essere archiviata e riaperta, mentre può essere eliminata definitivamente soltanto quando il contatore degli utilizzi è zero.
 
 Un elemento già usato non può essere cancellato: ContaMì mostra un errore e conserva i riferimenti storici.
 
@@ -188,7 +189,7 @@ Un elemento già usato non può essere cancellato: ContaMì mostra un errore e c
 
 Il nuovo workbook contiene:
 
-- categorie e metodi;
+- categorie, metodi, tipi di investimento e catalogo tasse, incluse le tasse archiviate necessarie allo storico;
 - conti attivi con saldo di chiusura come nuovo saldo iniziale;
 - immobili, automobili e investimenti attivi con le ultime valutazioni previste;
 - ricorrenze ancora attive e non scadute, con prossima data utile;
@@ -200,7 +201,7 @@ Non contiene le singole transazioni dell’anno chiuso, i movimenti storici, gli
 
 ## 15. Il workbook e i backup
 
-I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v3; i workbook v1 e v2 vengono migrati all’apertura.
+I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v4; i workbook v1, v2 e v3 vengono migrati all’apertura.
 
 Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi leggerlo, copiarlo e archiviarlo liberamente.
 

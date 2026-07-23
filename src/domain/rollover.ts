@@ -39,6 +39,7 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   next.categories = structuredClone(current.categories);
   next.paymentMethods = structuredClone(current.paymentMethods);
   next.investmentTypes = structuredClone(current.investmentTypes);
+  next.taxTypes = structuredClone(current.taxTypes);
   next.accounts = current.accounts.filter((item) => item.active).map((item) => ({
     ...structuredClone(item), openingBalance: balanceForAccount(current, item.id), closedAt: undefined,
   }));

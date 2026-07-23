@@ -34,12 +34,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.1.0` | Pianificata |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.2.0` | Pianificata |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.3.0` | Pianificata |
-| M12 — Cifratura portabile | `milestone/12-portable-encryption` | `1.4.0` se approvata | Pianificata con gate di fattibilità |
+| M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata e testata localmente; CI/release da verificare |
+| M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Pianificata |
+| M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Pianificata |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → apertura workbook `v1.1.0` → integrità salvataggi `v1.2.0` → CSP rigorosa `v1.3.0` → cifratura portabile `v1.4.0` soltanto se supera il gate di fattibilità.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → apertura workbook `v1.4.0` → integrità salvataggi `v1.5.0` → CSP rigorosa `v1.6.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -347,28 +349,96 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** SECURITY_MODEL, MAP, manuali se cambia la resa visibile e note di rilascio.
 
-## M12 — Cifratura portabile con gate di fattibilità
+## M13 — Catalogo tasse configurabile
 
-**Obiettivo:** stabilire se i workbook e i backup possano essere protetti con una cifratura interoperabile senza perdere leggibilità, recuperabilità e apertura diretta con Excel e Numbers.
+**Obiettivo:** sostituire le tasse immobiliari codificate nell’app con un catalogo modificabile dall’utente, mantenendo integre le registrazioni storiche e i collegamenti con Transazioni e Spese condivise.
 
-**Gate di fattibilità obbligatorio**
+**Attività pianificate**
 
-- Verificare su macOS e Windows almeno apertura, modifica, salvataggio, importazione Numbers, backup e recupero con file sintetici protetti secondo formati standard documentati.
-- Valutare librerie e formati per manutenzione, licenza, auditabilità, consumo di risorse e assenza di esecuzione tramite shell.
-- Definire gestione password/chiavi, perdita credenziali, rotazione, copie temporanee, memoria, backup e UX senza introdurre telemetria o servizi remoti.
-- Non implementare né assegnare `v1.4.0` se la soluzione richiede un contenitore proprietario, rende il `.xlsx` illeggibile nelle applicazioni dichiarate compatibili o non offre un recupero accettabile. In tal caso la milestone si chiude con una decisione motivata e resta raccomandata la cifratura del dispositivo tramite FileVault/BitLocker.
+- Introdurre nel dominio un’entità `TaxType` con UUID stabile, nome, ambito di applicazione (residenza, immobile locato o entrambi), stato attivo/archiviato e configurazione opzionale delle rate; limiti e unicità sono validati centralmente.
+- Migrare lo schema workbook dalla v3 alla v4 aggiungendo il catalogo tasse e il riferimento `taxTypeId` nelle registrazioni immobiliari. La migrazione crea le voci iniziali Canone TV, IMU e TARI e riconcilia deterministicamente i precedenti `detailKind` senza perdere dati.
+- Rimuovere dal dominio e dai moduli immobiliari le scelte fiscali hardcoded; i selettori usano soltanto tasse attive provenienti dal catalogo del workbook.
+- Aggiungere in Impostazioni una sezione bilingue **Tasse / Taxes** con creazione, modifica, archiviazione/riattivazione, conteggio utilizzi e cancellazione definitiva con conferma quando la voce non è referenziata.
+- Per una tassa già usata, impedire riferimenti orfani: può essere archiviata affinché non sia più proposta, mentre la cancellazione definitiva resta disponibile soltanto per voci mai utilizzate.
+- Generalizzare la gestione delle rate senza assumere che ogni tassa abbia soltanto pagamento unico, prima rata o seconda rata; conservare comunque la lettura e la resa delle registrazioni esistenti.
+- Mantenere atomica la creazione o modifica di una tassa immobiliare, della Transazione collegata e dell’eventuale Spesa condivisa, senza duplicare importi nei consuntivi.
+- Conservare il catalogo nel workbook autorevole, non nel file locale `settings.json`, affinché tasse e registrazioni restino portabili insieme tra macOS, Windows, Excel e Numbers.
 
-**Attività successive al gate, solo se approvate**
+**Criteri di accettazione**
 
-- Implementare cifratura opt-in per workbook, file temporanei e backup, con migrazione esplicita e reversibile.
-- Conservare le chiavi soltanto tramite i meccanismi sicuri del sistema operativo quando l’utente abilita tale opzione; non inserirle in preferenze, log o pacchetti.
-- Rendere chiari blocco, sblocco, cambio password, esportazione portabile e conseguenze della perdita delle credenziali.
+- L’utente può aggiungere, rinominare, archiviare, riattivare e rimuovere in sicurezza le tasse dalla Configurazione senza modificare codice o file manualmente.
+- I nuovi inserimenti immobiliari mostrano immediatamente il catalogo aggiornato; una tassa archiviata non è più selezionabile ma resta leggibile nello storico.
+- I workbook v1, v2 e v3 continuano ad aprirsi e vengono salvati in v4 soltanto dopo migrazione, validazione completa e backup.
+- Modifica e cancellazione non producono riferimenti orfani, non alterano gli importi storici e non interrompono i collegamenti bidirezionali.
+- La sezione è accessibile da tastiera, leggibile in IT/EN, tema chiaro/scuro e a larghezza minima 1080 px.
 
-**Criteri di accettazione:** interoperabilità dimostrata su entrambe le piattaforme e con Excel/Numbers, nessun dato in chiaro residuo prodotto da ContaMì oltre alle copie esplicitamente esportate, round-trip e recovery verificati, opt-in reversibile e documentazione completa; oppure decisione di non procedere documentata con evidenze del gate.
+**Test richiesti:** unit test CRUD, unicità, limiti, conteggio utilizzi e archiviazione; migrazione v1/v2/v3→v4; round-trip workbook; collegamenti tassa/Transazione/Spesa condivisa; rollover; errori `ENTITY_IN_USE`; e2e Impostazioni e inserimento immobile in IT/EN e chiaro/scuro.
 
-**Test richiesti:** vettori sintetici noti, password errata, file troncato, migrazione cifrato/non cifrato, temporanei e backup, crash recovery, rollover, packaging senza chiavi e collaudo indipendente Excel/Numbers.
+**Documentazione:** schema workbook, manuali IT/EN, README, MAP, SECURITY_MODEL, messaggi di migrazione e note di rilascio.
 
-**Documentazione:** decisione architetturale, modello di minaccia, istruzioni IT/EN, recupero, SECURITY_MODEL, MAP e note di rilascio.
+## M14 — Template Excel per importazione da sistemi precedenti
+
+**Obiettivo:** permettere all’utente di generare da Impostazioni file `.xlsx` autoesplicativi e conformi ai contratti di importazione di ContaMì, uno per ciascuna area gestita.
+
+**Dipendenza:** M13 deve essere completata affinché i template immobiliari possano usare anche il catalogo tasse configurabile.
+
+**Attività pianificate**
+
+- Definire e versionare contratti di importazione distinti per: immobile di residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, spese ricorrenti e automobile.
+- Generare per ogni tipologia un file `.xlsx` separato con un solo foglio visibile di compilazione, intestazioni stabili, campi obbligatori evidenziati, formati di data/importo documentati e istruzioni sintetiche bilingui.
+- Aggiungere fogli tecnici nascosti e protetti per versione del template, tipo di importazione e liste di convalida; non usare macro, collegamenti esterni, formule ottenute da testo utente o contenuto attivo.
+- Predisporre menu a discesa Excel per valori chiusi ed enum, inclusi entrata/uscita/trasferimento, stato, frequenza, valuta, tipo di movimento, destinazione immobile e categorie applicabili.
+- Quando esiste un workbook aperto, popolare le scelte con i cataloghi correnti validati — conti, categorie, metodi di pagamento, tipi di investimento e tasse — usando identificatori non ambigui. Senza workbook configurato, generare comunque il template con i valori di sistema disponibili e indicare quali riferimenti dovranno essere risolti all’importazione.
+- Rappresentare in modo esplicito relazioni e gerarchie tramite chiavi esterne definite dall’utente, ad esempio immobile/registrazioni, investimento/movimenti, pensione/comparti e automobile/costi, senza richiedere UUID ContaMì preesistenti.
+- Aggiungere in Impostazioni una sezione **Importazione dati / Data import** con otto azioni di generazione, dialogo nativo di salvataggio e conferma del percorso tramite solo nome file, senza esporre percorsi arbitrari al renderer.
+- Mantenere il generatore separato dal repository del workbook autorevole: produce soltanto modelli vuoti e non modifica il file finanziario attivo.
+
+**Criteri di accettazione**
+
+- Dalla Configurazione è possibile generare ciascuno degli otto template anche senza dati personali o connessione di rete.
+- Ogni file si apre correttamente in Excel su macOS/Windows e, per quanto supportato, in LibreOffice e Numbers; intestazioni, formati e menu a discesa restano utilizzabili.
+- I template contengono tutti i campi necessari al relativo import, distinguono obbligatori e opzionali e includono una versione verificabile dalla futura procedura di importazione.
+- I valori selezionabili corrispondono ai cataloghi del workbook al momento della generazione e valori duplicati o ambigui vengono impediti o identificati in modo stabile.
+- Template, fixture e documentazione usano esclusivamente dati vuoti o sintetici e non incorporano contenuti del workbook personale.
+
+**Test richiesti:** snapshot strutturali e round-trip Excel per tutti gli otto tipi, convalide dati e menu a discesa, metadati/versione, cataloghi vuoti e popolati, caratteri IT/EN, date e numeri locali, apertura indipendente con Excel/LibreOffice/Numbers dove disponibile, controllo assenza macro/formule/link esterni e test IPC/dialoghi.
+
+**Documentazione:** specifica versionata delle colonne per ciascun template, esempi esclusivamente sintetici, manuali IT/EN, README, MAP, SECURITY_MODEL e note di rilascio.
+
+## M15 — Importazione guidata, validata e atomica
+
+**Obiettivo:** importare automaticamente i template compilati con anteprima, diagnostica per riga e conferma esplicita, senza lasciare il workbook in uno stato parziale o incoerente.
+
+**Dipendenze:** M13 per il catalogo tasse e M14 per i contratti/template versionati. Il preflight limitato introdotto per i file di importazione sarà riusato ed esteso da M9 quando verrà applicato anche ai workbook autorevoli.
+
+**Attività pianificate**
+
+- Aggiungere per ciascuno degli otto tipi un parser isolato dal dominio che accetta soltanto template supportati, legge valori passivi e valida versione, intestazioni, tipi, limiti, enum, riferimenti e relazioni prima di costruire comandi di dominio.
+- Rifiutare macro, collegamenti esterni, formule, fogli inattesi e contenuto attivo; applicare gli stessi limiti preventivi e di schema previsti per l’apertura dei workbook, con errori redatti.
+- Presentare un’anteprima senza scritture con numero di righe valide, scartate e in conflitto, più errori localizzati per foglio/riga/colonna e istruzioni correggibili.
+- Risolvere cataloghi e chiavi esterne in modo deterministico; valori mancanti, duplicati o ambigui richiedono correzione o mappatura esplicita e non vengono indovinati.
+- Definire strategie esplicite per duplicati e record esistenti — ignora, crea nuovo o aggiorna quando l’identità è certa — mostrando l’effetto prima della conferma.
+- Convertire l’intero import valido in un’unica trasformazione atomica di `FinanceData`, riusando comandi e regole del dominio per creare collegamenti bidirezionali e impedire doppio conteggio.
+- Prima della sostituzione creare backup e verificare la revisione del workbook; in caso di errore nessuna riga viene applicata e l’ultima copia valida resta attiva.
+- Mostrare un riepilogo finale riconciliabile per entità create, aggiornate, ignorate e importi principali, senza scrivere dati finanziari nei log.
+
+**Criteri di accettazione**
+
+- Un template valido di ciascuna tipologia può essere importato da Impostazioni e produce gli stessi dati che si otterrebbero tramite inserimenti manuali equivalenti.
+- Nessun dato viene scritto prima dell’anteprima e della conferma; annullamento, errore o conflitto lasciano invariato il workbook.
+- Righe non valide, riferimenti mancanti e duplicati sono indicati con posizione e motivo, senza importazioni parziali silenziose.
+- Le registrazioni collegate compaiono una sola volta nei consuntivi e rispettano liquidità, entrate/uscite, quote condivise, gerarchie pensione/comparti e storico dei beni.
+- L’importazione funziona in IT/EN, chiaro/scuro, a 1080 px e con sola tastiera, mantenendo rete bloccata e renderer privo di accesso al filesystem.
+
+**Test richiesti:** import end-to-end sintetico per tutti gli otto tipi; equivalenza con comandi manuali; template vecchio/nuovo o errato; righe duplicate e riferimenti ambigui; formule/macro/link esterni; limiti di dimensione e cardinalità; anteprima/annullamento/conferma; atomicità, backup, rollback e conflitto esterno; round-trip con rollover; Playwright IT/EN e chiaro/scuro.
+
+**Documentazione:** guida di compilazione e importazione IT/EN, matrice errori e recupero, contratti dei template, README, MAP, SECURITY_MODEL, modello di minaccia e note di rilascio.
+
+## Decisione futura — Cifratura portabile
+
+La precedente M12 non fa più parte della sequenza di sviluppo né ha una versione assegnata. ContaMì non implementerà ora una cifratura applicativa: workbook, temporanei e backup restano interoperabili e protetti tramite permessi del filesystem, FileVault/BitLocker, blocco della sessione e backup adeguati.
+
+La decisione potrà essere rivalutata in futuro soltanto se esisterà una soluzione standard, manutenibile e verificabile che conservi apertura diretta, modifica, salvataggio, importazione Numbers e recupero con Excel e Numbers su macOS e Windows. Non saranno accettati contenitori proprietari, dipendenze cloud, chiavi in preferenze o log, né soluzioni che rendano il recupero meno affidabile.
 
 ## Checklist obbligatoria di chiusura per ogni milestone
 
@@ -451,6 +521,25 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Pianificati hardening dell’apertura workbook (M9), integrità e concorrenza dei salvataggi (M10), CSP senza stili inline (M11) e un gate di fattibilità per la cifratura portabile (M12).
 - Firma, notarizzazione e Authenticode restano fuori dalle milestone finché non saranno disponibili le relative credenziali.
 
+## Estensione roadmap — 2026-07-23
+
+- Priorità aggiornata su richiesta del proprietario: M13, M14 e M15 precedono M9, M10 e M11, così template e importazione possono essere collaudati prima sui dati storici locali.
+- Avviata M13 per sostituire Canone TV, IMU e TARI hardcoded con un catalogo tasse configurabile, portabile nel workbook e migrato senza perdita dello storico.
+- Pianificata M14 per generare da Impostazioni otto template Excel versionati, con colonne guidate e menu a discesa alimentati dai cataloghi disponibili.
+- Pianificata M15 per importare i template con preflight, anteprima, diagnostica per riga, gestione esplicita dei duplicati e applicazione atomica con backup e rollback.
+- La precedente M12 è stata rimossa dalla sequenza e riclassificata come decisione futura senza implementazione o versione assegnata.
+- Le nuove funzioni restano interamente locali: non introducono rete, telemetria, servizi cloud, macro o uso di dati personali in test e documentazione.
+
+## Avvio e chiusura M13 — 2026-07-23
+
+- Creato il branch `milestone/13-configurable-taxes` e portato manifest e lockfile a `1.1.0`; la milestone è completa localmente ma non ancora promossa tramite CI o release.
+- Introdotto nel dominio il catalogo `TaxType` con UUID stabile, nome univoco senza distinzione tra maiuscole e minuscole, ambito residenza/locazione/entrambi, da 1 a 24 rate e stato attivo/archiviato.
+- Migrato il workbook allo schema v4 con il foglio `Tax Types`; le migrazioni v1, v2 e v3 creano Canone TV, IMU e TARI e trasformano deterministicamente le precedenti tasse hardcoded in riferimenti `taxTypeId` e numeri di rata.
+- Aggiunto in Impostazioni il CRUD bilingue delle tasse con conteggio utilizzi: una tassa inutilizzata può essere eliminata previa conferma, mentre una tassa già referenziata può soltanto essere archiviata e resta disponibile nello storico.
+- I moduli immobiliari propongono soltanto tasse attive e compatibili con il tipo di immobile, rispettano il numero di rate configurato e continuano a collegare atomicamente Transazioni e Spese condivise; rollover e round-trip preservano l’intero catalogo.
+- Aggiornati README, manuali IT/EN, MAP e SECURITY_MODEL; tutti i test e la documentazione usano esclusivamente dati sintetici.
+- Gate locale M13 superato: lint, typecheck, build renderer/Electron, 54 test Vitest, Playwright Chromium a 1080 px con creazione e uso della tassa in IT/scuro e verifica EN/chiaro, controllo documentale e `npm audit` con 0 vulnerabilità. Durante il gate `fast-uri` è stato aggiornato transitivamente dalla 3.1.3 alla 3.1.4 per correggere l’avviso high dell’audit.
+
 ## Rischi e mitigazioni iniziali
 
 | Rischio | Mitigazione |
@@ -460,6 +549,7 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 | Errori nei KPI finanziari | Logica pura testata, dataset golden, totali di controllo e drill-down alle righe origine |
 | Esposizione di dati personali | Local-first, zero telemetria, log redatti, dati di esempio sintetici, esclusioni packaging/Git |
 | File modificato contemporaneamente in Excel/Numbers | Rilevamento impronta/mtime e blocco del salvataggio con scelta guidata |
+| Importazione parziale, duplicata o riferita a cataloghi ambigui | Template versionati, anteprima obbligatoria, mappatura esplicita, trasformazione atomica, backup e rollback |
 | Build non firmate | Nessuna falsa promessa; avvisi documentati e workflow pronto per credenziali future |
 
 ## Criterio di completamento del progetto

@@ -93,7 +93,7 @@ Use **New property** for name, type, use (residence, rental, or other), address,
 
 Open a property and choose **New entry** for income, expense, valuation, or consumption. A valuation accepts either the total value or a per-square-metre value calculated against the property floor area. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too.
 
-Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. Use **Taxes** for TV licence, IMU, and TARI, with single/first/second-instalment markers where applicable. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
+Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. The **Taxes** catalog starts with TV licence, IMU, and TARI but can be changed under Settings. Each tax can apply to all properties, the residence only, or rental properties only and can define 1–24 instalments. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
 
 Details can be filtered across all twelve months of the active year and by description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent.
 
@@ -145,9 +145,9 @@ Create a shared expense in its dedicated view or select **Shared expense** on a 
 - **Print unsettled** prepares a printable list of pending rows for the selected month.
 - Editing or deleting updates the linked Transaction automatically.
 
-## 12. Accounts, categories, and methods
+## 12. Accounts, categories, methods, and taxes
 
-Under **Settings** you can add accounts and close/reopen them; create, edit, and delete bilingual categories with distinct income/expense/both badges; create, edit, and delete payment methods; and manage custom investment types. A small counter before each category or payment method edit button shows how many records use it. An item already referenced by financial history cannot be deleted, preventing orphaned records.
+Under **Settings** you can add accounts and close/reopen them; create, edit, and delete bilingual categories with distinct income/expense/both badges; create, edit, and delete payment methods; manage custom investment types; and create or edit property taxes with their scope and number of instalments. A usage counter is shown for catalogs. Referenced taxes can be archived and reopened but can be permanently deleted only when their usage count is zero. Other catalog items already referenced by financial history cannot be deleted, preventing orphaned records.
 
 ## 13. Language, theme, and preferences
 
@@ -163,13 +163,13 @@ Under **Settings** you can add accounts and close/reopen them; create, edit, and
 3. Choose the next-year file location.
 4. Keep and archive the prior file yourself; ContaMì never deletes or moves it.
 
-The new workbook contains categories, methods, investment types, active accounts with closing balance as opening balance, active properties/vehicles/investments, latest property and investment valuations, valid active recurring items with the next applicable due date, and unsettled shared expenses. It also carries aggregate yearly history plus detailed annual actuals for each property (income, expenses, value, and utilities), investment/compartment (value, contributions, and withdrawals), and vehicle (cost categories, distance, and consumption).
+The new workbook contains categories, methods, investment types, the complete tax catalog including archived taxes needed by history, active accounts with closing balance as opening balance, active properties/vehicles/investments, latest property and investment valuations, valid active recurring items with the next applicable due date, and unsettled shared expenses. It also carries aggregate yearly history plus detailed annual actuals for each property (income, expenses, value, and utilities), investment/compartment (value, contributions, and withdrawals), and vehicle (cost categories, distance, and consumption).
 
 It does not contain prior-year individual transactions/movements, closed items, or settled shared expenses. The prior workbook remains the detailed source for that year.
 
 ## 15. Workbook and backups
 
-Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v3; v1 and v2 workbooks migrate on opening.
+Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v4; v1, v2, and v3 workbooks migrate on opening.
 
 Do not rename sheets or columns if you want ContaMì to reopen the file. You may freely read, copy, and archive it.
 

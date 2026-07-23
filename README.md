@@ -6,14 +6,14 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.0.0 — stable release** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.1.0 — configurable taxes milestone** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
 - Dashboard generale con confronti storici per patrimonio, liquidità, immobili, investimenti e pensioni integrative, entrate, uscite e impegni periodici.
 - Registrazioni collegate e bidirezionali: un movimento inserito in Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze o Spese condivise viene riflesso nelle viste pertinenti senza reinserirlo.
 - Ricerca e filtri mensili con parziali; dettaglio e CRUD controllato per immobili, automobili, investimenti, pensioni/comparti, movimenti, ricorrenze e spese condivise.
-- Schede immobili filtrabili sui dodici mesi e per descrizione, con valutazione totale o calcolata in €/m², inserimenti guidati per utenze (incluse fasce elettriche) e tasse, opzione di inclusione nel riepilogo delle spese comuni, consuntivi annuali e grafici che seguono le date delle registrazioni; i costi confluiscono nelle Transazioni e possono essere condivisi.
+- Schede immobili filtrabili sui dodici mesi e per descrizione, con valutazione totale o calcolata in €/m², inserimenti guidati per utenze (incluse fasce elettriche) e tasse configurabili, opzione di inclusione nel riepilogo delle spese comuni, consuntivi annuali e grafici che seguono le date delle registrazioni; i costi confluiscono nelle Transazioni e possono essere condivisi.
 - Grafici per ogni investimento e comparto pensione che confrontano nel tempo cifra investita e controvalore. Versamenti, liquidazioni e valutazioni aggiornano il controvalore in ordine temporale; il versamento iniziale crea anche la Transazione collegata. I movimenti patrimoniali usano trasferimenti con direzione di cassa senza gonfiare entrate o uscite correnti.
 - Area Pensione Integrativa separata: ogni pensione è un raccoglitore e ogni comparto collegato conserva valore, movimenti ed eventuale versamento periodico; il totale del raccoglitore non duplica quello dei comparti.
 - Data, descrizione, categoria, metodo di pagamento e importo validati a ogni inserimento pertinente.
@@ -29,7 +29,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Overall dashboard with historical comparisons for net worth, liquidity, properties, investments and private pensions, income, expenses, and recurring commitments.
 - Bidirectional linked records: a movement entered under Transactions, Properties, Vehicles, Investments, Private Pension, Recurring Items, or Shared Expenses is reflected in every relevant view without re-entry.
 - Monthly search/filters with subtotals; controlled detail and CRUD for properties, vehicles, investments, pensions/compartments, movements, recurring items, and shared expenses.
-- Property records can be filtered across all twelve months and by description, and support total or per-square-metre valuations, guided utility entries (including electricity bands), taxes, optional inclusion in the common property-expense summary, yearly actuals, date-based charts, and optional shared-expense links; costs are mirrored to Transactions.
+- Property records can be filtered across all twelve months and by description, and support total or per-square-metre valuations, guided utility entries (including electricity bands), configurable taxes, optional inclusion in the common property-expense summary, yearly actuals, date-based charts, and optional shared-expense links; costs are mirrored to Transactions.
 - Per-position investment and pension-compartment charts compare invested amount with countervalue over time. Contributions, withdrawals, and valuations update countervalue chronologically, and an initial contribution creates its linked Transaction. Asset movements update liquidity without inflating current income or expenses.
 - A dedicated Private Pension area: every pension is a collector and each linked compartment keeps its value, movements, and optional periodic contribution; collector totals never double-count compartments.
 - Date, description, category, payment method, and amount validation wherever applicable.
@@ -83,9 +83,9 @@ The original Numbers file under `sources/` is private reference material: it is 
 
 ## Configurazione / Configuration
 
-Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook e gestire conti, categorie, metodi di pagamento e tipi di investimento. Categorie, metodi e tipi possono essere creati, modificati e cancellati quando non sono in uso; le categorie sono distinte come entrata, uscita o entrambe. Un piccolo badge mostra quante registrazioni usano ciascuna categoria o metodo di pagamento. Il tipo tecnico `pension` è riservato alla sezione Pensione Integrativa e non è modificabile dal catalogo.
+Da **Impostazioni / Settings** puoi scegliere lingua (`Sistema`, `Italiano`, `English`), tema (`Sistema`, `Chiaro`, `Scuro`), formato dei nuovi workbook e gestire conti, categorie, metodi di pagamento, tipi di investimento e tasse immobiliari. Ogni tassa definisce nome, immobili applicabili e numero di rate da 1 a 24. Le tasse usate possono essere archiviate e riaperte, mentre la cancellazione definitiva è consentita soltanto quando non esistono registrazioni collegate. Categorie, metodi e tipi possono essere creati, modificati e cancellati quando non sono in uso; le categorie sono distinte come entrata, uscita o entrambe. Un badge mostra il numero di utilizzi. Il tipo tecnico `pension` è riservato alla sezione Pensione Integrativa e non è modificabile dal catalogo.
 
-Under **Settings** you can select language (`System`, `Italiano`, `English`), theme (`System`, `Light`, `Dark`), the format for new workbooks, and manage accounts, categories, payment methods, and investment types. Categories, methods, and types can be created, edited, and deleted when unused; categories are classified as income, expense, or both. A compact badge shows how many records use each category or payment method. The technical `pension` type is reserved for the Private Pension section and cannot be changed through the catalog.
+Under **Settings** you can select language (`System`, `Italiano`, `English`), theme (`System`, `Light`, `Dark`), the format for new workbooks, and manage accounts, categories, payment methods, investment types, and property taxes. Each tax defines its name, applicable properties, and 1–24 instalments. Referenced taxes can be archived and reopened; permanent deletion is available only when no records use them. Categories, methods, and types can be created, edited, and deleted when unused; categories are classified as income, expense, or both. A compact badge shows usage counts. The technical `pension` type is reserved for the Private Pension section and cannot be changed through the catalog.
 
 ## Sviluppo locale / Local development
 
