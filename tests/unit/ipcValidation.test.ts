@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createEmptyFinanceData } from "../../src/domain/finance";
 import {
   financeExecuteIpcArgumentsSchema,
+  importTemplateGenerateIpcArgumentsSchema,
   noIpcArgumentsSchema,
   settingsUpdateIpcArgumentsSchema,
   workbookCreateIpcArgumentsSchema,
@@ -29,5 +30,12 @@ describe("IPC argument validation", () => {
       id: data.categories[0].id,
     }]).success).toBe(true);
     expect(financeExecuteIpcArgumentsSchema.safeParse([{ type: "deleteEntity", entity: "category", id: "not-a-uuid" }]).success).toBe(false);
+  });
+
+  it("accepts only known import template types and UI languages", () => {
+    expect(importTemplateGenerateIpcArgumentsSchema.safeParse(["transactions", "it"]).success).toBe(true);
+    expect(importTemplateGenerateIpcArgumentsSchema.safeParse(["bank-statements", "it"]).success).toBe(false);
+    expect(importTemplateGenerateIpcArgumentsSchema.safeParse(["transactions", "fr"]).success).toBe(false);
+    expect(importTemplateGenerateIpcArgumentsSchema.safeParse(["transactions", "it", "C:\\private.xlsx"]).success).toBe(false);
   });
 });

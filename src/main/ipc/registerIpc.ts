@@ -4,12 +4,14 @@ import type { SystemCapabilities } from "../../shared/contracts";
 import { IPC } from "../../shared/ipc";
 import {
   financeExecuteIpcArgumentsSchema,
+  importTemplateGenerateIpcArgumentsSchema,
   noIpcArgumentsSchema,
   settingsUpdateIpcArgumentsSchema,
   workbookCreateIpcArgumentsSchema,
 } from "../../shared/ipcValidation";
 import type { SettingsService } from "../../infrastructure/settings/SettingsService";
 import type { FinanceFileService } from "../services/FinanceFileService";
+import type { ImportTemplateService } from "../services/ImportTemplateService";
 
 function safeError(error: unknown): Error {
   const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
@@ -18,11 +20,12 @@ function safeError(error: unknown): Error {
     "TAX_TYPE_NOT_FOUND", "TAX_TYPE_INACTIVE", "TAX_TYPE_NOT_APPLICABLE", "INVALID_TAX_INSTALLMENT",
     "INVALID_WORKBOOK_PATH", "INVALID_WORKBOOK_SCHEMA", "WORKBOOK_TOO_LARGE", "WORKBOOK_VERIFICATION_FAILED",
     "NUMBERS_NOT_AVAILABLE", "NUMBERS_MIRROR_FAILED", "WORKBOOK_NOT_CONFIGURED", "WORKBOOK_CHANGED_EXTERNALLY",
+    "IMPORT_TEMPLATE_VERIFICATION_FAILED",
   ]);
   return new Error(allowed.has(code) ? code : "OPERATION_FAILED");
 }
 
-export function registerIpc(window: BrowserWindow, settings: SettingsService, finance: FinanceFileService): void {
+export function registerIpc(window: BrowserWindow, settings: SettingsService, finance: FinanceFileService, importTemplates: ImportTemplateService): void {
   for (const channel of Object.values(IPC)) ipcMain.removeHandler(channel);
   const trusted = (event: IpcMainInvokeEvent): void => {
     const expectedUrl = window.webContents.getURL();
@@ -55,4 +58,5 @@ export function registerIpc(window: BrowserWindow, settings: SettingsService, fi
   handle(IPC.financeExecute, financeExecuteIpcArgumentsSchema, ([command]) => finance.execute(command));
   handle(IPC.financeRollover, noIpcArgumentsSchema, () => finance.rollover());
   handle(IPC.financeRevealWorkbook, noIpcArgumentsSchema, () => finance.revealWorkbook());
+  handle(IPC.importTemplateGenerate, importTemplateGenerateIpcArgumentsSchema, ([type, language]) => importTemplates.generate(type, language));
 }
