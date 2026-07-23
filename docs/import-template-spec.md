@@ -2,9 +2,9 @@
 
 Versione formato / Format version: **1** · Applicazione / Application: **1.2.0**
 
-Questo documento specifica i file `.xlsx` generati da **Impostazioni → Importazione dati**. I template preparano i dati per la futura importazione guidata M15; la versione 1.2.0 genera i file ma non li importa ancora.
+Questo documento specifica i file `.xlsx` generati e importati da **Impostazioni → Importazione dati**. Dalla versione 1.3.0 i contratti v1 sono importabili con anteprima e conferma atomica.
 
-This document specifies the `.xlsx` files generated under **Settings → Data import**. Templates prepare data for the future M15 guided import; version 1.2.0 generates files but does not import them yet.
+This document specifies the `.xlsx` files generated and imported under **Settings → Data import**. Since version 1.3.0, v1 contracts can be imported with preview and atomic confirmation.
 
 ## Struttura comune / Common structure
 
@@ -23,9 +23,9 @@ This document specifies the `.xlsx` files generated under **Settings → Data im
 - Non sono presenti macro, formule di cella, collegamenti esterni o contenuto attivo. Le formule delle convalide dati puntano soltanto a intervalli denominati interni.
 - No macros, cell formulas, external links, or active content are present. Data-validation formulas refer only to internal named ranges.
 
-Quando un workbook è aperto, i cataloghi attivi vengono copiati nel template come istantanea `workbook_snapshot`. Senza workbook, il file usa `system_defaults`, omette UUID instabili e dichiara che i riferimenti mancanti dovranno essere risolti durante M15.
+Quando un workbook è aperto, i cataloghi attivi vengono copiati nel template come istantanea `workbook_snapshot`. Senza workbook, il file usa `system_defaults` e omette UUID instabili; durante l’importazione un nome viene accettato soltanto se corrisponde in modo esatto e univoco a un elemento attivo.
 
-When a workbook is open, active catalogs are copied into the template as a `workbook_snapshot`. Without a workbook, the file uses `system_defaults`, omits unstable UUIDs, and declares that missing references must be resolved during M15.
+When a workbook is open, active catalogs are copied into the template as a `workbook_snapshot`. Without a workbook, the file uses `system_defaults` and omits unstable UUIDs; during import, a name is accepted only when it exactly and uniquely matches an active item.
 
 ## Token chiusi / Closed tokens
 

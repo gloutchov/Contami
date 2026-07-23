@@ -175,13 +175,15 @@ Un elemento già usato non può essere cancellato: ContaMì mostra un errore e c
 
 ## 13. Template Excel per dati precedenti
 
-In **Impostazioni → Importazione dati** puoi generare otto template `.xlsx`: immobile di residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, spese ricorrenti e automobile. Questa versione prepara i file da compilare; l’importazione automatica sarà aggiunta nella milestone successiva.
+In **Impostazioni → Importazione dati** puoi generare e importare otto template `.xlsx`: immobile di residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, spese ricorrenti e automobile.
 
 Ogni file contiene un solo foglio visibile `Dati - Data`, intestazioni tecniche stabili, descrizioni bilingui, colori per distinguere campi obbligatori, condizionali e opzionali e fino a 5.000 righe. Date e importi restano valori Excel reali. I campi chiusi hanno menu a discesa; quando un workbook è aperto, categorie, metodi, conti, tipi di investimento e tasse attive vengono inclusi con UUID non ambiguo.
 
-Puoi generare i template anche senza workbook: saranno presenti i valori di sistema disponibili, senza UUID temporanei, e i riferimenti mancanti dovranno essere risolti durante la futura importazione. Il generatore non modifica il workbook attivo e al renderer comunica soltanto il nome del file salvato.
+Puoi generare i template anche senza workbook: saranno presenti i valori di sistema disponibili, senza UUID temporanei. Durante l’importazione un riferimento testuale viene accettato soltanto se corrisponde in modo esatto e univoco a un elemento attivo del workbook.
 
-Non rinominare il foglio o le intestazioni e non aggiungere formule, macro, link esterni o altri fogli. La specifica completa è in [docs/import-template-spec.md](docs/import-template-spec.md).
+Per importare, apri prima il workbook di destinazione, scegli **Ignora**, **Crea nuove copie** o **Aggiorna** per le sole corrispondenze esatte, quindi premi **Importa file compilato**. L’anteprima mostra righe valide, rifiutate, conflitti, operazioni previste, importi aggregati ed errori con riga e colonna. Nessun dato viene scritto finché non scegli **Conferma importazione**; chiudere l’anteprima lascia il workbook invariato. La conferma esegue un solo salvataggio con controllo delle modifiche esterne e backup recuperabile.
+
+Non rinominare il foglio o le intestazioni e non aggiungere formule, macro, link esterni, oggetti incorporati o altri fogli: questi elementi vengono rifiutati. Correggi il file e ripeti l’anteprima se una riga segnala un riferimento mancante o ambiguo. La specifica completa è in [docs/import-template-spec.md](docs/import-template-spec.md) e la guida agli errori è in [docs/import-guide.md](docs/import-guide.md).
 
 ## 14. Lingua, tema e preferenze
 

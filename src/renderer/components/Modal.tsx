@@ -4,12 +4,13 @@ import { createPortal } from "react-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useDialogFocus } from "./useDialogFocus";
 
-export function Modal({ title, children, onClose, onSubmit, submitDisabled = false }: {
+export function Modal({ title, children, onClose, onSubmit, submitDisabled = false, submitLabel }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   submitDisabled?: boolean;
+  submitLabel?: string;
 }) {
   const { t } = useI18n();
   const titleId = useId();
@@ -20,7 +21,7 @@ export function Modal({ title, children, onClose, onSubmit, submitDisabled = fal
         <header><h2 id={titleId}>{title}</h2><button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}><X size={20} /></button></header>
         <form onSubmit={onSubmit}>
           <div className="modal-body">{children}</div>
-          <footer><button type="button" className="secondary-button" onClick={onClose}>{t("cancel")}</button><button type="submit" className="primary-button" disabled={submitDisabled}>{t("save")}</button></footer>
+          <footer><button type="button" className="secondary-button" onClick={onClose}>{t("cancel")}</button><button type="submit" className="primary-button" disabled={submitDisabled}>{submitLabel ?? t("save")}</button></footer>
         </form>
       </section>
     </div>,

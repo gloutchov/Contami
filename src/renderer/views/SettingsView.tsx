@@ -1,11 +1,13 @@
-import { FileSpreadsheet, FolderOpen, Pencil, Plus, ReceiptText, RotateCcw, Tags, Trash2, WalletCards } from "lucide-react";
+import { FileSpreadsheet, FolderOpen, Pencil, Plus, ReceiptText, RotateCcw, Tags, Trash2, Upload, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { catalogUsageCount } from "../../domain/catalogUsage";
 import type { FinanceCommand } from "../../domain/commands";
 import type { ImportTemplateType } from "../../domain/importTemplates";
+import type { ImportDuplicateStrategy, ImportPreview } from "../../domain/imports";
 import type { Category, InvestmentType, PaymentMethod, TaxType } from "../../domain/models";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../../shared/contracts";
 import { PageHeader } from "../components/PageHeader";
+import { ImportPreviewDialog } from "../components/ImportPreviewDialog";
 import { AccountForm } from "../forms/AccountForm";
 import { CategoryForm, InvestmentTypeForm, PaymentMethodForm, TaxTypeForm } from "../forms/CatalogForms";
 import { useI18n } from "../i18n/I18nContext";
@@ -23,11 +25,14 @@ const importTemplateActions: Array<{ type: ImportTemplateType; label: "templateR
   { type: "vehicles", label: "templateVehicles" },
 ];
 
-export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCreate, onOpen, onReveal, onRollover, onGenerateImportTemplate, onSave }: {
+export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCreate, onOpen, onReveal, onRollover, onGenerateImportTemplate, onPreviewImport, onConfirmImport, onDiscardImport, onSave }: {
   settings: AppSettings; capabilities: SystemCapabilities; snapshot: FinanceSnapshot;
   onUpdate: (patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">) => Promise<void>;
   onCreate: () => Promise<void>; onOpen: () => Promise<void>; onReveal: () => Promise<void>; onRollover: () => Promise<void>;
   onGenerateImportTemplate: (type: ImportTemplateType) => Promise<void>;
+  onPreviewImport: (strategy: ImportDuplicateStrategy) => Promise<ImportPreview>;
+  onConfirmImport: (previewId: string) => Promise<void>;
+  onDiscardImport: (previewId: string) => Promise<void>;
   onSave: (command: FinanceCommand) => Promise<void>;
 }) {
   const { t, language } = useI18n();
@@ -36,6 +41,23 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
   const [payment, setPayment] = useState<PaymentMethod | null | undefined>();
   const [investmentType, setInvestmentType] = useState<InvestmentType | null | undefined>();
   const [taxType, setTaxType] = useState<TaxType | null | undefined>();
+  const [duplicateStrategy, setDuplicateStrategy] = useState<ImportDuplicateStrategy>("skip");
+  const [importPreview, setImportPreview] = useState<ImportPreview>();
+  const startImport = () => runUiAction(async () => {
+    const result = await onPreviewImport(duplicateStrategy);
+    if (!result.canceled) setImportPreview(result);
+  });
+  const closeImportPreview = () => {
+    const previewId = importPreview?.previewId;
+    setImportPreview(undefined);
+    if (previewId) void onDiscardImport(previewId);
+  };
+  const confirmImport = async () => {
+    const previewId = importPreview?.previewId;
+    if (!previewId) return;
+    await onConfirmImport(previewId);
+    setImportPreview(undefined);
+  };
   const remove = (entity: "category" | "paymentMethod" | "investmentType" | "taxType", id: string) => {
     if (window.confirm(t("deleteConfirm"))) runUiAction(() => onSave({ type: "deleteEntity", entity, id }));
   };
@@ -53,7 +75,7 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
       </div></article>
       <article className="panel settings-card wide"><h2>{t("investmentTypes")}</h2><p>{t("investmentTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.investmentTypes.filter((item) => item.code !== "pension").map((item) => <div className="catalog-item" key={item.id}><span><strong>{language === "it" ? item.nameIt : item.nameEn}</strong><small>{item.code}</small></span><div><button className="icon-button" aria-label={t("edit")} onClick={() => setInvestmentType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} onClick={() => remove("investmentType", item.id)}><Trash2 size={15}/></button></div></div>)}</div><button className="secondary-button" onClick={() => setInvestmentType(null)}><Plus size={16}/>{t("newInvestmentType")}</button></article>
       <article className="panel settings-card wide"><h2>{t("taxTypes")}</h2><p>{t("taxTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.taxTypes.map((item) => { const usage = catalogUsageCount(snapshot.data, "taxType", item.id); return <div className="catalog-item" key={item.id}><span><strong>{item.name}</strong><small><ReceiptText size={14}/>{t(item.appliesTo === "all" ? "allProperties" : item.appliesTo)} · {t("taxInstallments", { count: item.installments })}{!item.active && ` · ${t("archived")}`}</small></span><div><span className="usage-badge" title={t("usageCount", { count: usage })} aria-label={t("usageCount", { count: usage })}>{usage}</span><button className="text-button" onClick={() => runUiAction(() => onSave({ type: "setActive", entity: "taxType", id: item.id, active: !item.active }))}>{item.active ? t("archive") : t("reopen")}</button><button className="icon-button" aria-label={t("edit")} onClick={() => setTaxType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} disabled={usage > 0} title={usage > 0 ? t("entityInUse") : undefined} onClick={() => remove("taxType", item.id)}><Trash2 size={15}/></button></div></div>; })}</div><button className="secondary-button" onClick={() => setTaxType(null)}><Plus size={16}/>{t("newTaxType")}</button></article>
-      <article className="panel settings-card wide"><h2>{t("importTemplates")}</h2><p>{t("importTemplatesHelp")}</p>{!snapshot.workbookConfigured && <p className="inline-help">{t("importTemplatesNoWorkbook")}</p>}<div className="template-grid">{importTemplateActions.map((item) => <button className="secondary-button" key={item.type} onClick={() => runUiAction(() => onGenerateImportTemplate(item.type))}><FileSpreadsheet size={17}/><span>{t(item.label)}</span></button>)}</div></article>
+      <article className="panel settings-card wide"><h2>{t("importTemplates")}</h2><p>{t("importTemplatesHelp")}</p>{!snapshot.workbookConfigured && <p className="inline-help">{t("importTemplatesNoWorkbook")}</p>}<div className="import-controls"><label><span>{t("importDuplicateStrategy")}</span><select value={duplicateStrategy} onChange={(event) => setDuplicateStrategy(event.target.value as ImportDuplicateStrategy)}><option value="skip">{t("importStrategySkip")}</option><option value="create">{t("importStrategyCreate")}</option><option value="update">{t("importStrategyUpdate")}</option></select><small>{t("importDuplicateStrategyHelp")}</small></label><button className="primary-button" disabled={!snapshot.workbookConfigured} onClick={startImport}><Upload size={17}/>{t("importCompletedFile")}</button></div><h3 className="template-heading">{t("generateTemplates")}</h3><div className="template-grid">{importTemplateActions.map((item) => <button className="secondary-button" key={item.type} onClick={() => runUiAction(() => onGenerateImportTemplate(item.type))}><FileSpreadsheet size={17}/><span>{t(item.label)}</span></button>)}</div></article>
       <article className="panel settings-card wide"><h2>{t("rollover")}</h2><p>{t("rolloverHelp")}</p><button className="secondary-button" disabled={!snapshot.workbookConfigured} onClick={() => runUiAction(onRollover)}><RotateCcw size={16}/>{t("rollover")}</button></article>
     </section>
     {accountOpen && <AccountForm onClose={() => setAccountOpen(false)} onSave={onSave} />}
@@ -61,5 +83,6 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
     {payment !== undefined && <PaymentMethodForm value={payment ?? undefined} onClose={() => setPayment(undefined)} onSave={onSave} />}
     {investmentType !== undefined && <InvestmentTypeForm value={investmentType ?? undefined} onClose={() => setInvestmentType(undefined)} onSave={onSave} />}
     {taxType !== undefined && <TaxTypeForm value={taxType ?? undefined} onClose={() => setTaxType(undefined)} onSave={onSave} />}
+    {importPreview && <ImportPreviewDialog preview={importPreview} onClose={closeImportPreview} onConfirm={confirmImport} />}
   </>;
 }
