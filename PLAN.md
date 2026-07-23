@@ -35,8 +35,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
-| M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Completata e testata localmente; CI/release da verificare |
-| M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Pianificata |
+| M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
+| M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Completata e testata localmente; CI/release da verificare |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
@@ -434,6 +434,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** guida di compilazione e importazione IT/EN, matrice errori e recupero, contratti dei template, README, MAP, SECURITY_MODEL, modello di minaccia e note di rilascio.
 
+**Esito implementazione:** completati preflight ZIP limitato, parser per gli otto contratti v1, riferimenti deterministici, tre strategie esplicite per le corrispondenze esatte, anteprima senza scritture con errori riga/colonna e piano opaco mantenuto nel main. La conferma applica una sola trasformazione `FinanceData` tramite comandi di dominio e un solo salvataggio verificato con revisione, backup e rollback; annullamento ed errore non modificano il workbook. Formule, macro, link esterni, oggetti incorporati, fogli o intestazioni inattesi, archivi cifrati/anomali e limiti superati vengono rifiutati prima della scrittura.
+
 ## Decisione futura — Cifratura portabile
 
 La precedente M12 non fa più parte della sequenza di sviluppo né ha una versione assegnata. ContaMì non implementerà ora una cifratura applicativa: workbook, temporanei e backup restano interoperabili e protetti tramite permessi del filesystem, FileVault/BitLocker, blocco della sessione e backup adeguati.
@@ -551,6 +553,14 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Gate locale M14 superato: preflight completo con lint, typecheck, build renderer/Electron e 63 test Vitest; Playwright Chromium in IT/scuro e EN/chiaro a 1080 px; controllo documentale; `npm audit` con 0 vulnerabilità. Gli otto file hanno superato round-trip ExcelJS, metadati, protezioni, menu, cataloghi vuoti/popolati, assenza di formule/link e il test produttivo da 5.000 righe.
 - Excel desktop, LibreOffice e Numbers non sono installati o disponibili in questa sessione Windows: l’apertura visiva indipendente dei template resta quindi un gate manuale/CI da eseguire sulle piattaforme in cui tali applicazioni sono disponibili. Commit, push, CI multipiattaforma, tag e release costituiscono i successivi passi di pubblicazione.
 - Pubblicazione M14 completata: commit funzionale `8084861`, PR `#17` e merge commit `a517d10`; CI verde sul branch (`30000488158`), sulla PR dopo il rerun di un errore transitorio dell’endpoint npm audit (`30005793095`), su `main` (`30006137711`) e sul tag (`30006488191`). Il tag annotato `v1.2.0` ha completato la Release nel run `30006488140`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`.
+
+## Avvio e chiusura locale M15 — 2026-07-23
+
+- Creato il branch `milestone/15-guided-import` da `main` sincronizzato e portati manifest, lockfile e documentazione applicativa a `1.3.0`.
+- Implementati preflight `.xlsx`, parser e pianificazione per tutti gli otto template, strategie ignora/crea/aggiorna per identità esatte, riferimenti catalogo UUID o nome univoco, anteprima opaca nel main e diagnostica localizzata senza valori finanziari nei log.
+- La conferma riusa i comandi di dominio in una trasformazione in memoria e salva una sola volta tramite il repository esistente: controllo revisione, backup, verifica di rilettura, sostituzione atomica e rollback restano invariati.
+- Aggiunti flusso Impostazioni IT/EN, anteprima accessibile, riepilogo create/aggiorna/ignora/importi e copertura sintetica per otto tipologie, formule/macro, versioni, riferimenti, duplicati, annullamento, conferma, backup e atomicità.
+- Gate locale M15 superato: lint, typecheck, build renderer/Electron, 76 test Vitest, controllo documentale e `npm audit` con 0 vulnerabilità; Playwright Chromium superato in IT/scuro e EN/chiaro a 1080 px con anteprima, focus da tastiera, conferma, assenza di overflow ed errori console. CI, packaging e release `v1.3.0` restano da verificare dopo la pubblicazione richiesta dal proprietario.
 
 ## Rischi e mitigazioni iniziali
 

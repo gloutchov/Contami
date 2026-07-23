@@ -1,7 +1,7 @@
 import path from "node:path";
 import { dialog, shell, type BrowserWindow } from "electron";
 import type { FinanceCommand } from "../../domain/commands";
-import { applyFinanceCommand, computeDashboard, createEmptyFinanceData } from "../../domain/finance";
+import { applyFinanceCommand, applyFinanceCommands, computeDashboard, createEmptyFinanceData } from "../../domain/finance";
 import { createRolloverFinanceData } from "../../domain/rollover";
 import type { FinanceData } from "../../domain/models";
 import type { AppSettings, FinanceSnapshot, RolloverResult, WorkbookChoiceResult } from "../../shared/contracts";
@@ -112,6 +112,23 @@ export class FinanceFileService {
     }
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
     const next = applyFinanceCommand(this.data, command);
+    await this.repository.save(settings.workbookPath, next);
+    this.revision = await this.revisions.capture(settings.workbookPath);
+    this.data = next;
+    await this.updateMirror(settings, false);
+    return this.snapshot();
+  }
+
+  async applyImport(commands: readonly FinanceCommand[]): Promise<FinanceSnapshot> {
+    if (commands.length < 1 || commands.length > 15_000) throw new Error("IMPORT_PLAN_INVALID");
+    const settings = await this.settingsService.get();
+    if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
+    if (!this.data) {
+      this.data = await this.repository.load(settings.workbookPath);
+      this.revision = await this.revisions.capture(settings.workbookPath);
+    }
+    await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
+    const next = applyFinanceCommands(this.data, commands);
     await this.repository.save(settings.workbookPath, next);
     this.revision = await this.revisions.capture(settings.workbookPath);
     this.data = next;

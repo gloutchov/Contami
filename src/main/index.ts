@@ -4,10 +4,12 @@ import { APP_CONFIG } from "../config/appConfig";
 import { SettingsService } from "../infrastructure/settings/SettingsService";
 import { ExcelWorkbookRepository } from "../infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { ExcelImportTemplateGenerator } from "../infrastructure/spreadsheet/ExcelImportTemplateGenerator";
+import { ExcelImportTemplateParser } from "../infrastructure/spreadsheet/ExcelImportTemplateParser";
 import { NumbersMirrorService } from "../infrastructure/spreadsheet/NumbersMirrorService";
 import { registerIpc } from "./ipc/registerIpc";
 import { FinanceFileService } from "./services/FinanceFileService";
 import { ImportTemplateService } from "./services/ImportTemplateService";
+import { ImportDataService } from "./services/ImportDataService";
 
 app.enableSandbox();
 
@@ -93,7 +95,8 @@ function bootstrapWindow(): void {
   const mirror = new NumbersMirrorService(scriptPath());
   const finance = new FinanceFileService(mainWindow, settings, new ExcelWorkbookRepository(), mirror);
   const importTemplates = new ImportTemplateService(mainWindow, finance, new ExcelImportTemplateGenerator());
-  registerIpc(mainWindow, settings, finance, importTemplates);
+  const imports = new ImportDataService(mainWindow, finance, new ExcelImportTemplateParser());
+  registerIpc(mainWindow, settings, finance, importTemplates, imports);
 }
 
 app.whenReady().then(() => {

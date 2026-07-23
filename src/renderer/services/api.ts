@@ -115,6 +115,30 @@ function createDevelopmentApi(): ContaMiApi {
     rolloverYear: async () => ({ canceled: false, year: data.meta.activeYear + 1, newWorkbookPath: "ContaMi-next.xlsx" }),
     revealWorkbook: async () => true,
     generateImportTemplate: async (type) => ({ canceled: false, fileName: `ContaMi-template-${type.replaceAll("_", "-")}-v1.xlsx` }),
+    previewImport: async () => ({
+      canceled: false,
+      previewId: crypto.randomUUID(),
+      fileName: "ContaMi-template-transactions-v1.xlsx",
+      templateType: "transactions",
+      validRows: 3,
+      rejectedRows: 1,
+      conflictRows: 1,
+      totalRows: 4,
+      amountTotal: 345.67,
+      actions: { create: 2, update: 0, skip: 1 },
+      errors: [{ row: 9, column: "category", code: "MISSING_REFERENCE" }],
+      errorsTruncated: false,
+    }),
+    confirmImport: async () => ({
+      snapshotUpdated: true,
+      templateType: "transactions",
+      fileName: "ContaMi-template-transactions-v1.xlsx",
+      validRows: 3,
+      rejectedRows: 1,
+      amountTotal: 345.67,
+      actions: { create: 2, update: 0, skip: 1 },
+    }),
+    discardImport: async () => true,
   };
 }
 

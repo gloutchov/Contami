@@ -3,6 +3,7 @@ import logo from "../../assets/logo.png";
 import { APP_CONFIG } from "../config/appConfig";
 import type { FinanceCommand } from "../domain/commands";
 import type { ImportTemplateType } from "../domain/importTemplates";
+import type { ImportDuplicateStrategy } from "../domain/imports";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../shared/contracts";
 import { AppShell, type AppView } from "./components/AppShell";
 import { I18nProvider, useI18n } from "./i18n/I18nContext";
@@ -37,6 +38,9 @@ function errorKey(error: unknown): TranslationKey {
   if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
   if (text.includes("ENTITY_IN_USE")) return "entityInUse";
   if (text.includes("DUPLICATE_TAX_NAME")) return "duplicateTaxName";
+  if (text.includes("IMPORT_PREVIEW_EXPIRED")) return "importPreviewExpired";
+  if (text.includes("IMPORT_NO_VALID_ROWS")) return "importNoValidRows";
+  if (text.includes("IMPORT_") || text.includes("INVALID_IMPORT")) return "importInvalidFile";
   return "genericError";
 }
 
@@ -105,6 +109,20 @@ export default function App() {
       }
     });
   }, [language, run]);
+  const previewImport = useCallback((strategy: ImportDuplicateStrategy) => run(() => api.previewImport(strategy, language)), [language, run]);
+  const confirmImport = useCallback(async (previewId: string) => {
+    await run(async () => {
+      const result = await api.confirmImport(previewId);
+      setSnapshot(await api.getSnapshot());
+      setNotice("importCompleted");
+      setNoticeValues({
+        create: result.actions.create,
+        update: result.actions.update,
+        skip: result.actions.skip,
+      });
+    });
+  }, [run]);
+  const discardImport = useCallback(async (previewId: string) => { await api.discardImport(previewId); }, []);
   const dismissNotice = useCallback(() => setNotice(undefined), []);
 
   const content = useMemo(() => {
@@ -118,9 +136,9 @@ export default function App() {
       case "pensions": return <PensionsView data={snapshot.data} onSave={execute} />;
       case "recurring": return <RecurringView data={snapshot.data} onSave={execute} />;
       case "shared": return <SharedExpensesView data={snapshot.data} onSave={execute} />;
-      case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onGenerateImportTemplate={generateImportTemplate} onSave={execute} />;
+      case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onGenerateImportTemplate={generateImportTemplate} onPreviewImport={previewImport} onConfirmImport={confirmImport} onDiscardImport={discardImport} onSave={execute} />;
     }
-  }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover, generateImportTemplate]);
+  }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover, generateImportTemplate, previewImport, confirmImport, discardImport]);
 
   if (!snapshot) return <ThemeProvider theme={settings.theme} capabilities={capabilities}><div className="splash"><div><img src={logo} alt="ContaMì" /><p>{translations[language].loading}</p></div></div></ThemeProvider>;
 
@@ -136,5 +154,5 @@ function Notice({ messageKey, values, onClose }: { messageKey: TranslationKey; v
 
 function NoticeText({ messageKey, values }: { messageKey: TranslationKey; values?: Record<string, string | number> }) {
   const { t } = useI18n();
-  return <div className={messageKey === "genericError" || messageKey === "entityInUse" || messageKey === "duplicateTaxName" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" || messageKey === "workbookMissing" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
+  return <div className={messageKey === "genericError" || messageKey === "entityInUse" || messageKey === "duplicateTaxName" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" || messageKey === "workbookMissing" || messageKey === "importInvalidFile" || messageKey === "importPreviewExpired" || messageKey === "importNoValidRows" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
 }
