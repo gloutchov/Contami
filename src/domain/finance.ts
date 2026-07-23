@@ -1,5 +1,5 @@
 import type { FinanceCommand } from "./commands";
-import { DEFAULT_INVESTMENT_TYPES } from "./catalogDefaults";
+import { DEFAULT_INVESTMENT_TYPES, DEFAULT_TAX_TYPES } from "./catalogDefaults";
 import {
   deleteLinkedEntity,
   syncInvestmentPlan,
@@ -25,7 +25,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 3, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 4, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -38,6 +38,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
       payment("Addebito diretto", "direct_debit"), payment("Wallet digitale", "digital_wallet"),
     ],
     investmentTypes: structuredClone(DEFAULT_INVESTMENT_TYPES),
+    taxTypes: structuredClone(DEFAULT_TAX_TYPES),
     accounts: [], transactions: [], properties: [], propertyEntries: [], investments: [], investmentEntries: [],
     recurringItems: [], sharedExpenses: [], vehicles: [], vehicleEntries: [], annualSummaries: [],
     propertyAnnualSummaries: [], investmentAnnualSummaries: [], vehicleAnnualSummaries: [],
@@ -63,6 +64,29 @@ function ensureEditableInvestmentType(data: FinanceData, typeId: string, code: s
   if (code === "pension" || current?.code === "pension") throw new Error("RESERVED_INVESTMENT_TYPE");
 }
 
+function normalizedName(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function ensureUniqueTaxName(data: FinanceData, name: string, excludedId?: string): void {
+  const normalized = normalizedName(name);
+  if (data.taxTypes.some((item) => item.id !== excludedId && normalizedName(item.name) === normalized)) {
+    throw new Error("DUPLICATE_TAX_NAME");
+  }
+}
+
+function ensureValidPropertyTax(data: FinanceData, entry: FinanceData["propertyEntries"][number], allowInactive: boolean): void {
+  if (!entry.taxTypeId) return;
+  const taxType = data.taxTypes.find((item) => item.id === entry.taxTypeId);
+  if (!taxType) throw new Error("TAX_TYPE_NOT_FOUND");
+  if (!allowInactive && !taxType.active) throw new Error("TAX_TYPE_INACTIVE");
+  const property = data.properties.find((item) => item.id === entry.propertyId);
+  if (!property) throw new Error("PROPERTY_NOT_FOUND");
+  if (!allowInactive && taxType.appliesTo !== "all" && property.usage !== taxType.appliesTo) throw new Error("TAX_TYPE_NOT_APPLICABLE");
+  if (taxType.installments > 1 && !entry.taxInstallmentNumber) throw new Error("INVALID_TAX_INSTALLMENT");
+  if (entry.taxInstallmentNumber && entry.taxInstallmentNumber > taxType.installments) throw new Error("INVALID_TAX_INSTALLMENT");
+}
+
 export function applyFinanceCommand(data: FinanceData, command: FinanceCommand): FinanceData {
   const next = structuredClone(data);
   switch (command.type) {
@@ -75,15 +99,21 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
     case "addPropertyEntry":
       ensureUnique(next.propertyEntries, command.value.id);
       if (!next.properties.some((item) => item.id === command.value.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
+      ensureValidPropertyTax(next, command.value, false);
       upsertPropertyEntryWithLinks(next, command.value); break;
-    case "updatePropertyEntry": ensureExists(next.propertyEntries, command.value.id); upsertPropertyEntryWithLinks(next, command.value); break;
+    case "updatePropertyEntry":
+      ensureExists(next.propertyEntries, command.value.id);
+      ensureValidPropertyTax(next, command.value, true);
+      upsertPropertyEntryWithLinks(next, command.value); break;
     case "addPropertyExpense":
       ensureUnique(next.propertyEntries, command.value.entry.id);
       if (!next.properties.some((item) => item.id === command.value.entry.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
       if (command.value.shared) ensureUnique(next.sharedExpenses, command.value.shared.id);
+      ensureValidPropertyTax(next, command.value.entry, false);
       upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
     case "updatePropertyExpense":
       ensureExists(next.propertyEntries, command.value.entry.id);
+      ensureValidPropertyTax(next, command.value.entry, true);
       upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
     case "addInvestment":
       ensureUnique(next.investments, command.value.id); next.investments.push(command.value); syncInvestmentPlan(next, command.value); break;
@@ -120,6 +150,16 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
     case "updateInvestmentType":
       ensureEditableInvestmentType(next, command.value.id, command.value.code);
       replace(next.investmentTypes, command.value); break;
+    case "addTaxType":
+      ensureUniqueTaxName(next, command.value.name);
+      ensureUnique(next.taxTypes, command.value.id);
+      next.taxTypes.push(command.value); break;
+    case "updateTaxType":
+      ensureUniqueTaxName(next, command.value.name, command.value.id);
+      if (next.propertyEntries.some((item) => item.taxTypeId === command.value.id && (item.taxInstallmentNumber ?? 1) > command.value.installments)) {
+        throw new Error("INVALID_TAX_INSTALLMENT");
+      }
+      replace(next.taxTypes, command.value); break;
     case "deleteEntity":
       if (command.entity === "investmentType") {
         const type = next.investmentTypes.find((item) => item.id === command.id);
@@ -127,7 +167,11 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
       }
       deleteLinkedEntity(next, command.entity, command.id); break;
     case "setActive": {
-      if (command.entity === "recurringItem") {
+      if (command.entity === "taxType") {
+        const item = next.taxTypes.find((candidate) => candidate.id === command.id);
+        if (!item) throw new Error("ENTITY_NOT_FOUND");
+        item.active = command.active;
+      } else if (command.entity === "recurringItem") {
         const item = next.recurringItems.find((candidate) => candidate.id === command.id);
         if (!item) throw new Error("ENTITY_NOT_FOUND");
         item.active = command.active;

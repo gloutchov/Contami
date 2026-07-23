@@ -10,6 +10,7 @@ describe("createRolloverFinanceData", () => {
     const propertyId = crypto.randomUUID();
     const investmentId = crypto.randomUUID();
     const vehicleId = crypto.randomUUID();
+    current.taxTypes[0] = { ...current.taxTypes[0], name: "Legacy TV levy", active: false };
     current.accounts.push({ id: accountId, name: "Main", kind: "bank", currency: "EUR", openingBalance: 1_000, active: true, openedAt: "2020-01-01", notes: "" });
     current.transactions.push(
       { id: crypto.randomUUID(), date: "2026-02-01", description: "Income", categoryId: current.categories[0].id, paymentMethodId: current.paymentMethods[0].id, accountId, kind: "income", amount: 500, currency: "EUR", notes: "", createdAt: now, updatedAt: now },
@@ -46,6 +47,7 @@ describe("createRolloverFinanceData", () => {
     expect(next.recurringItems).toHaveLength(1);
     expect(next.recurringItems[0].nextDueDate.startsWith("2027-")).toBe(true);
     expect(next.sharedExpenses.map((item) => item.description)).toEqual(["Pending"]);
+    expect(next.taxTypes[0]).toMatchObject({ name: "Legacy TV levy", active: false });
     expect(next.annualSummaries).toMatchObject([{ year: 2026, income: 500, expenses: 125, netCashFlow: 375 }]);
     expect(next.propertyAnnualSummaries).toMatchObject([{ propertyId, year: 2026, electricityKwh: 1250 }]);
     expect(next.investmentAnnualSummaries).toMatchObject([{ investmentId, year: 2026, closingValue: 20_000 }]);

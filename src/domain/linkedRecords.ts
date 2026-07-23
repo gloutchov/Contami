@@ -431,6 +431,7 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
     category: data.categories,
     paymentMethod: data.paymentMethods,
     investmentType: data.investmentTypes,
+    taxType: data.taxTypes,
   } as const;
   const collection = collections[entity as keyof typeof collections];
   if (!collection?.some((item) => item.id === id)) throw new Error("ENTITY_NOT_FOUND");
@@ -438,6 +439,7 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
     : entity === "category" ? catalogUsageCount(data, "category", id) > 0
       : entity === "paymentMethod" ? catalogUsageCount(data, "paymentMethod", id) > 0
         : entity === "investmentType" ? data.investments.some((item) => item.typeId === id)
+          : entity === "taxType" ? catalogUsageCount(data, "taxType", id) > 0
           : false;
   if (inUse) throw new Error("ENTITY_IN_USE");
   if (entity === "recurringItem") {

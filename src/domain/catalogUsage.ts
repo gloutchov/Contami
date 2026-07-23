@@ -1,8 +1,9 @@
 import type { FinanceData } from "./models";
 
-export type CatalogUsageKind = "category" | "paymentMethod";
+export type CatalogUsageKind = "category" | "paymentMethod" | "taxType";
 
 export function catalogUsageCount(data: FinanceData, kind: CatalogUsageKind, id: string): number {
+  if (kind === "taxType") return data.propertyEntries.filter((item) => item.taxTypeId === id).length;
   const field = kind === "category" ? "categoryId" : "paymentMethodId";
   const count = (items: ReadonlyArray<{ categoryId?: string; paymentMethodId?: string }>) => items.filter((item) => item[field] === id).length;
   const periodicReferences = data.investments.filter((item) => (

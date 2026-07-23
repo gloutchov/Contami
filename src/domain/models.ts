@@ -31,6 +31,14 @@ export const investmentTypeSchema = z.object({
   active: z.boolean(),
 });
 
+export const taxTypeSchema = z.object({
+  id,
+  name: text,
+  appliesTo: z.enum(["all", "residence", "rental"]),
+  installments: z.number().int().min(1).max(24),
+  active: z.boolean(),
+});
+
 export const accountSchema = z.object({
   id,
   name: text,
@@ -100,13 +108,14 @@ export const propertyEntrySchema = z.object({
   amount: money,
   quantity: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   unit: z.string().trim().max(24).optional(),
-  detailKind: z.enum(["utility_electricity", "utility_gas", "utility_water", "utility_phone_internet", "tax_tv_licence", "tax_imu", "tax_tari"]).optional(),
+  detailKind: z.enum(["utility_electricity", "utility_gas", "utility_water", "utility_phone_internet"]).optional(),
+  taxTypeId: id.optional(),
+  taxInstallmentNumber: z.number().int().min(1).max(24).optional(),
   valuePerSqm: money.optional(),
   electricityKwhF1: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   electricityKwhF2: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   electricityKwhF3: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   electricityKwhF23: z.number().finite().nonnegative().max(1_000_000_000).optional(),
-  taxInstallment: z.enum(["single", "first", "second"]).optional(),
   paymentMethodId: id.optional(),
   transactionId: id.optional(),
   isCommonExpense: z.boolean().optional(),
@@ -114,6 +123,12 @@ export const propertyEntrySchema = z.object({
 }).superRefine((value, context) => {
   if ((value.kind === "income" || value.kind === "expense") && (!value.paymentMethodId || !value.categoryId)) {
     context.addIssue({ code: "custom", message: "Category and payment method are required for monetary property entries", path: ["paymentMethodId"] });
+  }
+  if (value.taxTypeId && (value.kind !== "expense" || value.detailKind)) {
+    context.addIssue({ code: "custom", message: "A property tax must be an expense and cannot also be a utility", path: ["taxTypeId"] });
+  }
+  if (value.taxInstallmentNumber && !value.taxTypeId) {
+    context.addIssue({ code: "custom", message: "A tax installment requires a tax type", path: ["taxInstallmentNumber"] });
   }
 });
 
@@ -284,7 +299,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
@@ -292,6 +307,7 @@ export const financeDataSchema = z.object({
   categories: z.array(categorySchema).max(2_000),
   paymentMethods: z.array(paymentMethodSchema).max(500),
   investmentTypes: z.array(investmentTypeSchema).max(500),
+  taxTypes: z.array(taxTypeSchema).max(500),
   accounts: z.array(accountSchema).max(500),
   transactions: z.array(transactionSchema).max(1_000_000),
   properties: z.array(propertySchema).max(10_000),
@@ -311,6 +327,7 @@ export const financeDataSchema = z.object({
 export type Category = z.infer<typeof categorySchema>;
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 export type InvestmentType = z.infer<typeof investmentTypeSchema>;
+export type TaxType = z.infer<typeof taxTypeSchema>;
 export type Account = z.infer<typeof accountSchema>;
 export type Transaction = z.infer<typeof transactionSchema>;
 export type Property = z.infer<typeof propertySchema>;

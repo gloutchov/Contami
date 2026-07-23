@@ -29,15 +29,15 @@ ContaMì/
 │   ├── config/
 │   │   └── appConfig.ts                # limiti e parametri applicativi centrali
 │   ├── domain/
-│   │   ├── catalogDefaults.ts          # tipi investimento iniziali / default investment types
-│   │   ├── catalogUsage.ts             # conteggio riferimenti per categorie e metodi / catalog usage counts
+│   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
+│   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
 │   │   ├── commands.ts                 # comandi validati e tipi azione
 │   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
-│   │   ├── migrations.ts               # migrazione workbook v1/v2 → v3
-│   │   ├── models.ts                   # schema Zod v3 e modello finanziario
+│   │   ├── migrations.ts               # migrazione workbook v1/v2/v3 → v4
+│   │   ├── models.ts                   # schema Zod v4 e modello finanziario
 │   │   └── rollover.ts                 # trasformazione pura del passaggio d’anno
 │   ├── infrastructure/
 │   │   ├── settings/
@@ -59,6 +59,7 @@ ContaMì/
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
 │   │   │   ├── PropertyExpenseForms.tsx # utenze/tasse, consumi e quote condivise
+│   │   │   ├── CatalogForms.tsx     # categorie, metodi, tipi investimento e tasse configurabili
 │   │   │   └── VehicleForms.tsx     # anagrafica automobile e costi/consumi
 │   │   ├── i18n/                       # dizionari IT/EN e provider lingua
 │   │   ├── services/api.ts             # bridge reale + demo locale di sviluppo
@@ -99,6 +100,7 @@ ContaMì/
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
+│       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
 │       ├── migrations.test.ts            # compatibilità schema v1/v2 → v3
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
@@ -142,7 +144,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v3 + migrations
+                                                               ├── canonical .xlsx v4 + migrations
                                                                └── optional .numbers mirror
 ```
 

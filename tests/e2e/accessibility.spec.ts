@@ -18,6 +18,13 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await expect(page.locator("html")).toHaveAttribute("lang", "it");
   await page.getByRole("button", { name: "Scuro" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const taxCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Tasse", exact: true }) });
+  await taxCard.getByRole("button", { name: "Nuova tassa" }).click();
+  const taxTypeDialog = page.getByRole("dialog", { name: "Nuova tassa" });
+  await taxTypeDialog.getByLabel("Nome della tassa").fill("Tassa sintetica");
+  await taxTypeDialog.getByRole("spinbutton", { name: /Numero di rate/ }).fill("3");
+  await taxTypeDialog.getByRole("button", { name: "Salva" }).click();
+  await expect(taxCard.getByText("Tassa sintetica")).toBeVisible();
 
   await page.getByRole("button", { name: "Immobili" }).click();
   await page.getByRole("button", { name: "Utenze" }).click();
@@ -26,6 +33,14 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await expect(dialog.locator("input, select, textarea").first()).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+  await page.getByRole("button", { name: "Tasse" }).click();
+  const propertyTaxDialog = page.getByRole("dialog", { name: "Registra tassa" });
+  await propertyTaxDialog.getByLabel("Tassa").selectOption({ label: "Tassa sintetica" });
+  const installmentSelect = propertyTaxDialog.locator('select:has(> option[value="3"])');
+  await installmentSelect.selectOption("3");
+  await expect(installmentSelect).toHaveValue("3");
+  await page.keyboard.press("Escape");
+  await expect(propertyTaxDialog).toBeHidden();
 
   await page.getByRole("button", { name: "Impostazioni" }).click();
   await page.getByRole("button", { name: "English" }).click();

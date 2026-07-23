@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-21 · Applicazione / Application: 1.0.0
+Versione del documento / Document version: 2026-07-23 · Applicazione / Application: 1.1.0
 
 ## Italiano
 
@@ -12,7 +12,7 @@ Il workbook è la fonte dati autorevole. I dati in memoria sono una copia valida
 
 ### 2. Asset da proteggere
 
-- transazioni, patrimonio, investimenti, pensioni integrative/comparti, immobili, consumi domestici, automobili e spese condivise;
+- transazioni, patrimonio, investimenti, pensioni integrative/comparti, immobili, consumi domestici, automobili, spese condivise e catalogo tasse;
 - percorsi locali del workbook e dei backup;
 - integrità dello schema e dei consuntivi annuali;
 - preferenze di lingua, tema e formato;
@@ -58,10 +58,10 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - Testo descrittivo: massimo 240 caratteri; note: massimo 2.000; importi e quantità hanno limiti finiti; le quote condivise devono riconciliare al centesimo.
 - Sono accettati soltanto percorsi assoluti `.xlsx`, senza byte nulli e lunghi al massimo 4.096 caratteri.
 - Il file in ingresso non può superare 250 MB e deve contenere `_Meta`, versione schema supportata e tutti i fogli richiesti.
-- Lo schema v3 mantiene UUID espliciti tra transazioni e registrazioni collegate, incluse le spese dell’automobile. I comandi dedicati a utenze e tasse validano e salvano atomicamente la voce immobile, la Transazione e l’eventuale Spesa condivisa; fasce elettriche, consumi, valore al metro quadro e numero rata sono campi opzionali e limitati. Le modifiche vengono propagate dal dominio; una cancellazione rimuove i record dipendenti, mentre categorie, metodi e tipi in uso restituiscono `ENTITY_IN_USE` e non possono lasciare riferimenti orfani.
+- Lo schema v4 mantiene UUID espliciti tra transazioni e registrazioni collegate, incluse le spese dell’automobile. Le tasse immobiliari sono un catalogo validato nel workbook con UUID, nome, ambito, 1–24 rate e stato attivo/archiviato; i nuovi inserimenti accettano soltanto tasse attive e applicabili. I comandi dedicati a utenze e tasse salvano atomicamente la voce immobile, la Transazione e l’eventuale Spesa condivisa. Le modifiche vengono propagate dal dominio; una cancellazione rimuove i record dipendenti, mentre cataloghi in uso, incluse le tasse, restituiscono `ENTITY_IN_USE` e non possono lasciare riferimenti orfani.
 - I trasferimenti finanziari dichiarano esplicitamente l’effetto sulla liquidità (`inflow`, `outflow` o `neutral`). Il dominio applica tale direzione solo al saldo del conto e li esclude dai consuntivi di entrate/uscite, evitando che acquisti, vendite e versamenti vengano contabilizzati come spesa corrente.
-- Pensioni e comparti riusano le tabelle Investimenti dello schema v3: il tipo tecnico `pension` è riservato e protetto da modifica/cancellazione. Il controvalore applica in ordine temporale soltanto valutazioni e movimenti confermati, escludendo le transazioni pianificate; i selettori separano investimenti e pensioni e aggregano soltanto le posizioni finali attive, impedendo il doppio conteggio.
-- I workbook v1 e v2 sono trasformati in memoria tramite migrazioni deterministiche e vengono convalidati integralmente come v3 prima di poter essere salvati.
+- Pensioni e comparti riusano le tabelle Investimenti dello schema v4: il tipo tecnico `pension` è riservato e protetto da modifica/cancellazione. Il controvalore applica in ordine temporale soltanto valutazioni e movimenti confermati, escludendo le transazioni pianificate; i selettori separano investimenti e pensioni e aggregano soltanto le posizioni finali attive, impedendo il doppio conteggio.
+- I workbook v1, v2 e v3 sono trasformati in memoria tramite migrazioni deterministiche e vengono convalidati integralmente come v4 prima di poter essere salvati. La migrazione v3 associa Canone TV, IMU e TARI a UUID stabili e converte i marcatori di rata senza modificare importi o collegamenti.
 - I consuntivi annuali dettagliati (`Property History`, `Investment History`, `Vehicle History`) contengono solo dati aggregati e identificativi interni; il rollover non copia le transazioni storiche nel nuovo workbook.
 - Le stringhe utente vengono scritte come valori, non concatenate in formule. Il loader non esegue macro o formule; se incontra una cella formula legge il risultato memorizzato.
 - Il file Numbers non viene modificato direttamente: su macOS è rigenerato importando il sidecar `.xlsx` tramite uno script AppleScript fisso.
@@ -115,7 +115,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 12. Verifiche implementate
 
-- unit test per comandi, aggregazioni di consumi/automobili, separazione investimenti/pensioni senza doppio conteggio, protezione del tipo pensione, rollover, migrazione v1/v2→v3 e sincronizzazione bidirezionale/cancellazione;
+- unit test per comandi, catalogo tasse e relativi vincoli, aggregazioni di consumi/automobili, separazione investimenti/pensioni senza doppio conteggio, protezione del tipo pensione, rollover, migrazione v1/v2/v3→v4 e sincronizzazione bidirezionale/cancellazione;
 - integrazione round-trip workbook e controllo file modificato esternamente;
 - integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
@@ -139,10 +139,13 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 14. Miglioramenti pianificati
 
-- M9: limiti preventivi sull’espansione ZIP e test fuzz per workbook ostili;
+- M14: generazione locale di template Excel versionati e privi di dati personali;
+- M15: importazione con preflight, anteprima, conferma, backup e applicazione atomica;
+- M9: limiti preventivi sull’espansione ZIP e test fuzz per tutti i workbook ostili;
 - M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
-- M11: rimozione di `style-src 'unsafe-inline'` dalla CSP;
-- M12: gate di fattibilità per una cifratura opt-in, solo se interoperabile con Excel e Numbers e senza compromettere portabilità e recupero.
+- M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
+
+La cifratura applicativa non è pianificata: resta una decisione futura senza milestone o versione assegnata. Sarà rivalutata soltanto se una soluzione standard conserverà interoperabilità e recupero con Excel e Numbers; nel frattempo sono raccomandati FileVault/BitLocker, permessi del filesystem e backup protetti.
 
 La firma Developer ID/notarizzazione macOS e Authenticode Windows non è una milestone pianificata in assenza delle relative credenziali. Le build restano non firmate e accompagnate da checksum e istruzioni Gatekeeper/SmartScreen. Non sono pianificate integrazioni web o dati di mercato: il blocco della rete resta invariato.
 
@@ -158,7 +161,7 @@ The workbook is authoritative. In-memory data is a validated copy used for calcu
 
 ### 2. Protected assets and threats
 
-Protected assets include financial records—including investments, private pensions and compartments, household consumption, and vehicles—workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
+Protected assets include financial records—including investments, private pensions and compartments, household consumption, vehicles, and the property-tax catalog—workbook/backup paths, schema and annual-summary integrity, preferences, and release artifacts. ContaMì does not collect credentials, passwords, PINs, tokens, or API keys.
 
 Threats considered include malformed `.xlsx` input, a compromised renderer attempting privileged access, concurrent external edits, interrupted saves, formula injection, invalid paths/oversized files, unexpected navigation or network access, and supply-chain compromise. A compromised operating system, same-user malware, or unlocked physical access remains outside what the app alone can defend.
 
@@ -179,9 +182,9 @@ Inline styles remain allowed for the current UI. React escaping and the absence 
 
 ### 5. Data and workbook validation
 
-Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amounts, share reconciliation, and collection limits. Only absolute `.xlsx` paths up to 4,096 characters and files up to 250 MB are accepted. Required sheets, `_Meta`, and schema version must validate. Schema v3 uses explicit UUID links between transactions and mirrored records, including vehicle costs. Dedicated utility and property-tax commands atomically validate and save the property entry, Transaction, and optional Shared expense; electricity bands, consumption, per-square-metre value, and instalment marker are bounded optional fields. Domain propagation keeps linked records synchronized, cascade deletion removes dependants, and in-use catalogs return `ENTITY_IN_USE`. Financial transfers declare a validated cash effect (`inflow`, `outflow`, or `neutral`): it changes account liquidity while remaining outside income/expense actuals. Version 1 and 2 data is deterministically migrated in memory and fully validated as v3 before save.
+Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amounts, share reconciliation, and collection limits. Only absolute `.xlsx` paths up to 4,096 characters and files up to 250 MB are accepted. Required sheets, `_Meta`, and schema version must validate. Schema v4 uses explicit UUID links between transactions and mirrored records, including vehicle costs. Property taxes are a validated workbook catalog with UUID, name, scope, 1–24 instalments, and active/archived state; new entries accept only active, applicable taxes. Dedicated utility and property-tax commands atomically validate and save the property entry, Transaction, and optional Shared expense. Domain propagation keeps linked records synchronized, cascade deletion removes dependants, and in-use catalogs—including taxes—return `ENTITY_IN_USE`. Financial transfers declare a validated cash effect (`inflow`, `outflow`, or `neutral`): it changes account liquidity while remaining outside income/expense actuals. Version 1, 2, and 3 data is deterministically migrated in memory and fully validated as v4 before save; v3 tax markers map to stable catalog UUIDs without changing amounts or links.
 
-Pensions and compartments reuse the schema-v3 Investments tables. The technical `pension` type is reserved and protected against editing/deletion. Countervalue applies dated valuations and confirmed movements only, excluding planned Transactions; domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
+Pensions and compartments reuse the schema-v4 Investments tables. The technical `pension` type is reserved and protected against editing/deletion. Countervalue applies dated valuations and confirmed movements only, excluding planned Transactions; domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
 
 User strings are written as values, not interpolated into formulas. The loader never executes macros or formulas. A compressed workbook may still expand heavily before schema validation and exhaust memory; open trusted ContaMì files only.
 
@@ -211,12 +214,14 @@ Residual risks: transitive `exceljs` and `electron-builder` chains still contain
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation (including utilities and vehicles), investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2→v3 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities and vehicles), configurable-tax CRUD and constraints, investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2/v3→v4 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-M9 covers ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP; M12 is a feasibility gate for opt-in encryption, only if it remains interoperable with Excel and Numbers without compromising portability or recovery.
+M14 generates local, versioned Excel templates without personal data; M15 imports them with preflight, preview, confirmation, backup, and atomic application. M9 then generalizes ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
+
+Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 
 macOS Developer ID signing/notarization and Windows Authenticode are not scheduled milestones while the required credentials are unavailable. Builds remain unsigned and accompanied by checksums and Gatekeeper/SmartScreen instructions. No web integrations or market-data features are planned, and the network block remains unchanged.

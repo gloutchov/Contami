@@ -1,4 +1,4 @@
-import { DEFAULT_INVESTMENT_TYPES, investmentTypeIdForKind } from "./catalogDefaults";
+import { DEFAULT_INVESTMENT_TYPES, DEFAULT_TAX_TYPES, investmentTypeIdForKind, taxTypeIdForLegacyDetailKind } from "./catalogDefaults";
 import { financeDataSchema, type FinanceData } from "./models";
 
 type RawRecord = Record<string, unknown>;
@@ -21,8 +21,8 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
   const raw = structuredClone(rawValue) as RawRecord;
   const meta = raw.meta as RawRecord | undefined;
   const version = Number(meta?.schemaVersion);
-  if (version === 3) return financeDataSchema.parse(raw);
-  if ((version !== 1 && version !== 2) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
+  if (version === 4) return financeDataSchema.parse(raw);
+  if ((version !== 1 && version !== 2 && version !== 3) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
 
   if (version === 1) {
     const categories = list(raw.categories);
@@ -56,14 +56,33 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
       monthlyRecurring: 0,
     }));
   }
-  raw.transactions = list(raw.transactions).map((item) => ({ ...item }));
-  raw.recurringItems = list(raw.recurringItems).map((item) => ({ ...item }));
-  raw.vehicles = [];
-  raw.vehicleEntries = [];
-  raw.propertyAnnualSummaries = [];
-  raw.investmentAnnualSummaries = [];
-  raw.vehicleAnnualSummaries = [];
-  raw.annualSummaries = list(raw.annualSummaries).map((item) => ({ pensionValue: 0, vehicleCosts: 0, ...item }));
-  meta.schemaVersion = 3;
+  if (version === 1 || version === 2) {
+    raw.transactions = list(raw.transactions).map((item) => ({ ...item }));
+    raw.recurringItems = list(raw.recurringItems).map((item) => ({ ...item }));
+    raw.vehicles = [];
+    raw.vehicleEntries = [];
+    raw.propertyAnnualSummaries = [];
+    raw.investmentAnnualSummaries = [];
+    raw.vehicleAnnualSummaries = [];
+    raw.annualSummaries = list(raw.annualSummaries).map((item) => ({ pensionValue: 0, vehicleCosts: 0, ...item }));
+  }
+  raw.taxTypes = structuredClone(DEFAULT_TAX_TYPES);
+  raw.propertyEntries = list(raw.propertyEntries).map((item) => {
+    const legacyDetailKind = typeof item.detailKind === "string" ? item.detailKind : "";
+    const taxTypeId = taxTypeIdForLegacyDetailKind(legacyDetailKind);
+    const legacyInstallment = item.taxInstallment;
+    const taxInstallmentNumber = taxTypeId
+      ? legacyInstallment === "second" ? 2 : 1
+      : undefined;
+    const migrated = { ...item };
+    delete migrated.taxInstallment;
+    return {
+      ...migrated,
+      detailKind: taxTypeId ? undefined : item.detailKind,
+      taxTypeId,
+      taxInstallmentNumber,
+    };
+  });
+  meta.schemaVersion = 4;
   return financeDataSchema.parse(raw);
 }

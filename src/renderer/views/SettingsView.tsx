@@ -1,12 +1,12 @@
-import { FolderOpen, Pencil, Plus, RotateCcw, Tags, Trash2, WalletCards } from "lucide-react";
+import { FolderOpen, Pencil, Plus, ReceiptText, RotateCcw, Tags, Trash2, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { catalogUsageCount } from "../../domain/catalogUsage";
 import type { FinanceCommand } from "../../domain/commands";
-import type { Category, InvestmentType, PaymentMethod } from "../../domain/models";
+import type { Category, InvestmentType, PaymentMethod, TaxType } from "../../domain/models";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../../shared/contracts";
 import { PageHeader } from "../components/PageHeader";
 import { AccountForm } from "../forms/AccountForm";
-import { CategoryForm, InvestmentTypeForm, PaymentMethodForm } from "../forms/CatalogForms";
+import { CategoryForm, InvestmentTypeForm, PaymentMethodForm, TaxTypeForm } from "../forms/CatalogForms";
 import { useI18n } from "../i18n/I18nContext";
 import { todayIso } from "../utils/format";
 import { runUiAction } from "../utils/save";
@@ -22,7 +22,8 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
   const [category, setCategory] = useState<Category | null | undefined>();
   const [payment, setPayment] = useState<PaymentMethod | null | undefined>();
   const [investmentType, setInvestmentType] = useState<InvestmentType | null | undefined>();
-  const remove = (entity: "category" | "paymentMethod" | "investmentType", id: string) => {
+  const [taxType, setTaxType] = useState<TaxType | null | undefined>();
+  const remove = (entity: "category" | "paymentMethod" | "investmentType" | "taxType", id: string) => {
     if (window.confirm(t("deleteConfirm"))) runUiAction(() => onSave({ type: "deleteEntity", entity, id }));
   };
   const categoryGroups = (["expense", "income", "both"] as const).map((kind) => ({ kind, items: snapshot.data.categories.filter((item) => item.kind === kind) }));
@@ -38,11 +39,13 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
         <div><h3><WalletCards size={15}/>{t("paymentMethod")}</h3><div className="catalog-list">{snapshot.data.paymentMethods.map((item) => { const usage = catalogUsageCount(snapshot.data, "paymentMethod", item.id); return <div className="catalog-item" key={item.id}><span><strong>{item.name}</strong><small>{t(item.kind === "bank_transfer" ? "bankTransfer" : item.kind === "direct_debit" ? "directDebit" : item.kind === "digital_wallet" ? "digitalWallet" : item.kind)}</small></span><div><span className="usage-badge" title={t("usageCount", { count: usage })} aria-label={t("usageCount", { count: usage })}>{usage}</span><button className="icon-button" aria-label={t("edit")} onClick={() => setPayment(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} onClick={() => remove("paymentMethod", item.id)}><Trash2 size={15}/></button></div></div>; })}</div><button className="secondary-button" onClick={() => setPayment(null)}><Plus size={16}/>{t("newPaymentMethod")}</button></div>
       </div></article>
       <article className="panel settings-card wide"><h2>{t("investmentTypes")}</h2><p>{t("investmentTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.investmentTypes.filter((item) => item.code !== "pension").map((item) => <div className="catalog-item" key={item.id}><span><strong>{language === "it" ? item.nameIt : item.nameEn}</strong><small>{item.code}</small></span><div><button className="icon-button" aria-label={t("edit")} onClick={() => setInvestmentType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} onClick={() => remove("investmentType", item.id)}><Trash2 size={15}/></button></div></div>)}</div><button className="secondary-button" onClick={() => setInvestmentType(null)}><Plus size={16}/>{t("newInvestmentType")}</button></article>
+      <article className="panel settings-card wide"><h2>{t("taxTypes")}</h2><p>{t("taxTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.taxTypes.map((item) => { const usage = catalogUsageCount(snapshot.data, "taxType", item.id); return <div className="catalog-item" key={item.id}><span><strong>{item.name}</strong><small><ReceiptText size={14}/>{t(item.appliesTo === "all" ? "allProperties" : item.appliesTo)} · {t("taxInstallments", { count: item.installments })}{!item.active && ` · ${t("archived")}`}</small></span><div><span className="usage-badge" title={t("usageCount", { count: usage })} aria-label={t("usageCount", { count: usage })}>{usage}</span><button className="text-button" onClick={() => runUiAction(() => onSave({ type: "setActive", entity: "taxType", id: item.id, active: !item.active }))}>{item.active ? t("archive") : t("reopen")}</button><button className="icon-button" aria-label={t("edit")} onClick={() => setTaxType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} disabled={usage > 0} title={usage > 0 ? t("entityInUse") : undefined} onClick={() => remove("taxType", item.id)}><Trash2 size={15}/></button></div></div>; })}</div><button className="secondary-button" onClick={() => setTaxType(null)}><Plus size={16}/>{t("newTaxType")}</button></article>
       <article className="panel settings-card wide"><h2>{t("rollover")}</h2><p>{t("rolloverHelp")}</p><button className="secondary-button" disabled={!snapshot.workbookConfigured} onClick={() => runUiAction(onRollover)}><RotateCcw size={16}/>{t("rollover")}</button></article>
     </section>
     {accountOpen && <AccountForm onClose={() => setAccountOpen(false)} onSave={onSave} />}
     {category !== undefined && <CategoryForm value={category ?? undefined} onClose={() => setCategory(undefined)} onSave={onSave} />}
     {payment !== undefined && <PaymentMethodForm value={payment ?? undefined} onClose={() => setPayment(undefined)} onSave={onSave} />}
     {investmentType !== undefined && <InvestmentTypeForm value={investmentType ?? undefined} onClose={() => setInvestmentType(undefined)} onSave={onSave} />}
+    {taxType !== undefined && <TaxTypeForm value={taxType ?? undefined} onClose={() => setTaxType(undefined)} onSave={onSave} />}
   </>;
 }
