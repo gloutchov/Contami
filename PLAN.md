@@ -34,7 +34,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M8 — Dati collegati, automobile, CRUD e confronti storici | `milestone/08-linked-finance-workflows` | `0.8.0` | Completata, revisionata e promossa al checkpoint funzionale |
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
-| M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata e testata localmente; CI/release da verificare |
+| M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Pianificata |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Pianificata |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
@@ -532,13 +532,14 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 
 ## Avvio e chiusura M13 — 2026-07-23
 
-- Creato il branch `milestone/13-configurable-taxes` e portato manifest e lockfile a `1.1.0`; la milestone è completa localmente ma non ancora promossa tramite CI o release.
+- Creato il branch `milestone/13-configurable-taxes` e portato manifest e lockfile a `1.1.0`; la milestone è stata integrata in `main`, taggata e pubblicata dopo la verifica multipiattaforma.
 - Introdotto nel dominio il catalogo `TaxType` con UUID stabile, nome univoco senza distinzione tra maiuscole e minuscole, ambito residenza/locazione/entrambi, da 1 a 24 rate e stato attivo/archiviato.
 - Migrato il workbook allo schema v4 con il foglio `Tax Types`; le migrazioni v1, v2 e v3 creano Canone TV, IMU e TARI e trasformano deterministicamente le precedenti tasse hardcoded in riferimenti `taxTypeId` e numeri di rata.
 - Aggiunto in Impostazioni il CRUD bilingue delle tasse con conteggio utilizzi: una tassa inutilizzata può essere eliminata previa conferma, mentre una tassa già referenziata può soltanto essere archiviata e resta disponibile nello storico.
 - I moduli immobiliari propongono soltanto tasse attive e compatibili con il tipo di immobile, rispettano il numero di rate configurato e continuano a collegare atomicamente Transazioni e Spese condivise; rollover e round-trip preservano l’intero catalogo.
 - Aggiornati README, manuali IT/EN, MAP e SECURITY_MODEL; tutti i test e la documentazione usano esclusivamente dati sintetici.
 - Gate locale M13 superato: lint, typecheck, build renderer/Electron, 54 test Vitest, Playwright Chromium a 1080 px con creazione e uso della tassa in IT/scuro e verifica EN/chiaro, controllo documentale e `npm audit` con 0 vulnerabilità. Durante il gate `fast-uri` è stato aggiornato transitivamente dalla 3.1.3 alla 3.1.4 per correggere l’avviso high dell’audit.
+- Commit M13 `9a0abab`; CI del branch verde nel run `29996313238`, CI dei push `main` e tag verdi nei run `29996589713` e `29996589833`. Il tag annotato `v1.1.0` ha completato la Release nel run `29996589794`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`. Il branch M13 è stato rimosso localmente e dal remoto dopo merge e CI.
 
 ## Rischi e mitigazioni iniziali
 
