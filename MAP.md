@@ -14,6 +14,7 @@ ContaMì/
 │   ├── icon.png                       # icona macOS e UI / macOS and UI icon
 │   └── logo.png                       # logo GitHub e riferimento visivo / brand logo
 ├── docs/
+│   ├── import-template-spec.md        # contratti versionati degli otto template Excel
 │   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
@@ -35,6 +36,7 @@ ContaMì/
 │   │   ├── commands.ts                 # comandi validati e tipi azione
 │   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
+│   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
 │   │   ├── migrations.ts               # migrazione workbook v1/v2/v3 → v4
 │   │   ├── models.ts                   # schema Zod v4 e modello finanziario
@@ -43,6 +45,7 @@ ContaMì/
 │   │   ├── settings/
 │   │   │   └── SettingsService.ts      # preferenze locali atomiche
 │   │   └── spreadsheet/
+│   │       ├── ExcelImportTemplateGenerator.ts # template xlsx passivi, validati e riletti
 │   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, backup e verifica xlsx
 │   │       ├── NumbersMirrorService.ts # adattatore nativo macOS isolato
 │   │       ├── WorkbookRevisionGuard.ts # conflitti con modifiche esterne
@@ -50,7 +53,9 @@ ContaMì/
 │   ├── main/
 │   │   ├── index.ts                    # processo privilegiato Electron e hardening
 │   │   ├── ipc/registerIpc.ts          # allowlist IPC e validazione confini
-│   │   └── services/FinanceFileService.ts # casi d’uso file, save e rollover
+│   │   └── services/
+│   │       ├── FinanceFileService.ts    # casi d’uso file, save e rollover
+│   │       └── ImportTemplateService.ts # dialogo nativo e generazione template isolata
 │   ├── preload/
 │   │   └── index.ts                    # bridge minimo e congelato verso la UI
 │   ├── renderer/
@@ -88,6 +93,8 @@ ContaMì/
 │   │   └── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
+│   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
+│   │   ├── import-template-service.test.ts # dialogo e mancata esposizione del percorso
 │   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
@@ -100,6 +107,7 @@ ContaMì/
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
+│       ├── importTemplates.test.ts       # contratti e chiavi gerarchiche degli otto template
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
 │       ├── migrations.test.ts            # compatibilità schema v1/v2 → v3

@@ -35,7 +35,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M6 — Sicurezza, qualità e accessibilità | `milestone/06-hardening` | `0.9.0` | Completata; CI/release macOS e Windows verdi |
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
-| M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Pianificata |
+| M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Completata e testata localmente; CI/release da verificare |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Pianificata |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
@@ -540,6 +540,16 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Aggiornati README, manuali IT/EN, MAP e SECURITY_MODEL; tutti i test e la documentazione usano esclusivamente dati sintetici.
 - Gate locale M13 superato: lint, typecheck, build renderer/Electron, 54 test Vitest, Playwright Chromium a 1080 px con creazione e uso della tassa in IT/scuro e verifica EN/chiaro, controllo documentale e `npm audit` con 0 vulnerabilità. Durante il gate `fast-uri` è stato aggiornato transitivamente dalla 3.1.3 alla 3.1.4 per correggere l’avviso high dell’audit.
 - Commit M13 `9a0abab`; CI del branch verde nel run `29996313238`, CI dei push `main` e tag verdi nei run `29996589713` e `29996589833`. Il tag annotato `v1.1.0` ha completato la Release nel run `29996589794`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`. Il branch M13 è stato rimosso localmente e dal remoto dopo merge e CI.
+
+## Avvio e chiusura locale M14 — 2026-07-23
+
+- Creato il branch `milestone/14-import-templates` e portati manifest, lockfile e documentazione applicativa a `1.2.0`.
+- Definiti otto contratti di importazione v1 con intestazioni `snake_case`, campi obbligatori/condizionali/opzionali, chiavi gerarchiche scelte dall’utente e liste chiuse bilingui per residenza, immobili in affitto, transazioni, investimenti, fondo pensione, spese condivise, ricorrenze e automobile.
+- Aggiunto un generatore Excel isolato dal workbook autorevole: produce un foglio dati visibile e due fogli tecnici `veryHidden` protetti, fino a 5.000 righe, date e numeri tipizzati, convalide tramite intervalli denominati, metadati verificabili e nessuna formula di cella, macro o link esterno. I cataloghi attivi sono incorporati con UUID soltanto quando provengono da un workbook configurato.
+- Integrati dialogo nativo, servizio main, IPC/preload minimo e sezione bilingue **Importazione dati / Data import** in Impostazioni; al renderer tornano solo annullamento e nome file, mai il percorso completo.
+- Pubblicata la specifica [docs/import-template-spec.md](docs/import-template-spec.md) e aggiornati manuali IT/EN, README, MAP e SECURITY_MODEL usando esclusivamente dati vuoti o sintetici.
+- Gate locale M14 superato: preflight completo con lint, typecheck, build renderer/Electron e 63 test Vitest; Playwright Chromium in IT/scuro e EN/chiaro a 1080 px; controllo documentale; `npm audit` con 0 vulnerabilità. Gli otto file hanno superato round-trip ExcelJS, metadati, protezioni, menu, cataloghi vuoti/popolati, assenza di formule/link e il test produttivo da 5.000 righe.
+- Excel desktop, LibreOffice e Numbers non sono installati o disponibili in questa sessione Windows: l’apertura visiva indipendente dei template resta quindi un gate manuale/CI da eseguire sulle piattaforme in cui tali applicazioni sono disponibili. Commit, push, CI multipiattaforma, tag e release costituiscono i successivi passi di pubblicazione.
 
 ## Rischi e mitigazioni iniziali
 

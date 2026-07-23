@@ -1,7 +1,8 @@
-import { FolderOpen, Pencil, Plus, ReceiptText, RotateCcw, Tags, Trash2, WalletCards } from "lucide-react";
+import { FileSpreadsheet, FolderOpen, Pencil, Plus, ReceiptText, RotateCcw, Tags, Trash2, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { catalogUsageCount } from "../../domain/catalogUsage";
 import type { FinanceCommand } from "../../domain/commands";
+import type { ImportTemplateType } from "../../domain/importTemplates";
 import type { Category, InvestmentType, PaymentMethod, TaxType } from "../../domain/models";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../../shared/contracts";
 import { PageHeader } from "../components/PageHeader";
@@ -11,10 +12,22 @@ import { useI18n } from "../i18n/I18nContext";
 import { todayIso } from "../utils/format";
 import { runUiAction } from "../utils/save";
 
-export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCreate, onOpen, onReveal, onRollover, onSave }: {
+const importTemplateActions: Array<{ type: ImportTemplateType; label: "templateResidence" | "templateRentalProperties" | "templateTransactions" | "templateInvestments" | "templatePension" | "templateSharedExpenses" | "templateRecurringItems" | "templateVehicles" }> = [
+  { type: "residence", label: "templateResidence" },
+  { type: "rental_properties", label: "templateRentalProperties" },
+  { type: "transactions", label: "templateTransactions" },
+  { type: "investments", label: "templateInvestments" },
+  { type: "pension", label: "templatePension" },
+  { type: "shared_expenses", label: "templateSharedExpenses" },
+  { type: "recurring_items", label: "templateRecurringItems" },
+  { type: "vehicles", label: "templateVehicles" },
+];
+
+export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCreate, onOpen, onReveal, onRollover, onGenerateImportTemplate, onSave }: {
   settings: AppSettings; capabilities: SystemCapabilities; snapshot: FinanceSnapshot;
   onUpdate: (patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">) => Promise<void>;
   onCreate: () => Promise<void>; onOpen: () => Promise<void>; onReveal: () => Promise<void>; onRollover: () => Promise<void>;
+  onGenerateImportTemplate: (type: ImportTemplateType) => Promise<void>;
   onSave: (command: FinanceCommand) => Promise<void>;
 }) {
   const { t, language } = useI18n();
@@ -40,6 +53,7 @@ export function SettingsView({ settings, capabilities, snapshot, onUpdate, onCre
       </div></article>
       <article className="panel settings-card wide"><h2>{t("investmentTypes")}</h2><p>{t("investmentTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.investmentTypes.filter((item) => item.code !== "pension").map((item) => <div className="catalog-item" key={item.id}><span><strong>{language === "it" ? item.nameIt : item.nameEn}</strong><small>{item.code}</small></span><div><button className="icon-button" aria-label={t("edit")} onClick={() => setInvestmentType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} onClick={() => remove("investmentType", item.id)}><Trash2 size={15}/></button></div></div>)}</div><button className="secondary-button" onClick={() => setInvestmentType(null)}><Plus size={16}/>{t("newInvestmentType")}</button></article>
       <article className="panel settings-card wide"><h2>{t("taxTypes")}</h2><p>{t("taxTypesHelp")}</p><div className="catalog-list compact">{snapshot.data.taxTypes.map((item) => { const usage = catalogUsageCount(snapshot.data, "taxType", item.id); return <div className="catalog-item" key={item.id}><span><strong>{item.name}</strong><small><ReceiptText size={14}/>{t(item.appliesTo === "all" ? "allProperties" : item.appliesTo)} · {t("taxInstallments", { count: item.installments })}{!item.active && ` · ${t("archived")}`}</small></span><div><span className="usage-badge" title={t("usageCount", { count: usage })} aria-label={t("usageCount", { count: usage })}>{usage}</span><button className="text-button" onClick={() => runUiAction(() => onSave({ type: "setActive", entity: "taxType", id: item.id, active: !item.active }))}>{item.active ? t("archive") : t("reopen")}</button><button className="icon-button" aria-label={t("edit")} onClick={() => setTaxType(item)}><Pencil size={15}/></button><button className="icon-button danger" aria-label={t("delete")} disabled={usage > 0} title={usage > 0 ? t("entityInUse") : undefined} onClick={() => remove("taxType", item.id)}><Trash2 size={15}/></button></div></div>; })}</div><button className="secondary-button" onClick={() => setTaxType(null)}><Plus size={16}/>{t("newTaxType")}</button></article>
+      <article className="panel settings-card wide"><h2>{t("importTemplates")}</h2><p>{t("importTemplatesHelp")}</p>{!snapshot.workbookConfigured && <p className="inline-help">{t("importTemplatesNoWorkbook")}</p>}<div className="template-grid">{importTemplateActions.map((item) => <button className="secondary-button" key={item.type} onClick={() => runUiAction(() => onGenerateImportTemplate(item.type))}><FileSpreadsheet size={17}/><span>{t(item.label)}</span></button>)}</div></article>
       <article className="panel settings-card wide"><h2>{t("rollover")}</h2><p>{t("rolloverHelp")}</p><button className="secondary-button" disabled={!snapshot.workbookConfigured} onClick={() => runUiAction(onRollover)}><RotateCcw size={16}/>{t("rollover")}</button></article>
     </section>
     {accountOpen && <AccountForm onClose={() => setAccountOpen(false)} onSave={onSave} />}

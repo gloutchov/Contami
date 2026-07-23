@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import logo from "../../assets/logo.png";
 import { APP_CONFIG } from "../config/appConfig";
 import type { FinanceCommand } from "../domain/commands";
+import type { ImportTemplateType } from "../domain/importTemplates";
 import type { AppSettings, FinanceSnapshot, SystemCapabilities } from "../shared/contracts";
 import { AppShell, type AppView } from "./components/AppShell";
 import { I18nProvider, useI18n } from "./i18n/I18nContext";
@@ -95,6 +96,15 @@ export default function App() {
   }, [language, run]);
 
   const reveal = useCallback(async () => { await run(() => api.revealWorkbook()); }, [run]);
+  const generateImportTemplate = useCallback(async (type: ImportTemplateType) => {
+    await run(async () => {
+      const result = await api.generateImportTemplate(type, language);
+      if (!result.canceled) {
+        setNotice("templateGenerated");
+        setNoticeValues({ fileName: result.fileName ?? "" });
+      }
+    });
+  }, [language, run]);
   const dismissNotice = useCallback(() => setNotice(undefined), []);
 
   const content = useMemo(() => {
@@ -108,9 +118,9 @@ export default function App() {
       case "pensions": return <PensionsView data={snapshot.data} onSave={execute} />;
       case "recurring": return <RecurringView data={snapshot.data} onSave={execute} />;
       case "shared": return <SharedExpensesView data={snapshot.data} onSave={execute} />;
-      case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onSave={execute} />;
+      case "settings": return <SettingsView settings={settings} capabilities={capabilities} snapshot={snapshot} onUpdate={updateSettings} onCreate={createWorkbook} onOpen={openWorkbook} onReveal={reveal} onRollover={rollover} onGenerateImportTemplate={generateImportTemplate} onSave={execute} />;
     }
-  }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover]);
+  }, [snapshot, view, createWorkbook, openWorkbook, execute, settings, capabilities, updateSettings, reveal, rollover, generateImportTemplate]);
 
   if (!snapshot) return <ThemeProvider theme={settings.theme} capabilities={capabilities}><div className="splash"><div><img src={logo} alt="ContaMì" /><p>{translations[language].loading}</p></div></div></ThemeProvider>;
 
