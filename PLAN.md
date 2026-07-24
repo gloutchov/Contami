@@ -4,7 +4,7 @@ Questo documento governa lo sviluppo di ContaMì. Va aggiornato alla chiusura di
 
 ## Visione del prodotto
 
-ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, automobile, investimenti, pensione integrativa, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
+ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, trasporti, investimenti, pensione integrativa, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
 
 ## Decisioni architetturali iniziali
 
@@ -37,6 +37,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
+| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | da assegnare | Pianificata; priorità e versione da assegnare |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
@@ -435,6 +436,29 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Documentazione:** guida di compilazione e importazione IT/EN, matrice errori e recupero, contratti dei template, README, MAP, SECURITY_MODEL, modello di minaccia e note di rilascio.
 
 **Esito implementazione:** completati preflight ZIP limitato, parser per gli otto contratti v1, riferimenti deterministici, tre strategie esplicite per le corrispondenze esatte, anteprima senza scritture con errori riga/colonna e piano opaco mantenuto nel main. La conferma applica una sola trasformazione `FinanceData` tramite comandi di dominio e un solo salvataggio verificato con revisione, backup e rollback; annullamento ed errore non modificano il workbook. Formule, macro, link esterni, oggetti incorporati, fogli o intestazioni inattesi, archivi cifrati/anomali e limiti superati vengono rifiutati prima della scrittura.
+
+## M16 — Trasporti, rate e filtri del dettaglio
+
+**Obiettivo:** rendere più generale e coerente la gestione dei mezzi, collegando correttamente i pagamenti rateali alle Ricorrenze e facilitando la consultazione delle registrazioni nel dettaglio.
+
+**Attività pianificate**
+
+- Rinominare la sezione visibile **Automobile** in **Trasporti** in navigazione, titoli, dashboard, modali, stati vuoti e manuali, aggiornando coerentemente le stringhe italiane e inglesi senza imporre una migrazione dei nomi tecnici già salvati nel workbook.
+- Quando, durante la creazione o la modifica di un mezzo, viene indicato un pagamento rateale, creare o aggiornare la relativa registrazione in **Ricorrenze** tramite un collegamento stabile, evitando duplicati e mantenendo sincronizzati importo, frequenza, scadenze e stato.
+- Definire il comportamento del collegamento rateale anche per modifica, chiusura, riapertura e cancellazione del mezzo, preservando storico, conferme e atomicità del salvataggio.
+- Aggiungere alla modale di dettaglio del mezzo un filtro testuale per descrizione e un filtro per mese tramite menu a discesa con tutti i dodici mesi e l’opzione per mostrare tutti i mesi.
+- Rendere i due filtri combinabili e mantenere coerenti elenco, stato vuoto, totali/parziali e reset dei filtri.
+
+**Criteri di accettazione**
+
+- Tutte le superfici utente mostrano **Trasporti** al posto di **Automobile** in IT/EN, mentre workbook esistenti, importazione e rollover continuano a funzionare senza perdita dati.
+- Un mezzo con pagamento rateale produce una sola ricorrenza collegata e immediatamente visibile; modifiche e cambi di stato non creano duplicati né lasciano riferimenti orfani.
+- La modale consente di filtrare le registrazioni per descrizione, per ciascun mese o con entrambi i criteri, mostrando risultati e totali coerenti.
+- I flussi restano accessibili da tastiera e leggibili in tema chiaro/scuro, IT/EN e alla larghezza minima di 1080 px.
+
+**Test richiesti:** unit test del collegamento mezzo/ricorrenza e delle transizioni di stato; integrazione e round-trip workbook; regressione importazione e rollover; test dei filtri e dei totali; Playwright della creazione rateale e della modale in IT/EN e chiaro/scuro.
+
+**Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario e note di rilascio.
 
 ## Decisione futura — Cifratura portabile
 
