@@ -36,7 +36,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M7 — Packaging e prima release | `milestone/07-release` | `1.0.0` | Completata; release stabile macOS/Windows verificata |
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
-| M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Completata e testata localmente; CI/release da verificare |
+| M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
@@ -554,13 +554,15 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Excel desktop, LibreOffice e Numbers non sono installati o disponibili in questa sessione Windows: l’apertura visiva indipendente dei template resta quindi un gate manuale/CI da eseguire sulle piattaforme in cui tali applicazioni sono disponibili. Commit, push, CI multipiattaforma, tag e release costituiscono i successivi passi di pubblicazione.
 - Pubblicazione M14 completata: commit funzionale `8084861`, PR `#17` e merge commit `a517d10`; CI verde sul branch (`30000488158`), sulla PR dopo il rerun di un errore transitorio dell’endpoint npm audit (`30005793095`), su `main` (`30006137711`) e sul tag (`30006488191`). Il tag annotato `v1.2.0` ha completato la Release nel run `30006488140`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`.
 
-## Avvio e chiusura locale M15 — 2026-07-23
+## Avvio e chiusura M15 — 2026-07-23/24
 
 - Creato il branch `milestone/15-guided-import` da `main` sincronizzato e portati manifest, lockfile e documentazione applicativa a `1.3.0`.
 - Implementati preflight `.xlsx`, parser e pianificazione per tutti gli otto template, strategie ignora/crea/aggiorna per identità esatte, riferimenti catalogo UUID o nome univoco, anteprima opaca nel main e diagnostica localizzata senza valori finanziari nei log.
 - La conferma riusa i comandi di dominio in una trasformazione in memoria e salva una sola volta tramite il repository esistente: controllo revisione, backup, verifica di rilettura, sostituzione atomica e rollback restano invariati.
 - Aggiunti flusso Impostazioni IT/EN, anteprima accessibile, riepilogo create/aggiorna/ignora/importi e copertura sintetica per otto tipologie, formule/macro, versioni, riferimenti, duplicati, annullamento, conferma, backup e atomicità.
-- Gate locale M15 superato: lint, typecheck, build renderer/Electron, 76 test Vitest, controllo documentale e `npm audit` con 0 vulnerabilità; Playwright Chromium superato in IT/scuro e EN/chiaro a 1080 px con anteprima, focus da tastiera, conferma, assenza di overflow ed errori console. CI, packaging e release `v1.3.0` restano da verificare dopo la pubblicazione richiesta dal proprietario.
+- Gate locale M15 superato: lint, typecheck, build renderer/Electron, 76 test Vitest, controllo documentale e `npm audit` con 0 vulnerabilità; Playwright Chromium superato in IT/scuro e EN/chiaro a 1080 px con anteprima, focus da tastiera, conferma, assenza di overflow ed errori console.
+- Collaudo manuale del proprietario completato con dati locali: l'anteprima ha identificato riferimenti e valori non validi, la correzione guidata ha risolto gli errori e l'importazione finale di categorie e registrazioni immobiliari è riuscita. I file usati restano esclusi da Git e non sono stati copiati in fixture o servizi remoti.
+- Pubblicazione M15 completata: commit funzionale `3b6c950`, PR `#18` e merge commit `b0bded4`; CI verde sulla PR (`30101556907`), su `main` (`30101882085`) e sul tag (`30102161837`). Il tag annotato `v1.3.0` ha completato la Release nel run `30102161664`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`.
 
 ## Rischi e mitigazioni iniziali
 
