@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { AppSettings, ContaMiApi } from "../shared/contracts";
 import type { FinanceCommand } from "../domain/commands";
 import type { ImportTemplateType } from "../domain/importTemplates";
+import type { ImportDuplicateStrategy } from "../domain/imports";
 import { IPC } from "../shared/ipc";
 
 const api: ContaMiApi = Object.freeze({
@@ -15,6 +16,9 @@ const api: ContaMiApi = Object.freeze({
   rolloverYear: () => ipcRenderer.invoke(IPC.financeRollover),
   revealWorkbook: () => ipcRenderer.invoke(IPC.financeRevealWorkbook),
   generateImportTemplate: (type: ImportTemplateType, language: "it" | "en") => ipcRenderer.invoke(IPC.importTemplateGenerate, type, language),
+  previewImport: (strategy: ImportDuplicateStrategy, language: "it" | "en") => ipcRenderer.invoke(IPC.importPreview, strategy, language),
+  confirmImport: (previewId: string) => ipcRenderer.invoke(IPC.importConfirm, previewId),
+  discardImport: (previewId: string) => ipcRenderer.invoke(IPC.importDiscard, previewId),
 });
 
 contextBridge.exposeInMainWorld("contami", api);

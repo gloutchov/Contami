@@ -15,6 +15,7 @@ ContaMì/
 │   └── logo.png                       # logo GitHub e riferimento visivo / brand logo
 ├── docs/
 │   ├── import-template-spec.md        # contratti versionati degli otto template Excel
+│   ├── import-guide.md                # compilazione, anteprima, errori e recupero IT/EN
 │   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
@@ -37,6 +38,7 @@ ContaMì/
 │   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
+│   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
 │   │   ├── migrations.ts               # migrazione workbook v1/v2/v3 → v4
 │   │   ├── models.ts                   # schema Zod v4 e modello finanziario
@@ -46,20 +48,24 @@ ContaMì/
 │   │   │   └── SettingsService.ts      # preferenze locali atomiche
 │   │   └── spreadsheet/
 │   │       ├── ExcelImportTemplateGenerator.ts # template xlsx passivi, validati e riletti
+│   │       ├── ExcelImportTemplateParser.ts # parser, riferimenti e piani per gli otto template
 │   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, backup e verifica xlsx
 │   │       ├── NumbersMirrorService.ts # adattatore nativo macOS isolato
 │   │       ├── WorkbookRevisionGuard.ts # conflitti con modifiche esterne
+│   │       ├── XlsxImportPreflight.ts   # limiti ZIP e blocco contenuto attivo
 │   │       └── workbookSchema.ts       # fogli, colonne e versione schema
 │   ├── main/
 │   │   ├── index.ts                    # processo privilegiato Electron e hardening
 │   │   ├── ipc/registerIpc.ts          # allowlist IPC e validazione confini
 │   │   └── services/
 │   │       ├── FinanceFileService.ts    # casi d’uso file, save e rollover
+│   │       ├── ImportDataService.ts      # dialogo, anteprima opaca, conferma e scadenza
 │   │       └── ImportTemplateService.ts # dialogo nativo e generazione template isolata
 │   ├── preload/
 │   │   └── index.ts                    # bridge minimo e congelato verso la UI
 │   ├── renderer/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
+│   │   │   └── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
@@ -94,6 +100,8 @@ ContaMì/
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
+│   │   ├── import-template-parser.test.ts # otto import, sicurezza, riferimenti e duplicati
+│   │   ├── import-data-service.test.ts # anteprima/annullamento/conferma senza percorsi
 │   │   ├── import-template-service.test.ts # dialogo e mancata esposizione del percorso
 │   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
@@ -108,6 +116,7 @@ ContaMì/
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
 │       ├── importTemplates.test.ts       # contratti e chiavi gerarchiche degli otto template
+│       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
 │       ├── migrations.test.ts            # compatibilità schema v1/v2 → v3

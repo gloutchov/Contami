@@ -1,4 +1,4 @@
-import type { FinanceCommand } from "./commands";
+import { financeCommandSchema, type FinanceCommand } from "./commands";
 import { DEFAULT_INVESTMENT_TYPES, DEFAULT_TAX_TYPES } from "./catalogDefaults";
 import {
   deleteLinkedEntity,
@@ -87,8 +87,7 @@ function ensureValidPropertyTax(data: FinanceData, entry: FinanceData["propertyE
   if (entry.taxInstallmentNumber && entry.taxInstallmentNumber > taxType.installments) throw new Error("INVALID_TAX_INSTALLMENT");
 }
 
-export function applyFinanceCommand(data: FinanceData, command: FinanceCommand): FinanceData {
-  const next = structuredClone(data);
+function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand): void {
   switch (command.type) {
     case "addTransaction": ensureUnique(next.transactions, command.value.id); upsertTransactionWithLinks(next, command.value); break;
     case "updateTransaction": ensureExists(next.transactions, command.value.id); upsertTransactionWithLinks(next, command.value); break;
@@ -229,8 +228,19 @@ export function applyFinanceCommand(data: FinanceData, command: FinanceCommand):
       });
       break;
   }
+}
+
+export function applyFinanceCommands(data: FinanceData, commands: readonly FinanceCommand[]): FinanceData {
+  const next = structuredClone(data);
+  for (const rawCommand of commands) {
+    applyFinanceCommandInPlace(next, financeCommandSchema.parse(rawCommand));
+  }
   next.meta.updatedAt = nowIso();
   return financeDataSchema.parse(next);
+}
+
+export function applyFinanceCommand(data: FinanceData, command: FinanceCommand): FinanceData {
+  return applyFinanceCommands(data, [command]);
 }
 
 export const monthlyAmount = (amount: number, frequency: "weekly" | "monthly" | "quarterly" | "yearly") => ({
