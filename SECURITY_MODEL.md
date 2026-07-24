@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-23 · Applicazione / Application: 1.2.0
+Versione del documento / Document version: 2026-07-23 · Applicazione / Application: 1.3.0
 
 ## Italiano
 
@@ -67,6 +67,10 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - Il file Numbers non viene modificato direttamente: su macOS è rigenerato importando il sidecar `.xlsx` tramite uno script AppleScript fisso.
 
 Il generatore M14 è separato dal repository del workbook autorevole e non lo modifica. Accetta soltanto uno degli otto tipi in allowlist e una lingua supportata, usa esclusivamente un percorso assoluto `.xlsx` scelto dal dialogo nativo e prepara al massimo 5.000 righe. Ogni template contiene un foglio dati visibile e due fogli tecnici molto nascosti e protetti, metadati di tipo/versione e liste tramite intervalli denominati. Non inserisce formule di cella, macro, collegamenti esterni o contenuto attivo; rilegge il file temporaneo e ne verifica firma, fogli, intestazioni e assenza di formule/link prima della sostituzione con rollback. I cataloghi incorporati provengono dalla copia `FinanceData` già validata; senza workbook vengono omessi gli UUID instabili.
+
+L’importatore M15 accetta soltanto `.xlsx` scelti con dialogo nativo e contratti template v1 in allowlist. Prima di ExcelJS esamina la directory centrale ZIP con limiti su file, voci, dimensione espansa, singola voce e rapporto di compressione; rifiuta cifratura, ZIP64, nomi duplicati o traversali, macro, fogli macro/dialogo, ActiveX, oggetti incorporati e link esterni. Dopo l’apertura richiede esattamente i tre fogli attesi, stati di visibilità, firma, versione, tipo, intestazioni e limiti, e rifiuta ogni formula o valore di cella attivo.
+
+Il renderer riceve soltanto nome base, conteggi, importo aggregato, codici errore riga/colonna e un UUID di anteprima; non riceve percorso né comandi. Il piano validato resta in memoria nel main per 15 minuti. I riferimenti sono risolti tramite UUID attivo o nome esatto univoco, senza approssimazioni. La conferma passa il piano già preparato a una sola trasformazione di dominio, verifica la revisione del workbook e usa il salvataggio esistente con temporaneo, rilettura, backup, sostituzione e rollback. Nessuna scrittura avviene durante anteprima o annullamento e i contenuti finanziari non vengono loggati.
 
 Limite residuo: un `.xlsx` compresso sotto 250 MB può espandersi molto durante il parsing e causare consumo elevato di memoria. Lo schema limita le righe accettate dopo l’apertura, ma non costituisce una difesa completa contro zip bomb. Aprire solo file ContaMì affidabili.
 
@@ -142,7 +146,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 14. Miglioramenti pianificati
 
-- M15: importazione con preflight, anteprima, conferma, backup e applicazione atomica;
+- M15 completata: importazione con preflight, anteprima, conferma, backup e applicazione atomica;
 - M9: limiti preventivi sull’espansione ZIP e test fuzz per tutti i workbook ostili;
 - M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
 - M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
@@ -192,6 +196,10 @@ User strings are written as values, not interpolated into formulas. The loader n
 
 The M14 generator is separate from the authoritative workbook repository and never modifies that workbook. It accepts only one of eight allowlisted types and a supported language, uses only an absolute `.xlsx` destination selected by the native dialog, and prepares at most 5,000 rows. Each template contains one visible data sheet and two very-hidden protected technical sheets, type/version metadata, and named-range validation lists. It adds no cell formulas, macros, external links, or active content; it reopens the temporary output and verifies its signature, sheets, headers, and absence of formulas/links before replacement with rollback. Embedded catalogs come from already validated `FinanceData`; without a workbook, unstable UUIDs are omitted.
 
+The M15 importer accepts only native-dialog-selected `.xlsx` files and allowlisted v1 template contracts. Before ExcelJS opens the file, it inspects the ZIP central directory and enforces limits on file size, entry count, expanded size, individual entries, and compression ratio; encryption, ZIP64, duplicate or traversal names, macros, macro/dialog sheets, ActiveX, embedded objects, and external links are rejected. After opening, it requires exactly the three expected sheets and states, signature, version, type, headers, and limits, and rejects every formula or active cell value.
+
+The renderer receives only the base file name, counts, an aggregate amount, row/column error codes, and an opaque preview UUID; it receives neither paths nor commands. The validated plan stays in main-process memory for 15 minutes. References resolve only through an active UUID or an exact unique name, with no fuzzy guessing. Confirmation sends the prepared plan through one domain transformation, checks workbook revision, and reuses temporary save, re-read verification, backup, replacement, and rollback. Preview and cancellation perform no writes, and financial content is never logged.
+
 ### 6. Saves, backups, and conflicts
 
 ContaMì writes a same-directory temporary workbook, reopens it to verify critical sheets, creates an adjacent backup, and then replaces the active file with rollback behavior. It retains 10 backups. Size and modification time detect external changes and block the next save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
@@ -224,7 +232,7 @@ For recovery: close all workbook users, preserve a copy of the suspect file, res
 
 ### 11. Planned improvements
 
-M15 imports the local versioned Excel templates with preflight, preview, confirmation, backup, and atomic application. M9 then generalizes ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
+M15 now imports the local versioned Excel templates with preflight, preview, confirmation, backup, and atomic application. M9 will generalize ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
 
 Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 

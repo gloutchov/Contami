@@ -28,6 +28,14 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   const importCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Importazione dati", exact: true }) });
   await importCard.getByRole("button", { name: "Transazioni" }).click();
   await expect(page.getByRole("status")).toContainText("Creato il template ContaMi-template-transactions-v1.xlsx.");
+  await importCard.getByRole("button", { name: "Importa file compilato" }).click();
+  const importDialogIt = page.getByRole("dialog", { name: "Anteprima importazione" });
+  await expect(importDialogIt).toContainText("Riga 9, colonna category: riferimento non trovato");
+  await expect(importDialogIt.getByRole("button", { name: "Chiudi" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(importDialogIt.getByRole("button", { name: "Conferma importazione" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(importDialogIt).toBeHidden();
 
   await page.getByRole("button", { name: "Immobili", exact: true }).click();
   await page.getByRole("button", { name: "Utenze" }).click();
@@ -51,6 +59,12 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByRole("heading", { name: "Data import", exact: true })).toBeVisible();
+  const englishImportCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Data import", exact: true }) });
+  await englishImportCard.getByRole("button", { name: "Import completed file" }).click();
+  const importDialogEn = page.getByRole("dialog", { name: "Import preview" });
+  await expect(importDialogEn).toContainText("Row 9, column category: reference not found");
+  await importDialogEn.getByRole("button", { name: "Confirm import" }).click();
+  await expect(page.getByRole("status")).toContainText("Import complete: 2 created, 0 updated, 1 skipped.");
 
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
