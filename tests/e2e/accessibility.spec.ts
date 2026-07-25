@@ -1,7 +1,27 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({ page }) => {
   const consoleErrors: string[] = [];
+  const expectProportionalCompactCharts = async (root: Locator) => {
+    const checks = await root.locator(".trend-bars").evaluateAll((charts) => charts.map((chart) => {
+      const style = getComputedStyle(chart);
+      const chartBox = chart.getBoundingClientRect();
+      const labels = Array.from(chart.querySelectorAll(".trend-column small")).map((label) => label.getBoundingClientRect());
+      const fills = Array.from(chart.querySelectorAll<HTMLElement>(".trend-track i"));
+      const renderedHeights = fills.map((fill) => Math.round(fill.getBoundingClientRect().height));
+      const requestedHeights = fills.map((fill) => fill.style.height);
+      const maximumTrackHeight = Math.max(0, ...Array.from(chart.querySelectorAll(".trend-track")).map((track) => track.getBoundingClientRect().height));
+      return {
+        barsUseTrackHeight: Math.max(0, ...renderedHeights) >= maximumTrackHeight * 0.95,
+        differentValuesHaveDifferentHeights: new Set(requestedHeights).size <= 1 || new Set(renderedHeights).size > 1,
+        labelsInside: labels.length > 0 && labels.every((label) => label.height > 0 && label.top >= chartBox.top && label.bottom <= chartBox.bottom - 1),
+        overflowY: style.overflowY,
+        verticalScroll: chart.scrollHeight > chart.clientHeight + 1,
+      };
+    }));
+    expect(checks.length).toBeGreaterThan(0);
+    expect(checks.every((item) => item.barsUseTrackHeight && item.differentValuesHaveDifferentHeights && !item.verticalScroll && item.labelsInside)).toBe(true);
+  };
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
@@ -52,6 +72,19 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await expect(installmentSelect).toHaveValue("3");
   await page.keyboard.press("Escape");
   await expect(propertyTaxDialog).toBeHidden();
+  await page.getByRole("heading", { name: "City apartment" }).click();
+  const propertyDetailDialog = page.getByRole("dialog", { name: "City apartment" });
+  await expect(propertyDetailDialog).toBeVisible();
+  await expectProportionalCompactCharts(propertyDetailDialog);
+  await page.keyboard.press("Escape");
+  await expect(propertyDetailDialog).toBeHidden();
+  await page.getByRole("button", { name: "Automobile" }).click();
+  await page.getByRole("heading", { name: "Current demo car" }).click();
+  const vehicleDetailDialog = page.getByRole("dialog", { name: "Current demo car" });
+  await expect(vehicleDetailDialog).toBeVisible();
+  await expectProportionalCompactCharts(vehicleDetailDialog.locator(".vehicle-history"));
+  await page.keyboard.press("Escape");
+  await expect(vehicleDetailDialog).toBeHidden();
 
   await page.getByRole("button", { name: "Impostazioni" }).click();
   await page.getByRole("button", { name: "English" }).click();

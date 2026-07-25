@@ -6,6 +6,7 @@ import { APP_CONFIG } from "../../config/appConfig";
 import { computeDashboard } from "../../domain/finance";
 import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
+import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
 import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
@@ -155,6 +156,14 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
 
 export class ExcelWorkbookRepository {
   async load(filePath: string): Promise<FinanceData> {
+    return (await this.loadWithUuidRepair(filePath)).data;
+  }
+
+  async loadWithUuidRepair(filePath: string): Promise<{
+    data: FinanceData;
+    repairedIds: number;
+    repairedLinks: number;
+  }> {
     assertWorkbookPath(filePath);
     const info = await stat(filePath);
     if (info.size > APP_CONFIG.workbook.maxBytes) throw new Error("WORKBOOK_TOO_LARGE");
@@ -193,10 +202,12 @@ export class ExcelWorkbookRepository {
               ? WORKBOOK_TABLES
               : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
+    const physicalRows = new Map<WorkbookTableDefinition["key"], number[]>();
     for (const definition of definitions) {
       const sheet = workbook.getWorksheet(definition.sheet);
       if (!sheet) throw new Error("INVALID_WORKBOOK_SCHEMA");
       const rows: Record<string, unknown>[] = [];
+      const rowNumbers: number[] = [];
       sheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
         const record: Record<string, unknown> = {};
@@ -211,16 +222,31 @@ export class ExcelWorkbookRepository {
             hasValue = true;
           }
         });
-        if (hasValue) rows.push(normalizeRow(record));
+        if (hasValue) {
+          rows.push(normalizeRow(record));
+          rowNumbers.push(rowNumber);
+        }
       });
       raw[definition.key] = rows;
+      physicalRows.set(definition.key, rowNumbers);
     }
-    return migrateFinanceData(raw);
+    const migrated = migrateFinanceData(raw);
+    const repaired = repairDuplicateRecordIds(migrated);
+    if (repaired.repairs.length > 0) {
+      repaired.data.meta.updatedAt = new Date().toISOString();
+      await this.persistUuidRepairs(filePath, workbook, definitions, physicalRows, migrated, repaired.data);
+    }
+    return {
+      data: repaired.data,
+      repairedIds: repaired.repairs.length,
+      repairedLinks: repaired.repairedLinks,
+    };
   }
 
   async save(filePath: string, data: FinanceData): Promise<void> {
     assertWorkbookPath(filePath);
     const validated = financeDataSchema.parse(data);
+    assertUniqueRecordIds(validated);
     await mkdir(path.dirname(filePath), { recursive: true });
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "ContaMì";
@@ -261,6 +287,70 @@ export class ExcelWorkbookRepository {
     }
     await this.createBackup(filePath);
     await this.replace(filePath, temporary);
+  }
+
+  private async persistUuidRepairs(
+    filePath: string,
+    workbook: ExcelJS.Workbook,
+    definitions: WorkbookTableDefinition[],
+    physicalRows: Map<WorkbookTableDefinition["key"], number[]>,
+    previous: FinanceData,
+    next: FinanceData,
+  ): Promise<void> {
+    const changedCells: Array<{ sheet: string; row: number; column: number; value: unknown }> = [];
+    for (const definition of definitions) {
+      const sheet = workbook.getWorksheet(definition.sheet);
+      const rowNumbers = physicalRows.get(definition.key);
+      if (!sheet || !rowNumbers) throw new Error("WORKBOOK_VERIFICATION_FAILED");
+      const previousRows = previous[definition.key] as unknown as Array<Record<string, unknown>>;
+      const nextRows = next[definition.key] as unknown as Array<Record<string, unknown>>;
+      if (previousRows.length !== nextRows.length || rowNumbers.length !== nextRows.length) {
+        throw new Error("WORKBOOK_VERIFICATION_FAILED");
+      }
+      nextRows.forEach((record, index) => {
+        definition.columns.forEach((column, columnIndex) => {
+          if (Object.is(record[column], previousRows[index]?.[column])) return;
+          const rowNumber = rowNumbers[index]!;
+          const value = record[column] ?? null;
+          sheet.getRow(rowNumber).getCell(columnIndex + 1).value = value as ExcelJS.CellValue;
+          changedCells.push({ sheet: definition.sheet, row: rowNumber, column: columnIndex + 1, value: record[column] });
+        });
+      });
+    }
+    if (changedCells.length === 0) throw new Error("UUID_REPAIR_FAILED");
+
+    const metaSheet = workbook.getWorksheet("_Meta");
+    if (!metaSheet) throw new Error("INVALID_WORKBOOK_SCHEMA");
+    let updatedAtWritten = false;
+    metaSheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1 && readCellValue(row.getCell(1).value) === "updatedAt") {
+        row.getCell(2).value = next.meta.updatedAt;
+        updatedAtWritten = true;
+      }
+    });
+    if (!updatedAtWritten) throw new Error("INVALID_WORKBOOK_SCHEMA");
+    const overview = workbook.getWorksheet("Overview");
+    if (overview) overview.getCell("E20").value = next.meta.updatedAt;
+    workbook.modified = new Date(next.meta.updatedAt);
+
+    const temporary = `${filePath}.tmp-${randomUUID()}.xlsx`;
+    try {
+      await workbook.xlsx.writeFile(temporary);
+      const verification = new ExcelJS.Workbook();
+      await verification.xlsx.readFile(temporary);
+      if (!verification.getWorksheet("_Meta") || verification.worksheets.length !== workbook.worksheets.length) {
+        throw new Error("WORKBOOK_VERIFICATION_FAILED");
+      }
+      for (const changed of changedCells) {
+        const value = readCellValue(verification.getWorksheet(changed.sheet)?.getRow(changed.row).getCell(changed.column).value);
+        if (!Object.is(value, changed.value)) throw new Error("WORKBOOK_VERIFICATION_FAILED");
+      }
+      await this.createBackup(filePath);
+      await this.replace(filePath, temporary);
+    } catch (error) {
+      await rm(temporary, { force: true });
+      throw error;
+    }
   }
 
   private async createBackup(filePath: string): Promise<void> {

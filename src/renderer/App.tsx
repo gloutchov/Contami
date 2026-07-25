@@ -44,6 +44,13 @@ function errorKey(error: unknown): TranslationKey {
   return "genericError";
 }
 
+function warningKey(code: string | undefined): TranslationKey | undefined {
+  if (code === "NUMBERS_MIRROR_FAILED") return "mirrorWarning";
+  if (code === "WORKBOOK_MISSING") return "workbookMissing";
+  if (code === "DUPLICATE_UUIDS_REPAIRED") return "duplicateUuidsRepaired";
+  return undefined;
+}
+
 export default function App() {
   const [view, setView] = useState<AppView>("overview");
   const [settings, setSettings] = useState<AppSettings>({ language: "system", theme: "system", workbookFormat: "excel" });
@@ -59,8 +66,8 @@ export default function App() {
     Promise.all([api.getSettings(), api.getCapabilities(), api.getSnapshot()]).then(([nextSettings, nextCapabilities, nextSnapshot]) => {
       if (!current) return;
       setSettings(nextSettings); setCapabilities(nextCapabilities); setSnapshot(nextSnapshot);
-      if (nextSnapshot.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning");
-      if (nextSnapshot.warningCode === "WORKBOOK_MISSING") setNotice("workbookMissing");
+      const warning = warningKey(nextSnapshot.warningCode);
+      if (warning) setNotice(warning);
     }).catch(() => setNotice("genericError")).finally(() => { if (current) setBusy(false); });
     return () => { current = false; };
   }, []);
@@ -84,11 +91,24 @@ export default function App() {
   }, [run, settings.workbookFormat]);
 
   const openWorkbook = useCallback(async () => {
-    await run(async () => { const result = await api.openWorkbook(); if (!result.canceled) { setSnapshot(await api.getSnapshot()); setSettings(await api.getSettings()); } });
+    await run(async () => {
+      const result = await api.openWorkbook();
+      if (!result.canceled) {
+        const next = await api.getSnapshot();
+        setSnapshot(next);
+        setSettings(await api.getSettings());
+        const warning = warningKey(next.warningCode);
+        if (warning) setNotice(warning);
+      }
+    });
   }, [run]);
 
   const execute = useCallback(async (command: FinanceCommand) => {
-    await run(async () => { const next = await api.execute(command); setSnapshot(next); if (next.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning"); });
+    await run(async () => {
+      const next = await api.execute(command);
+      setSnapshot(next);
+      if (next.warningCode === "NUMBERS_MIRROR_FAILED") setNotice("mirrorWarning");
+    });
   }, [run]);
 
   const rollover = useCallback(async () => {

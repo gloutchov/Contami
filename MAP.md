@@ -43,6 +43,7 @@ ContaMì/
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
 │   │   ├── migrations.ts               # migrazione workbook v1/v2/v3/v4 → v5
 │   │   ├── models.ts                   # schema Zod v5 e modello finanziario
+│   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
 │   │   └── rollover.ts                 # trasformazione pura del passaggio d’anno
 │   ├── infrastructure/
 │   │   ├── settings/
@@ -123,6 +124,7 @@ ContaMì/
 │       ├── migrations.test.ts            # compatibilità schema v1/v2/v3/v4 → v5
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
+│       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
 │       └── rollover.test.ts             # nuovo anno e riconciliazione
 ├── AGENTS.md                            # regole per agenti e maintainer
 ├── INSTRUCTIONS.md                     # manuale utente inglese

@@ -37,13 +37,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
-| Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | In corso locale; attende commit, merge, tag e push |
-| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | da assegnare | Pianificata; priorità e versione da assegnare |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
+| Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | Rilasciata; CI/release macOS e Windows verdi |
+| Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | In corso locale; attende commit, merge, tag e push |
+| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | `1.4.0` | Pianificata dopo la patch `1.3.2` |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.5.0` | Pianificata dopo M16 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.6.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.7.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → apertura workbook `v1.4.0` → integrità salvataggi `v1.5.0` → CSP rigorosa `v1.6.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → trasporti `v1.4.0` → apertura workbook `v1.5.0` → integrità salvataggi `v1.6.0` → CSP rigorosa `v1.7.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -461,6 +462,40 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario e note di rilascio.
 
+## Patch grafici, menu release e integrità UUID
+
+**Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
+
+**Attività pianificate**
+
+- Sistemare i grafici compatti dei consumi e delle spese immobiliari — elettricità, gas, acqua, Telefono/Internet, Condominio e altri grafici analoghi — in modo che l’asse X e le etichette temporali siano visibili senza scrollbar verticale interna.
+- Rivedere altezza, padding interno, area asse/etichette e overflow dei box grafico: la card può mantenere la sola scrollbar orizzontale quando la serie è larga, ma non deve tagliare verticalmente barre, assi o label né perdere la scala proporzionale delle barre.
+- Verificare il caso reale mostrato nello screenshot del 2026-07-25, oltre a dataset sintetici con molti anni, valori zero, valori alti e categorie prive di dati.
+- Ridurre i menu Electron nella versione compilata macOS e Windows, rimuovendo voci di debug/sviluppo e lasciando soltanto:
+  - **File → Quit**, che deve chiudere completamente l’applicazione e non solo la finestra;
+  - **Window**, con le azioni standard di ridimensionamento/gestione finestra supportate dalla piattaforma;
+  - **Info**, con apertura della finestra informazioni dell’app.
+- Aggiornare la finestra **Info** perché mostri il copyright `Copyright © 2026 Gloutchov`.
+- All’apertura di un workbook, rilevare UUID duplicati nelle tabelle con identificativo, conservare la prima occorrenza e assegnare nuovi UUID alle successive senza eliminare righe o modificare importi, date e descrizioni.
+- Riallineare soltanto i collegamenti transazione/registrazione non ambigui; in presenza di uno stesso riferimento copiato più volte, conservare entrambi i record ma rimuovere dalla copia successiva il collegamento ambiguo.
+- Applicare la correzione direttamente alle sole celle interessate, tramite temporaneo verificato, backup recuperabile e sostituzione con rollback; mostrare un avviso bilingue dopo la riparazione.
+
+**Criteri di accettazione**
+
+- Nelle modali immobili l’asse X dei grafici compatti è visibile in tema chiaro/scuro, IT/EN e a larghezza minima 1080 px; non compare scrollbar verticale interna nei box dei grafici.
+- Le barre dei grafici immobiliari e del confronto auto occupano l’altezza disponibile in proporzione ai rispettivi valori, incluso il valore massimo.
+- Serie storiche larghe restano consultabili orizzontalmente senza tagliare l’asse X o la base delle barre.
+- Le build compilate macOS e Windows non mostrano menu Electron di default o voci di sviluppo; `Quit` termina l’applicazione completa e il processo non resta attivo.
+- La finestra **Info** è accessibile da menu e riporta correttamente nome/versione applicazione e `Copyright © 2026 Gloutchov`.
+- Un workbook modificato manualmente con UUID duplicati viene riaperto con lo stesso numero di righe e gli stessi valori economici; gli UUID risultano univoci e gli eventuali riferimenti univoci restano bidirezionali.
+- Prima della correzione automatica viene conservato un backup in `.contami-backups`; una seconda apertura del file già corretto non lo riscrive né crea nuovi backup.
+
+**Test richiesti:** unit/integration test per configurazione menu e handler di quit; test renderer dei grafici compatti con dataset sintetici; test di dominio e round-trip per UUID duplicati e collegamenti; Playwright IT/EN e chiaro/scuro a 1080 px sulla modale immobile; smoke dei pacchetti compilati macOS/Windows verificando menu, quit completo e finestra Info.
+
+**Documentazione:** aggiornare README/manuali se cambia il comportamento dei menu o della finestra Info; aggiornare MAP/SECURITY_MODEL solo se cambiano file, IPC, confini Electron o modello di packaging.
+
+**Stato locale 2026-07-25:** implementati layout e scala proporzionale dei grafici compatti condivisi da immobili e confronto auto, menu compilato ridotto, finestra Info, riparazione conservativa degli UUID duplicati e bump versione `1.3.2`. La correzione UUID modifica solo le celle necessarie, conserva tutte le righe, riallinea i collegamenti non ambigui e passa da temporaneo verificato, backup e rollback. Una copia privata aggiornata è stata corretta e verificata localmente, restando esclusa da Git e release. La verifica Playwright su dati sintetici conferma asse X visibile, assenza di overflow verticale e barre proporzionate all’altezza della pista. Gate locale verde: lint, typecheck, 90 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px; l’ispezione ASAR della parte grafici/menu resta valida. Lo smoke locale del pacchetto macOS non arriva al codice applicativo e termina con `SIGABRT` durante la registrazione AppKit dell’app non firmata; resta da riverificare nel workflow release macOS/Windows prima della pubblicazione.
+
 ## Decisione futura — Cifratura portabile
 
 La precedente M12 non fa più parte della sequenza di sviluppo né ha una versione assegnata. ContaMì non implementerà ora una cifratura applicativa: workbook, temporanei e backup restano interoperabili e protetti tramite permessi del filesystem, FileVault/BitLocker, blocco della sessione e backup adeguati.
@@ -591,11 +626,12 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 
 ## Patch residenza e storico immobili — 2026-07-25
 
-- Avviato il branch `patch/1.3.1-residence-property-history` da `milestone/16-transport-improvements` senza commit automatici: commit, merge, tag, push ed eliminazione branch restano in attesa di approvazione del proprietario.
+- Avviato il branch `patch/1.3.1-residence-property-history` da `milestone/16-transport-improvements`; dopo approvazione del proprietario la patch è stata committata, mergiata in `main`, taggata come `v1.3.1`, pubblicata e il branch locale è stato eliminato.
 - Portato il workbook allo schema v5 aggiungendo a `Property History` i campi aggregati `phoneInternetCost` e `condominiumCost`; i workbook v1, v2, v3 e v4 vengono migrati in memoria e validati come v5.
 - Corretti gli indicatori della residenza per riconoscere utenze importate tramite `detailKind` e kWh elettrici da fasce F1/F2/F3/F23; Telefono/Internet e Condominio confluiscono anche nello storico annuale.
 - Spostati i filtri descrizione/mese prima dello storico nella modale immobile e aumentato lo spazio verticale dei grafici delle utenze per evitare scrollbar verticali interne.
 - Aggiunto il comando atomico per registrare una rata di affitto come entrata ricorrente direttamente dalla nuova registrazione immobile; la rata corrente viene collegata alla ricorrenza e le rate future pianificate restano coerenti con il modello delle Ricorrenze.
+- Commit funzionale `772f187` e merge commit `ea53d29`; CI su `main` e sul tag `v1.3.1` verdi. Il workflow Release `30159557120` ha completato packaging, ispezione, smoke installato e pubblicazione privata per macOS e Windows, con checksum in `SHA256SUMS.txt`.
 
 ## Rischi e mitigazioni iniziali
 

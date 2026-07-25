@@ -1,11 +1,13 @@
 import path from "node:path";
-import { app, BrowserWindow, nativeTheme, session } from "electron";
+import { app, BrowserWindow, dialog, Menu, nativeTheme, session } from "electron";
+import type { MessageBoxOptions } from "electron";
 import { APP_CONFIG } from "../config/appConfig";
 import { SettingsService } from "../infrastructure/settings/SettingsService";
 import { ExcelWorkbookRepository } from "../infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { ExcelImportTemplateGenerator } from "../infrastructure/spreadsheet/ExcelImportTemplateGenerator";
 import { ExcelImportTemplateParser } from "../infrastructure/spreadsheet/ExcelImportTemplateParser";
 import { NumbersMirrorService } from "../infrastructure/spreadsheet/NumbersMirrorService";
+import { APP_COPYRIGHT, buildApplicationMenuTemplate } from "./appMenu";
 import { registerIpc } from "./ipc/registerIpc";
 import { FinanceFileService } from "./services/FinanceFileService";
 import { ImportTemplateService } from "./services/ImportTemplateService";
@@ -31,6 +33,34 @@ function iconPath(): string {
     : path.join(app.getAppPath(), "assets", "icon.png");
 }
 
+function showInfoWindow(): void {
+  const options: MessageBoxOptions = {
+    buttons: ["OK"],
+    detail: `Version ${app.getVersion()}\n${APP_COPYRIGHT}`,
+    message: "ContaMì",
+    noLink: true,
+    title: "Info",
+    type: "info",
+  };
+  if (mainWindow) void dialog.showMessageBox(mainWindow, options);
+  else void dialog.showMessageBox(options);
+}
+
+function installApplicationMenu(): void {
+  if (!app.isPackaged) {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+
+  const template = buildApplicationMenuTemplate({
+    getFocusedWindow: () => BrowserWindow.getFocusedWindow(),
+    platform: process.platform,
+    quit: () => app.quit(),
+    showInfo: showInfoWindow,
+  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: APP_CONFIG.window.width,
@@ -54,7 +84,7 @@ function createWindow(): BrowserWindow {
       spellcheck: false,
     },
   });
-  window.removeMenu();
+  if (!app.isPackaged) window.removeMenu();
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-attach-webview", (event) => event.preventDefault());
   window.webContents.on("will-navigate", (event, url) => {
@@ -97,6 +127,7 @@ function bootstrapWindow(): void {
   const importTemplates = new ImportTemplateService(mainWindow, finance, new ExcelImportTemplateGenerator());
   const imports = new ImportDataService(mainWindow, finance, new ExcelImportTemplateParser());
   registerIpc(mainWindow, settings, finance, importTemplates, imports);
+  installApplicationMenu();
 }
 
 app.whenReady().then(() => {

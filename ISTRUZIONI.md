@@ -219,6 +219,8 @@ Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi legger
 
 Prima di sostituire un file esistente, ContaMì crea un backup in `.contami-backups` accanto al `.xlsx` e conserva le ultime 10 copie. La scrittura avviene prima su un file temporaneo, viene riletta e solo dopo sostituisce il file attivo.
 
+Se un ritocco manuale crea UUID duplicati nelle tabelle del workbook, alla riapertura ContaMì conserva la prima occorrenza e assegna nuovi UUID alle successive. Nessuna riga o informazione economica viene eliminata; i collegamenti non ambigui vengono riallineati. La correzione interessa soltanto le celle necessarie, viene verificata prima della sostituzione e conserva la versione precedente in `.contami-backups`. L’app mostra un avviso quando ha eseguito questa riparazione.
+
 ## 17. Risoluzione problemi
 
 ### Il file configurato è stato spostato o cancellato
