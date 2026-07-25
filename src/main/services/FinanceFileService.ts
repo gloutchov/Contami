@@ -36,7 +36,7 @@ export class FinanceFileService {
     if (!this.data) {
       if (settings.workbookPath) {
         try {
-          this.data = await this.repository.load(settings.workbookPath);
+          this.data = await this.loadWorkbook(settings.workbookPath);
           this.revision = await this.revisions.capture(settings.workbookPath);
         } catch (error) {
           if (!isMissingFile(error)) throw error;
@@ -95,10 +95,9 @@ export class FinanceFileService {
     });
     if (result.canceled || !result.filePaths[0]) return { canceled: true };
     const workbookPath = result.filePaths[0];
-    const loaded = await this.repository.load(workbookPath);
+    const loaded = await this.loadWorkbook(workbookPath);
     this.data = loaded;
     this.revision = await this.revisions.capture(workbookPath);
-    this.warningCode = undefined;
     await this.settingsService.update({ workbookFormat: "excel", workbookPath, numbersMirrorPath: undefined });
     return { canceled: false, path: workbookPath };
   }
@@ -107,7 +106,7 @@ export class FinanceFileService {
     const settings = await this.settingsService.get();
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
-      this.data = await this.repository.load(settings.workbookPath);
+      this.data = await this.loadWorkbook(settings.workbookPath);
       this.revision = await this.revisions.capture(settings.workbookPath);
     }
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
@@ -124,7 +123,7 @@ export class FinanceFileService {
     const settings = await this.settingsService.get();
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
-      this.data = await this.repository.load(settings.workbookPath);
+      this.data = await this.loadWorkbook(settings.workbookPath);
       this.revision = await this.revisions.capture(settings.workbookPath);
     }
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
@@ -140,7 +139,7 @@ export class FinanceFileService {
     const settings = await this.settingsService.get();
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
-      this.data = await this.repository.load(settings.workbookPath);
+      this.data = await this.loadWorkbook(settings.workbookPath);
       this.revision = await this.revisions.capture(settings.workbookPath);
     }
     const nextYear = this.data.meta.activeYear + 1;
@@ -174,6 +173,12 @@ export class FinanceFileService {
     if (!filePath) return false;
     shell.showItemInFolder(filePath);
     return true;
+  }
+
+  private async loadWorkbook(filePath: string): Promise<FinanceData> {
+    const loaded = await this.repository.loadWithUuidRepair(filePath);
+    this.warningCode = loaded.repairedIds > 0 ? "DUPLICATE_UUIDS_REPAIRED" : undefined;
+    return loaded.data;
   }
 
   private async updateMirror(settings: AppSettings, failHard: boolean): Promise<void> {

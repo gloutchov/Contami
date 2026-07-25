@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
@@ -9,6 +9,10 @@ import { WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4 } from "../../src/infrastructure
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
+
+function withoutId(value: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "id"));
+}
 
 describe("ExcelWorkbookRepository", () => {
   it("round-trips typed finance data and writes human-readable sheets", async () => {
@@ -44,6 +48,73 @@ describe("ExcelWorkbookRepository", () => {
     expect(workbook.getWorksheet("Tax Types")?.getRow(1).values).toContain("installments");
     expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("taxTypeId");
     expect(workbook.getWorksheet("Property History")?.getRow(1).values).toContain("phoneInternetCost");
+  });
+
+  it("repairs manually duplicated UUIDs in place and keeps a recoverable backup", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-uuid-repair-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-2026.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push(
+      {
+        id: crypto.randomUUID(),
+        investmentId,
+        date: "2026-01-31",
+        kind: "valuation",
+        amount: 35_000,
+        description: "January valuation",
+        notes: "",
+      },
+      {
+        id: crypto.randomUUID(),
+        investmentId,
+        date: "2026-02-28",
+        kind: "valuation",
+        amount: 36_000,
+        description: "February valuation",
+        notes: "",
+      },
+    );
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+
+    const manuallyEdited = new ExcelJS.Workbook();
+    await manuallyEdited.xlsx.readFile(filePath);
+    const entries = manuallyEdited.getWorksheet("Investment Entries")!;
+    entries.getCell("A3").value = entries.getCell("A2").value;
+    const sheetCount = manuallyEdited.worksheets.length;
+    const preservedStyle = JSON.stringify(entries.getCell("A3").style);
+    await manuallyEdited.xlsx.writeFile(filePath);
+
+    const loaded = await repository.loadWithUuidRepair(filePath);
+
+    expect(loaded.repairedIds).toBe(1);
+    expect(loaded.repairedLinks).toBe(0);
+    expect(loaded.data.investmentEntries).toHaveLength(2);
+    expect(new Set(loaded.data.investmentEntries.map((entry) => entry.id)).size).toBe(2);
+    expect(loaded.data.investmentEntries.map(withoutId)).toEqual(data.investmentEntries.map(withoutId));
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+
+    const repairedWorkbook = new ExcelJS.Workbook();
+    await repairedWorkbook.xlsx.readFile(filePath);
+    expect(repairedWorkbook.worksheets).toHaveLength(sheetCount);
+    expect(repairedWorkbook.getWorksheet("Investment Entries")?.getColumn(1).values.slice(2)).toEqual(
+      loaded.data.investmentEntries.map((entry) => entry.id),
+    );
+    expect(JSON.stringify(repairedWorkbook.getWorksheet("Investment Entries")?.getCell("A3").style)).toBe(preservedStyle);
+
+    await expect(repository.loadWithUuidRepair(filePath)).resolves.toMatchObject({ repairedIds: 0 });
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
   });
 
   it("rejects unsupported extensions before touching the filesystem", async () => {
