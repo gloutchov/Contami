@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-25 · Applicazione / Application: 1.3.1
+Versione del documento / Document version: 2026-07-25 · Applicazione / Application: 1.3.2
 
 ## Italiano
 
@@ -62,6 +62,7 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - I trasferimenti finanziari dichiarano esplicitamente l’effetto sulla liquidità (`inflow`, `outflow` o `neutral`). Il dominio applica tale direzione solo al saldo del conto e li esclude dai consuntivi di entrate/uscite, evitando che acquisti, vendite e versamenti vengano contabilizzati come spesa corrente.
 - Pensioni e comparti riusano le tabelle Investimenti dello schema v5: il tipo tecnico `pension` è riservato e protetto da modifica/cancellazione. Il controvalore applica in ordine temporale soltanto valutazioni e movimenti confermati, escludendo le transazioni pianificate; i selettori separano investimenti e pensioni e aggregano soltanto le posizioni finali attive, impedendo il doppio conteggio.
 - I workbook v1, v2, v3 e v4 sono trasformati in memoria tramite migrazioni deterministiche e vengono convalidati integralmente come v5 prima di poter essere salvati. La migrazione v3 associa Canone TV, IMU e TARI a UUID stabili e converte i marcatori di rata senza modificare importi o collegamenti; la migrazione v4 aggiunge gli aggregati Telefono/Internet e Condominio a zero dove assenti.
+- Dopo la validazione, il caricamento verifica l’unicità degli UUID in ogni tabella identificata. Le occorrenze successive di un UUID duplicato ricevono un nuovo identificativo senza rimuovere record; i collegamenti bidirezionali vengono aggiornati soltanto quando la corrispondenza è univoca. Se anche il riferimento è stato copiato e risulta ambiguo, la copia successiva resta nel workbook ma viene scollegata per evitare cancellazioni o aggiornamenti incrociati.
 - I consuntivi annuali dettagliati (`Property History`, `Investment History`, `Vehicle History`) contengono solo dati aggregati e identificativi interni; il rollover non copia le transazioni storiche nel nuovo workbook.
 - Le stringhe utente vengono scritte come valori, non concatenate in formule. Il loader non esegue macro o formule; se incontra una cella formula legge il risultato memorizzato.
 - Il file Numbers non viene modificato direttamente: su macOS è rigenerato importando il sidecar `.xlsx` tramite uno script AppleScript fisso.
@@ -80,6 +81,7 @@ Limite residuo: un `.xlsx` compresso sotto 250 MB può espandersi molto durante 
 - ContaMì lo rilegge e verifica fogli critici prima di sostituire il file attivo.
 - La sostituzione usa rename e un file di rollback quando la piattaforma non consente la sovrascrittura diretta.
 - Prima della sostituzione viene creata una copia in `.contami-backups`; sono mantenuti gli ultimi 10 backup `.xlsx`.
+- La riparazione automatica degli UUID modifica in posto soltanto le celle necessarie e il timestamp tecnico, scrive un temporaneo, rilegge le celle corrette, crea un backup e usa la stessa sostituzione con rollback. Un file già corretto non viene riscritto alla riapertura.
 - Dimensione e timestamp del file vengono catturati dopo apertura/salvataggio. Se cambiano esternamente, il successivo salvataggio viene bloccato e l’utente deve riaprire il workbook.
 - Il passaggio d’anno crea un nuovo file e non elimina, sposta o rende inaccessibile il precedente.
 - Se all’avvio il percorso ricordato non esiste più (`ENOENT`), ContaMì non crea né sovrascrive file: rimuove soltanto il collegamento obsoleto dalle preferenze, usa uno stato vuoto in memoria e richiede di aprire o creare esplicitamente un workbook. Errori di schema o corruzione non vengono confusi con un file mancante.
@@ -192,6 +194,8 @@ Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amo
 
 Pensions and compartments reuse the schema-v5 Investments tables. The technical `pension` type is reserved and protected against editing/deletion. Countervalue applies dated valuations and confirmed movements only, excluding planned Transactions; domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
 
+After schema validation, loading checks UUID uniqueness within every identified table. Later occurrences of a duplicate UUID receive a new identifier without removing records, and bidirectional links are updated only when the match is unambiguous. If a copied reference is also ambiguous, the later copy remains in the workbook but is detached to prevent cross-record deletion or updates.
+
 User strings are written as values, not interpolated into formulas. The loader never executes macros or formulas. A compressed workbook may still expand heavily before schema validation and exhaust memory; open trusted ContaMì files only.
 
 The M14 generator is separate from the authoritative workbook repository and never modifies that workbook. It accepts only one of eight allowlisted types and a supported language, uses only an absolute `.xlsx` destination selected by the native dialog, and prepares at most 5,000 rows. Each template contains one visible data sheet and two very-hidden protected technical sheets, type/version metadata, and named-range validation lists. It adds no cell formulas, macros, external links, or active content; it reopens the temporary output and verifies its signature, sheets, headers, and absence of formulas/links before replacement with rollback. Embedded catalogs come from already validated `FinanceData`; without a workbook, unstable UUIDs are omitted.
@@ -203,6 +207,8 @@ The renderer receives only the base file name, counts, an aggregate amount, row/
 ### 6. Saves, backups, and conflicts
 
 ContaMì writes a same-directory temporary workbook, reopens it to verify critical sheets, creates an adjacent backup, and then replaces the active file with rollback behavior. It retains 10 backups. Size and modification time detect external changes and block the next save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
+
+Automatic UUID repair changes only the required cells and technical timestamp in place, writes a temporary file, rereads the repaired cells, creates a backup, and uses the same rollback-capable replacement. Reopening an already repaired workbook does not rewrite it.
 
 If the remembered path no longer exists at startup (`ENOENT`), ContaMì creates or overwrites no file: it removes only the stale preference, uses an empty in-memory state, and requires the user to explicitly open or create a workbook. Schema and corruption errors are not treated as missing files.
 
