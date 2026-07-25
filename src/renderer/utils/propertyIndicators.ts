@@ -1,26 +1,27 @@
 import type { PropertyEntry } from "../../domain/models";
-
-const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
-const matches = (item: PropertyEntry, tokens: string[]) => tokens.some((token) => normalize(`${item.category} ${item.description}`).includes(token));
+import { isCondominiumCost, isPropertyUtilityCost, normalizePropertyText, propertyConsumptionQuantity } from "../../domain/propertyMetrics";
 
 export function summarizeResidenceEntries(entries: PropertyEntry[], year: number) {
   const current = entries.filter((item) => item.date.startsWith(String(year)));
-  const consumption = (...tokens: string[]) => current
-    .filter((item) => (item.kind === "consumption" || item.detailKind?.startsWith("utility_")) && matches(item, tokens))
-    .reduce((sum, item) => sum + (item.quantity ?? 0), 0);
-  const expense = (...tokens: string[]) => current
-    .filter((item) => item.kind === "expense" && matches(item, tokens))
+  const consumption = (kind: "electricity" | "gas" | "water") => current
+    .filter((item) => item.kind === "consumption" || item.detailKind?.startsWith("utility_"))
+    .reduce((sum, item) => sum + propertyConsumptionQuantity(item, kind), 0);
+  const utilityExpense = (kind: "electricity" | "gas" | "water" | "phoneInternet") => current
+    .filter((item) => isPropertyUtilityCost(item, kind))
+    .reduce((sum, item) => sum + item.amount, 0);
+  const textExpense = (...tokens: string[]) => current
+    .filter((item) => item.kind === "expense" && tokens.some((token) => normalizePropertyText(`${item.category} ${item.description}`).includes(token)))
     .reduce((sum, item) => sum + item.amount, 0);
 
   return {
-    electricity: consumption("electric", "luce"),
+    electricity: consumption("electricity"),
     gas: consumption("gas"),
-    water: consumption("water", "acqua"),
-    electricityCost: expense("electric", "luce"),
-    gasCost: expense("gas"),
-    waterCost: expense("water", "acqua"),
-    condominium: expense("condomin", "spese comuni", "common expense"),
-    phoneInternet: expense("telefono", "internet", "phone", "broadband"),
-    tvLicence: expense("canone tv", "canone rai", "tv licence", "tv license"),
+    water: consumption("water"),
+    electricityCost: utilityExpense("electricity"),
+    gasCost: utilityExpense("gas"),
+    waterCost: utilityExpense("water"),
+    condominium: current.filter((item) => isCondominiumCost(item)).reduce((sum, item) => sum + item.amount, 0),
+    phoneInternet: utilityExpense("phoneInternet"),
+    tvLicence: textExpense("canone tv", "canone rai", "tv licence", "tv license"),
   };
 }

@@ -78,6 +78,34 @@ describe("v0.8 review forms", () => {
     if (command.type === "addPropertyEntry") expect(command.value).toMatchObject({ amount: 300_000, valuePerSqm: 3_000 });
   });
 
+  it("can register a rental income entry as recurring rent", async () => {
+    const data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    const rentCategory = data.categories.find((item) => item.nameIt === "Affitti")!;
+    data.properties.push({ id: propertyId, name: "Bilocale", kind: "apartment", usage: "rental", ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<PropertyEntryForm data={data} initialPropertyId={propertyId} onClose={() => undefined} onSave={onSave} />);
+
+    await user.selectOptions(screen.getByLabelText("Tipo"), "income");
+    await user.selectOptions(screen.getByLabelText("Categoria"), rentCategory.id);
+    await user.type(screen.getByLabelText("Descrizione"), "Affitto luglio");
+    await user.type(screen.getByLabelText("Importo"), "750");
+    await user.selectOptions(screen.getByLabelText("Metodo di pagamento"), data.paymentMethods[0].id);
+    await user.click(screen.getByRole("checkbox", { name: "Registra come affitto ricorrente" }));
+    expect(screen.getByLabelText("Frequenza")).toHaveValue("monthly");
+    expect(screen.getByLabelText("Prossima scadenza")).toHaveValue("2026-07-25");
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const command = onSave.mock.calls[0][0];
+    expect(command.type).toBe("addPropertyRentRecurring");
+    if (command.type === "addPropertyRentRecurring") {
+      expect(command.value.entry).toMatchObject({ kind: "income", propertyId, categoryId: rentCategory.id, amount: 750 });
+      expect(command.value.recurring).toMatchObject({ kind: "rent", direction: "income", propertyId, amount: 750, frequency: "monthly" });
+    }
+  });
+
   it("creates an electricity expense with bands and a shared split", async () => {
     const data = createEmptyFinanceData(2026);
     const propertyId = crypto.randomUUID();

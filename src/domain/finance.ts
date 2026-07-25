@@ -25,7 +25,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 4, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 5, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -100,6 +100,20 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       if (!next.properties.some((item) => item.id === command.value.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
       ensureValidPropertyTax(next, command.value, false);
       upsertPropertyEntryWithLinks(next, command.value); break;
+    case "addPropertyRentRecurring": {
+      ensureUnique(next.propertyEntries, command.value.entry.id);
+      ensureUnique(next.recurringItems, command.value.recurring.id);
+      const property = next.properties.find((item) => item.id === command.value.entry.propertyId);
+      if (!property) throw new Error("PROPERTY_NOT_FOUND");
+      if (property.usage !== "rental") throw new Error("PROPERTY_NOT_RENTAL");
+      upsertPropertyEntryWithLinks(next, command.value.entry);
+      next.recurringItems.push(command.value.recurring);
+      const transaction = next.transactions.find((item) => item.id === command.value.entry.transactionId || item.propertyEntryId === command.value.entry.id);
+      if (transaction) transaction.recurringId = command.value.recurring.id;
+      syncRecurringLink(next, command.value.recurring);
+      syncRecurringTransactions(next, command.value.recurring);
+      break;
+    }
     case "updatePropertyEntry":
       ensureExists(next.propertyEntries, command.value.id);
       ensureValidPropertyTax(next, command.value, true);

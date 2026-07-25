@@ -35,8 +35,8 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-01-31`, kind: "expense", category: "Canone TV", categoryId: category("Home"), description: "Canone TV", amount: 90, paymentMethodId: payment, notes: "" },
   );
   data.propertyAnnualSummaries.push(
-    { propertyId, year: data.meta.activeYear - 2, income: 0, expenses: 1_850, closingValue: 260_000, electricityKwh: 1_280, gasCubicMeters: 920, waterCubicMeters: 104, electricityCost: 520, gasCost: 610, waterCost: 145 },
-    { propertyId, year: data.meta.activeYear - 1, income: 0, expenses: 1_920, closingValue: 270_000, electricityKwh: 1_210, gasCubicMeters: 860, waterCubicMeters: 98, electricityCost: 495, gasCost: 570, waterCost: 138 },
+    { propertyId, year: data.meta.activeYear - 2, income: 0, expenses: 1_850, closingValue: 260_000, electricityKwh: 1_280, gasCubicMeters: 920, waterCubicMeters: 104, electricityCost: 520, gasCost: 610, waterCost: 145, phoneInternetCost: 210, condominiumCost: 540 },
+    { propertyId, year: data.meta.activeYear - 1, income: 0, expenses: 1_920, closingValue: 270_000, electricityKwh: 1_210, gasCubicMeters: 860, waterCubicMeters: 98, electricityCost: 495, gasCost: 570, waterCost: 138, phoneInternetCost: 216, condominiumCost: 560 },
   );
   const rentalId = crypto.randomUUID();
   data.properties.push({ id: rentalId, name: "Rental apartment", kind: "apartment", usage: "rental", address: "Via Demo 8, Milano", areaSqm: 68, ownershipShare: 0.5, cadastralValue: 88_000, expectedMonthlyRent: 750, rentDueDay: 5, purchasePrice: 180_000, active: true, notes: "" });
@@ -46,8 +46,8 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), propertyId: rentalId, date: `${data.meta.activeYear}-06-18`, kind: "expense", category: "Home", categoryId: category("Home"), description: "Routine maintenance", amount: 180, paymentMethodId: payment, notes: "" },
   );
   data.propertyAnnualSummaries.push(
-    { propertyId: rentalId, year: data.meta.activeYear - 2, income: 8_400, expenses: 1_250, closingValue: 195_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0 },
-    { propertyId: rentalId, year: data.meta.activeYear - 1, income: 8_700, expenses: 980, closingValue: 202_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0 },
+    { propertyId: rentalId, year: data.meta.activeYear - 2, income: 8_400, expenses: 1_250, closingValue: 195_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0, phoneInternetCost: 0, condominiumCost: 0 },
+    { propertyId: rentalId, year: data.meta.activeYear - 1, income: 8_700, expenses: 980, closingValue: 202_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0, phoneInternetCost: 0, condominiumCost: 0 },
   );
   const investmentId = crypto.randomUUID();
   data.investments.push({ id: investmentId, name: "Balanced portfolio", kind: "fund", typeId: data.investmentTypes.find((item) => item.code === "fund")?.id, provider: "", currency: "EUR", active: true, openedAt: `${data.meta.activeYear - 4}-01-01`, notes: "" });
