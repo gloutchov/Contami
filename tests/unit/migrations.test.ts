@@ -18,7 +18,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(4);
+    expect(migrated.meta.schemaVersion).toBe(5);
     expect(migrated.investmentTypes).toHaveLength(7);
     expect(migrated.taxTypes.map((item) => item.name)).toEqual(["Canone TV", "IMU", "TARI"]);
     expect(migrated.annualSummaries[0]).toMatchObject({
@@ -53,7 +53,7 @@ describe("finance data migrations", () => {
     const migrated = migrateFinanceData(legacy);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
 
-    expect(migrated.meta.schemaVersion).toBe(4);
+    expect(migrated.meta.schemaVersion).toBe(5);
     expect(migrated.propertyEntries[0]).toMatchObject({
       taxTypeId: imu.id,
       taxInstallmentNumber: 2,
@@ -61,5 +61,34 @@ describe("finance data migrations", () => {
       amount: 350,
     });
     expect(migrated.propertyEntries[0].detailKind).toBeUndefined();
+  });
+
+  it("upgrades version 4 property history with phone internet and condominium fields", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026)) as unknown as {
+      meta: { schemaVersion: number };
+      propertyAnnualSummaries: Array<Record<string, unknown>>;
+    };
+    legacy.meta.schemaVersion = 4;
+    legacy.propertyAnnualSummaries = [{
+      propertyId: crypto.randomUUID(),
+      year: 2025,
+      income: 0,
+      expenses: 1_000,
+      closingValue: 200_000,
+      electricityKwh: 100,
+      gasCubicMeters: 50,
+      waterCubicMeters: 20,
+      electricityCost: 70,
+      gasCost: 80,
+      waterCost: 30,
+    }];
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.propertyAnnualSummaries[0]).toMatchObject({
+      phoneInternetCost: 0,
+      condominiumCost: 0,
+    });
   });
 });

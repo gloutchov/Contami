@@ -95,7 +95,7 @@ Open a property and choose **New entry** for income, expense, valuation, or cons
 
 Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. The **Taxes** catalog starts with TV licence, IMU, and TARI but can be changed under Settings. Each tax can apply to all properties, the residence only, or rental properties only and can define 1–24 instalments. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
 
-Details can be filtered across all twelve months of the active year and by description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent.
+Details can be filtered across all twelve months of the active year and by description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent. When adding a new rental-property income entry with the Rent category, you can also create the monthly recurring rent and link the current instalment to it.
 
 ## 7. Vehicles
 
@@ -181,7 +181,7 @@ It does not contain prior-year individual transactions/movements, closed items, 
 
 ## 16. Workbook and backups
 
-Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v4; v1, v2, and v3 workbooks migrate on opening.
+Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v5; v1, v2, v3, and v4 workbooks migrate on opening. `Property History` also keeps yearly aggregated Phone/Internet and Condominium costs.
 
 Do not rename sheets or columns if you want ContaMì to reopen the file. You may freely read, copy, and archive it.
 

@@ -5,20 +5,9 @@ import type {
   VehicleAnnualSummary,
 } from "./models";
 import { confirmedInvestmentEntries, latestInvestmentValue } from "./investments";
+import { isCondominiumCost, isPropertyUtilityCost, propertyConsumptionQuantity } from "./propertyMetrics";
 
 const total = (values: number[]) => values.reduce((sum, value) => sum + value, 0);
-
-function utilityKind(category: string): "electricity" | "gas" | "water" | undefined {
-  const value = category.trim().toLocaleLowerCase();
-  if (value.includes("electric") || value.includes("luce")) return "electricity";
-  if (value.includes("gas")) return "gas";
-  if (value.includes("water") || value.includes("acqua")) return "water";
-  return undefined;
-}
-
-function entryUtilityKind(entry: { category: string; description: string }): "electricity" | "gas" | "water" | undefined {
-  return utilityKind(`${entry.category} ${entry.description}`);
-}
 
 export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnualSummary[] {
   const year = data.meta.activeYear;
@@ -26,10 +15,10 @@ export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnual
     const entries = data.propertyEntries.filter((entry) => entry.propertyId === property.id && entry.date.startsWith(String(year)));
     const latestValuation = entries.filter((entry) => entry.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0];
     const consumption = (kind: "electricity" | "gas" | "water") => total(entries
-      .filter((entry) => (entry.kind === "consumption" || entry.detailKind?.startsWith("utility_")) && entryUtilityKind(entry) === kind)
-      .map((entry) => entry.quantity ?? 0));
-    const utilityCost = (kind: "electricity" | "gas" | "water") => total(entries
-      .filter((entry) => entry.kind === "expense" && entryUtilityKind(entry) === kind)
+      .filter((entry) => entry.kind === "consumption" || entry.detailKind?.startsWith("utility_"))
+      .map((entry) => propertyConsumptionQuantity(entry, kind)));
+    const utilityCost = (kind: "electricity" | "gas" | "water" | "phoneInternet") => total(entries
+      .filter((entry) => isPropertyUtilityCost(entry, kind))
       .map((entry) => entry.amount));
     return {
       propertyId: property.id,
@@ -43,6 +32,8 @@ export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnual
       electricityCost: utilityCost("electricity"),
       gasCost: utilityCost("gas"),
       waterCost: utilityCost("water"),
+      phoneInternetCost: utilityCost("phoneInternet"),
+      condominiumCost: total(entries.filter((entry) => isCondominiumCost(entry)).map((entry) => entry.amount)),
     };
   });
 }

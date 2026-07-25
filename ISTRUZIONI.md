@@ -110,7 +110,7 @@ I comandi dedicati **Utenze** e **Tasse** rendono più strutturate le spese rico
 
 Per entrate e spese, **Categoria** usa le stesse categorie delle Transazioni e richiede anche il metodo di pagamento. La registrazione viene riportata automaticamente nelle Transazioni; vale anche il percorso opposto.
 
-Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sulle date delle registrazioni e segnalano il canone atteso non registrato entro la scadenza. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
+Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sulle date delle registrazioni e segnalano il canone atteso non registrato entro la scadenza. Nella nuova registrazione di un immobile in affitto, scegliendo Entrata e categoria Affitti puoi creare anche la ricorrenza mensile collegata alla rata corrente. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
 
 ## 7. Automobile
 
@@ -213,7 +213,7 @@ Non contiene le singole transazioni dell’anno chiuso, i movimenti storici, gli
 
 ## 16. Il workbook e i backup
 
-I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v4; i workbook v1, v2 e v3 vengono migrati all’apertura.
+I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v5; i workbook v1, v2, v3 e v4 vengono migrati all’apertura. `Property History` conserva anche i costi annuali aggregati di Telefono/Internet e Condominio.
 
 Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi leggerlo, copiarlo e archiviarlo liberamente.
 

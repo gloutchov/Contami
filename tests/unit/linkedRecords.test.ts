@@ -142,6 +142,39 @@ describe("linked finance records", () => {
     expect(data.transactions.every((item) => item.recurringId === data.recurringItems[0].id)).toBe(true);
   });
 
+  it("creates a rental property income together with its rent recurrence", () => {
+    let data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Affitti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data = applyFinanceCommand(data, { type: "addProperty", value: {
+      id: propertyId, name: "Rental home", kind: "apartment", usage: "rental", ownershipShare: 1,
+      purchasePrice: 200_000, active: true, notes: "",
+    } });
+
+    data = applyFinanceCommand(data, { type: "addPropertyRentRecurring", value: {
+      entry: {
+        id: entryId, propertyId, date: "2026-03-05", kind: "income", category: "Affitti",
+        categoryId, description: "Affitto marzo", amount: 750, paymentMethodId, notes: "",
+      },
+      recurring: {
+        id: recurringId, name: "Affitto Rental home", kind: "rent", direction: "income",
+        amount: 750, frequency: "monthly", categoryId, paymentMethodId, propertyId,
+        nextDueDate: "2026-03-05", active: true, notes: "",
+      },
+    } });
+
+    expect(data.recurringItems).toHaveLength(1);
+    expect(data.recurringItems[0]).toMatchObject({ id: recurringId, kind: "rent", direction: "income", propertyId, amount: 750 });
+    expect(data.properties[0]).toMatchObject({ expectedMonthlyRent: 750, rentDueDay: 5 });
+    expect(data.propertyEntries.find((item) => item.id === entryId)).toMatchObject({ transactionId: expect.any(String) });
+    expect(data.transactions.find((item) => item.propertyEntryId === entryId)).toMatchObject({ recurringId, planned: undefined });
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned)).toHaveLength(9);
+    expect(data.propertyEntries.filter((item) => item.propertyId === propertyId && item.kind === "income")).toHaveLength(10);
+  });
+
   it("creates and updates the linked transaction for a vehicle cost", () => {
     let data = createEmptyFinanceData(2026);
     const vehicleId = crypto.randomUUID();

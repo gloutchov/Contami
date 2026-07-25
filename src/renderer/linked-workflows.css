@@ -70,12 +70,13 @@
 .filtered-property-totals { grid-column: 1 / -1; display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--muted); font-size: 11px; }
 .filtered-property-totals strong { color: var(--text); margin-left: 4px; }
 .utility-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.utility-cost-charts { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 .utility-charts article { min-width: 0; padding: 11px; border-radius: 11px; background: var(--surface-solid); border: 1px solid var(--border); }
 .utility-charts article > strong { display: block; font-size: 10px; color: var(--muted); margin-bottom: 9px; }
-.trend-bars { height: 126px; display: flex; align-items: stretch; gap: 5px; overflow-x: auto; padding-top: 20px; }
+.trend-bars { height: 156px; display: flex; align-items: stretch; gap: 5px; overflow-x: auto; overflow-y: hidden; padding-top: 24px; }
 .trend-column { min-width: 24px; flex: 1 0 24px; display: grid; grid-template-rows: 16px 1fr 15px; align-items: end; text-align: center; }
 .trend-value { overflow: hidden; color: var(--muted); font-size: 7px; white-space: nowrap; text-overflow: ellipsis; }
-.trend-track { height: 76px; display: flex; align-items: end; justify-content: center; border-bottom: 1px solid var(--border); }
+.trend-track { height: 100px; display: flex; align-items: end; justify-content: center; border-bottom: 1px solid var(--border); }
 .trend-track i { width: min(16px, 72%); min-height: 3px; display: block; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--mint), var(--navy-2)); }
 .trend-column small { color: var(--muted); font-size: 8px; }
 .vehicle-history .trend-bars { height: 155px; }

@@ -40,8 +40,9 @@ ContaMì/
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
-│   │   ├── migrations.ts               # migrazione workbook v1/v2/v3 → v4
-│   │   ├── models.ts                   # schema Zod v4 e modello finanziario
+│   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
+│   │   ├── migrations.ts               # migrazione workbook v1/v2/v3/v4 → v5
+│   │   ├── models.ts                   # schema Zod v5 e modello finanziario
 │   │   └── rollover.ts                 # trasformazione pura del passaggio d’anno
 │   ├── infrastructure/
 │   │   ├── settings/
@@ -119,7 +120,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1/v2 → v3
+│       ├── migrations.test.ts            # compatibilità schema v1/v2/v3/v4 → v5
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       └── rollover.test.ts             # nuovo anno e riconciliazione
@@ -161,7 +162,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v4 + migrations
+                                                               ├── canonical .xlsx v5 + migrations
                                                                └── optional .numbers mirror
 ```
 
