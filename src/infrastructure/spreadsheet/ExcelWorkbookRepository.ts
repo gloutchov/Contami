@@ -6,7 +6,7 @@ import { APP_CONFIG } from "../../config/appConfig";
 import { computeDashboard } from "../../domain/finance";
 import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -74,7 +74,7 @@ function configureDataSheet(sheet: ExcelJS.Worksheet, definition: WorkbookTableD
     }
   });
   for (const column of definition.dateColumns ?? []) sheet.getColumn(column).numFmt = "yyyy-mm-dd";
-  for (const column of ["amount", "openingBalance", "purchasePrice", "salePrice", "fuelUnitPrice", "cadastralValue", "expectedMonthlyRent", "periodicAmount", "ownerShare", "partnerShare", "income", "expenses", "netCashFlow", "closingNetWorth", "liquidBalance", "propertyValue", "investmentValue", "pensionValue", "monthlyRecurring", "vehicleCosts", "closingValue", "contributions", "withdrawals", "totalCosts", "fuelCosts", "installments", "taxes", "insurance", "tires", "maintenance", "repairs", "electricityCost", "gasCost", "waterCost", "valuePerSqm"]) {
+  for (const column of ["amount", "openingBalance", "purchasePrice", "salePrice", "fuelUnitPrice", "cadastralValue", "expectedMonthlyRent", "periodicAmount", "ownerShare", "partnerShare", "income", "expenses", "netCashFlow", "closingNetWorth", "liquidBalance", "propertyValue", "investmentValue", "pensionValue", "monthlyRecurring", "vehicleCosts", "closingValue", "contributions", "withdrawals", "totalCosts", "fuelCosts", "installments", "taxes", "insurance", "tires", "maintenance", "repairs", "electricityCost", "gasCost", "waterCost", "phoneInternetCost", "condominiumCost", "valuePerSqm"]) {
     if (definition.columns.includes(column)) sheet.getColumn(column).numFmt = '#,##0.00 [$€-it-IT]';
   }
   if (definition.columns.includes("ownershipShare")) sheet.getColumn("ownershipShare").numFmt = "0%";
@@ -139,7 +139,7 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
     Vehicles: ["Anagrafica delle automobili attuali e precedenti.", "Registry of current and previous vehicles."],
     "Vehicle Entries": ["Rifornimenti, rate, bollo, assicurazione, pneumatici, manutenzione e riparazioni.", "Fuel, installments, road tax, insurance, tyres, maintenance and repairs."],
     "Annual Summaries": ["Consuntivi degli anni archiviati.", "Archived annual summaries."],
-    "Property History": ["Consuntivi annuali per immobile, inclusi consumi, costi delle utenze e valore commerciale.", "Annual property actuals, including utility consumption, utility costs, and commercial value."],
+    "Property History": ["Consuntivi annuali per immobile, inclusi consumi, utenze, telefono/internet, condominio e valore commerciale.", "Annual property actuals, including utility consumption, utilities, phone/internet, condominium fees, and commercial value."],
     "Investment History": ["Valori e movimenti annuali per investimento e comparto pensione.", "Annual values and movements for each investment and pension compartment."],
     "Vehicle History": ["Consuntivi annuali per il confronto tra automobili.", "Annual actuals for comparing vehicles."],
   };
@@ -187,9 +187,11 @@ export class ExcelWorkbookRepository {
         ? WORKBOOK_TABLES_V2
         : schemaVersion === 3
           ? WORKBOOK_TABLES_V3
-          : schemaVersion === WORKBOOK_SCHEMA_VERSION
-            ? WORKBOOK_TABLES
-            : undefined;
+          : schemaVersion === 4
+            ? WORKBOOK_TABLES_V4
+            : schemaVersion === WORKBOOK_SCHEMA_VERSION
+              ? WORKBOOK_TABLES
+              : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     for (const definition of definitions) {
       const sheet = workbook.getWorksheet(definition.sheet);

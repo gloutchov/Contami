@@ -270,6 +270,8 @@ export const propertyAnnualSummarySchema = z.object({
   electricityCost: money.default(0),
   gasCost: money.default(0),
   waterCost: money.default(0),
+  phoneInternetCost: money.default(0),
+  condominiumCost: money.default(0),
 });
 
 export const investmentAnnualSummarySchema = z.object({
@@ -299,7 +301,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(4),
+    schemaVersion: z.literal(5),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
