@@ -1,6 +1,7 @@
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import ExcelJS from "exceljs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SettingsService } from "../../src/infrastructure/settings/SettingsService";
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
@@ -60,6 +61,48 @@ describe("FinanceFileService startup recovery", () => {
 
     await expect(service.snapshot()).rejects.toThrow();
     await expect(settings.get()).resolves.toMatchObject({ workbookPath: invalidPath });
+  });
+
+  it("reports automatic duplicate UUID repair when opening a manually edited workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-uuid-repair-warning-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-31", kind: "valuation", amount: 35_000, description: "First valuation", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-28", kind: "valuation", amount: 36_000, description: "Second valuation", notes: "" },
+    );
+    await repository.save(workbookPath, data);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(workbookPath);
+    const entries = workbook.getWorksheet("Investment Entries")!;
+    entries.getCell("A3").value = entries.getCell("A2").value;
+    await workbook.xlsx.writeFile(workbookPath);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+
+    const snapshot = await service.snapshot();
+
+    expect(snapshot.warningCode).toBe("DUPLICATE_UUIDS_REPAIRED");
+    expect(new Set(snapshot.data.investmentEntries.map((entry) => entry.id)).size).toBe(2);
   });
 
   it("saves an import batch atomically with one recoverable backup", async () => {
