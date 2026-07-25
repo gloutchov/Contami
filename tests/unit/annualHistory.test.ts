@@ -14,6 +14,8 @@ describe("annual detailed history", () => {
       { id: crypto.randomUUID(), propertyId, date: "2026-03-31", kind: "expense", category: "Luce", description: "Bolletta elettricità", amount: 85, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-04-30", kind: "expense", category: "Acqua", description: "Bolletta acqua", amount: 45, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-05-31", kind: "expense", category: "Gas", description: "Bolletta gas", amount: 70, quantity: 30, unit: "m³", detailKind: "utility_gas", categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), propertyId, date: "2026-06-30", kind: "expense", category: "Servizi", description: "Canone", amount: 35, detailKind: "utility_phone_internet", categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), propertyId, date: "2026-07-31", kind: "expense", category: "Condominio", description: "Installment", amount: 120, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
     );
     data.vehicles.push({ id: vehicleId, name: "Synthetic car", manufacturer: "", model: "", fuelType: "petrol", active: true, notes: "" });
     data.vehicleEntries.push(
@@ -21,7 +23,16 @@ describe("annual detailed history", () => {
       { id: crypto.randomUUID(), vehicleId, date: "2026-04-10", kind: "insurance", description: "Policy", amount: 400, notes: "" },
     );
 
-    expect(createPropertyAnnualSummaries(data)[0]).toMatchObject({ electricityKwh: 250, gasCubicMeters: 30, waterCubicMeters: 12, electricityCost: 85, gasCost: 70, waterCost: 45 });
+    expect(createPropertyAnnualSummaries(data)[0]).toMatchObject({
+      electricityKwh: 250,
+      gasCubicMeters: 30,
+      waterCubicMeters: 12,
+      electricityCost: 85,
+      gasCost: 70,
+      waterCost: 45,
+      phoneInternetCost: 35,
+      condominiumCost: 120,
+    });
     expect(createVehicleAnnualSummaries(data)[0]).toMatchObject({ totalCosts: 450, fuelCosts: 50, insurance: 400, averageKmPerLiter: 20 });
   });
 });

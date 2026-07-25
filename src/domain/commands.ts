@@ -37,6 +37,26 @@ const propertyExpenseBundleSchema = z.object({
     context.addIssue({ code: "custom", message: "The two shares must match the property expense", path: ["shared", "partnerShare"] });
   }
 });
+const propertyRentRecurringBundleSchema = z.object({
+  entry: propertyEntrySchema,
+  recurring: recurringItemSchema,
+}).superRefine((value, context) => {
+  if (value.entry.kind !== "income" || value.entry.amount <= 0) {
+    context.addIssue({ code: "custom", message: "A rent recurrence needs a positive property income entry", path: ["entry", "amount"] });
+  }
+  if (value.recurring.kind !== "rent" || value.recurring.direction !== "income") {
+    context.addIssue({ code: "custom", message: "The recurring item must be an income rent recurrence", path: ["recurring", "kind"] });
+  }
+  if (value.recurring.propertyId !== value.entry.propertyId) {
+    context.addIssue({ code: "custom", message: "The recurring rent must reference the same property", path: ["recurring", "propertyId"] });
+  }
+  if (value.recurring.categoryId !== value.entry.categoryId || value.recurring.paymentMethodId !== value.entry.paymentMethodId) {
+    context.addIssue({ code: "custom", message: "The recurring rent must use the same category and payment method", path: ["recurring", "categoryId"] });
+  }
+  if (Math.abs(value.recurring.amount - value.entry.amount) > 0.01) {
+    context.addIssue({ code: "custom", message: "The recurring rent amount must match the entry amount", path: ["recurring", "amount"] });
+  }
+});
 const investmentWithInitialContributionSchema = z.object({
   investment: investmentSchema,
   initialContribution: investmentEntrySchema,
@@ -55,6 +75,7 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("updateProperty"), value: propertySchema }),
   z.object({ type: z.literal("addPropertyEntry"), value: propertyEntrySchema }),
   z.object({ type: z.literal("updatePropertyEntry"), value: propertyEntrySchema }),
+  z.object({ type: z.literal("addPropertyRentRecurring"), value: propertyRentRecurringBundleSchema }),
   z.object({ type: z.literal("addPropertyExpense"), value: propertyExpenseBundleSchema }),
   z.object({ type: z.literal("updatePropertyExpense"), value: propertyExpenseBundleSchema }),
   z.object({ type: z.literal("addInvestment"), value: investmentSchema }),

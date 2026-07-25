@@ -37,12 +37,13 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M13 — Catalogo tasse configurabile | `milestone/13-configurable-taxes` | `1.1.0` | Completata; CI/release macOS e Windows verdi |
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
+| Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | In corso locale; attende commit, merge, tag e push |
 | M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | da assegnare | Pianificata; priorità e versione da assegnare |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.4.0` | Pianificata dopo M15 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.5.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.6.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → apertura workbook `v1.4.0` → integrità salvataggi `v1.5.0` → CSP rigorosa `v1.6.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → apertura workbook `v1.4.0` → integrità salvataggi `v1.5.0` → CSP rigorosa `v1.6.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -587,6 +588,14 @@ La checklist seguente è un gate riutilizzabile da verificare alla chiusura di c
 - Gate locale M15 superato: lint, typecheck, build renderer/Electron, 76 test Vitest, controllo documentale e `npm audit` con 0 vulnerabilità; Playwright Chromium superato in IT/scuro e EN/chiaro a 1080 px con anteprima, focus da tastiera, conferma, assenza di overflow ed errori console.
 - Collaudo manuale del proprietario completato con dati locali: l'anteprima ha identificato riferimenti e valori non validi, la correzione guidata ha risolto gli errori e l'importazione finale di categorie e registrazioni immobiliari è riuscita. I file usati restano esclusi da Git e non sono stati copiati in fixture o servizi remoti.
 - Pubblicazione M15 completata: commit funzionale `3b6c950`, PR `#18` e merge commit `b0bded4`; CI verde sulla PR (`30101556907`), su `main` (`30101882085`) e sul tag (`30102161837`). Il tag annotato `v1.3.0` ha completato la Release nel run `30102161664`: packaging, ispezione e smoke installato superati su macOS e Windows, sei artifact applicativi pubblicati e checksum raccolti in `SHA256SUMS.txt`.
+
+## Patch residenza e storico immobili — 2026-07-25
+
+- Avviato il branch `patch/1.3.1-residence-property-history` da `milestone/16-transport-improvements` senza commit automatici: commit, merge, tag, push ed eliminazione branch restano in attesa di approvazione del proprietario.
+- Portato il workbook allo schema v5 aggiungendo a `Property History` i campi aggregati `phoneInternetCost` e `condominiumCost`; i workbook v1, v2, v3 e v4 vengono migrati in memoria e validati come v5.
+- Corretti gli indicatori della residenza per riconoscere utenze importate tramite `detailKind` e kWh elettrici da fasce F1/F2/F3/F23; Telefono/Internet e Condominio confluiscono anche nello storico annuale.
+- Spostati i filtri descrizione/mese prima dello storico nella modale immobile e aumentato lo spazio verticale dei grafici delle utenze per evitare scrollbar verticali interne.
+- Aggiunto il comando atomico per registrare una rata di affitto come entrata ricorrente direttamente dalla nuova registrazione immobile; la rata corrente viene collegata alla ricorrenza e le rate future pianificate restano coerenti con il modello delle Ricorrenze.
 
 ## Rischi e mitigazioni iniziali
 
