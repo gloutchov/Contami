@@ -39,12 +39,12 @@ ContaMì/
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
-│   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale tra viste
+│   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
 │   │   ├── migrations.ts               # migrazione workbook v1/v2/v3/v4 → v5
 │   │   ├── models.ts                   # schema Zod v5 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
-│   │   └── rollover.ts                 # trasformazione pura del passaggio d’anno
+│   │   └── rollover.ts                 # passaggio d’anno e ripianificazione delle rate residue
 │   ├── infrastructure/
 │   │   ├── settings/
 │   │   │   └── SettingsService.ts      # preferenze locali atomiche
@@ -120,12 +120,12 @@ ContaMì/
 │       ├── importTemplates.test.ts       # contratti e chiavi gerarchiche degli otto template
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
-│       ├── linkedRecords.test.ts         # collegamenti bidirezionali e ricorrenze
+│       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
 │       ├── migrations.test.ts            # compatibilità schema v1/v2/v3/v4 → v5
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
-│       └── rollover.test.ts             # nuovo anno e riconciliazione
+│       └── rollover.test.ts             # nuovo anno, riconciliazione e rate a cavallo d’anno
 ├── AGENTS.md                            # regole per agenti e maintainer
 ├── INSTRUCTIONS.md                     # manuale utente inglese
 ├── ISTRUZIONI.md                       # manuale utente italiano

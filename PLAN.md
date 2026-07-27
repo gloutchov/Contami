@@ -38,13 +38,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M14 — Template Excel per importazione | `milestone/14-import-templates` | `1.2.0` | Rilasciata |
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | Rilasciata; CI/release macOS e Windows verdi |
-| Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | In corso locale; attende commit, merge, tag e push |
-| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | `1.4.0` | Pianificata dopo la patch `1.3.2` |
+| Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | Rilasciata; CI/release macOS e Windows verdi |
+| Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | In corso locale; non committata né pubblicata |
+| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | `1.4.0` | Pianificata dopo la patch `1.3.3` |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.5.0` | Pianificata dopo M16 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.6.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.7.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → trasporti `v1.4.0` → apertura workbook `v1.5.0` → integrità salvataggi `v1.6.0` → CSP rigorosa `v1.7.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → trasporti `v1.4.0` → apertura workbook `v1.5.0` → integrità salvataggi `v1.6.0` → CSP rigorosa `v1.7.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -495,6 +496,26 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Documentazione:** aggiornare README/manuali se cambia il comportamento dei menu o della finestra Info; aggiornare MAP/SECURITY_MODEL solo se cambiano file, IPC, confini Electron o modello di packaging.
 
 **Stato locale 2026-07-25:** implementati layout e scala proporzionale dei grafici compatti condivisi da immobili e confronto auto, menu compilato ridotto, finestra Info, riparazione conservativa degli UUID duplicati e bump versione `1.3.2`. La correzione UUID modifica solo le celle necessarie, conserva tutte le righe, riallinea i collegamenti non ambigui e passa da temporaneo verificato, backup e rollback. Una copia privata aggiornata è stata corretta e verificata localmente, restando esclusa da Git e release. La verifica Playwright su dati sintetici conferma asse X visibile, assenza di overflow verticale e barre proporzionate all’altezza della pista. Gate locale verde: lint, typecheck, 90 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px; l’ispezione ASAR della parte grafici/menu resta valida. Lo smoke locale del pacchetto macOS non arriva al codice applicativo e termina con `SIGABRT` durante la registrazione AppKit dell’app non firmata; resta da riverificare nel workflow release macOS/Windows prima della pubblicazione.
+
+## Patch limiti e chiusura rate
+
+**Obiettivo:** impedire che un pagamento rateale continui a generare scadenze fino a fine anno dopo l’esaurimento del numero di rate indicato.
+
+**Comportamento previsto**
+
+- La sincronizzazione genera al massimo il numero di rate residue e non supera l’eventuale data di fine.
+- La conferma di una rata riduce di una unità il residuo e aggiorna la prossima scadenza.
+- Dopo l’ultima conferma la ricorrenza viene chiusa logicamente, le righe pianificate residue scompaiono e tutte le rate confermate restano nello storico.
+- Il rollover conserva il residuo aggiornato e genera nel nuovo workbook soltanto le rate ancora dovute nell’anno nuovo.
+- Per piani storici caricati da un altro foglio, `nextDueDate` rappresenta la prima rata non pagata e `remainingInstallments` il solo residuo, non la data iniziale e il numero originario del piano.
+- Le ricorrenze non rateali continuano a essere pianificate fino alla data di fine o alla fine dell’anno.
+- In Impostazioni, il pulsante per importare un file compilato è allineato verticalmente al menu della strategia duplicati; il testo di aiuto occupa una riga separata e il layout resta impilato sotto i 900 px.
+
+**Test richiesti:** unit test sintetici per limite numerico, data di fine, decremento progressivo, chiusura automatica, conservazione delle rate confermate e piano a cavallo d’anno; regressione completa dei test di dominio e integrazione; Playwright dell’allineamento importazione in IT/EN, chiaro/scuro e a 1080 px.
+
+**Documentazione:** aggiornare manuali IT/EN, README, MAP e versione applicativa. Non sono previste modifiche a UI, traduzioni, schema workbook, IPC o modello di sicurezza.
+
+**Stato locale 2026-07-27:** implementata sul branch `patch/1.3.3-installment-limits` e mantenuta senza commit o push come richiesto dal proprietario. Gate locale verde: lint, typecheck, 93 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px, incluso il controllo geometrico dell’allineamento tra strategia duplicati e pulsante di importazione.
 
 ## Decisione futura — Cifratura portabile
 
