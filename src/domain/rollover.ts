@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
 import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
+import { syncRecurringTransactions } from "./linkedRecords";
 import type { FinanceData, InvestmentEntry, PropertyEntry } from "./models";
 
 function balanceForAccount(data: FinanceData, accountId: string): number {
@@ -49,6 +50,7 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   next.recurringItems = current.recurringItems
     .filter((item) => item.active && item.remainingInstallments !== 0 && (!item.endDate || item.endDate >= `${nextYear}-01-01`))
     .map((item) => ({ ...structuredClone(item), nextDueDate: advanceDueDate(item.nextDueDate, item.frequency, nextYear) }));
+  next.recurringItems.forEach((item) => syncRecurringTransactions(next, item));
   next.sharedExpenses = structuredClone(current.sharedExpenses.filter((item) => !item.settled));
   next.annualSummaries = [...structuredClone(current.annualSummaries), createAnnualSummary(current)];
   next.propertyAnnualSummaries = [...structuredClone(current.propertyAnnualSummaries), ...createPropertyAnnualSummaries(current)];

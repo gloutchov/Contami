@@ -147,7 +147,9 @@ Nel workbook pensioni e comparti restano nella tabella `Investments`, identifica
 
 La dashboard mostra equivalente mensile, numero di elementi attivi e rate residue note. Puoi filtrare per nome, tipo e mese: i totali seguono i filtri. Sono disponibili modifica, cancellazione, chiusura e riapertura.
 
-ContaMì genera transazioni **pianificate** fino alla fine dell’anno e collega eventuali righe reali già presenti. Confermare una riga la rende effettiva; l’app non esegue pagamenti.
+Se il pagamento rateale è iniziato prima del workbook corrente, inserisci in **Prossima scadenza** la prima rata non ancora pagata e in **Rate residue** soltanto quelle ancora dovute, non il numero originario del piano. Per esempio, di 12 rate iniziate l’anno scorso con 4 ancora da pagare, indica la prossima scadenza effettiva e `4`.
+
+Per le ricorrenze non rateali, ContaMì genera transazioni **pianificate** fino alla data di fine o alla fine dell’anno. Per i pagamenti rateali genera soltanto il numero di rate residue, sempre entro l’eventuale data di fine. Confermare una rata la rende effettiva, riduce il residuo e, dopo l’ultima, chiude automaticamente la ricorrenza conservando le righe confermate nello storico. Durante il passaggio d’anno, il nuovo workbook conserva il residuo aggiornato e rigenera soltanto le rate ancora dovute nell’anno nuovo. L’app non esegue pagamenti.
 
 ## 11. Spese condivise
 
