@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -87,6 +87,7 @@ describe("v0.8 review forms", () => {
     const user = userEvent.setup();
     renderIt(<PropertyEntryForm data={data} initialPropertyId={propertyId} onClose={() => undefined} onSave={onSave} />);
 
+    fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2026-07-25" } });
     await user.selectOptions(screen.getByLabelText("Tipo"), "income");
     await user.selectOptions(screen.getByLabelText("Categoria"), rentCategory.id);
     await user.type(screen.getByLabelText("Descrizione"), "Affitto luglio");

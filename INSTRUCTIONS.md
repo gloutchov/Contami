@@ -132,7 +132,9 @@ In the workbook, pensions and compartments remain in the `Investments` table, id
 
 The view shows monthly equivalent, active item count, and known installments left. Filters by name, type, and month update the totals. Editing, deletion, close, and reopen are available.
 
-ContaMì generates **planned** transactions through year end and links matching real rows already present. Confirming a row makes it effective; the app never executes payments.
+If an installment plan began before the current workbook, enter the first unpaid installment under **Next due date** and only the payments still due under **Installments left**, not the plan’s original total. For example, for a 12-payment plan started last year with 4 payments still due, enter the actual next due date and `4`.
+
+For non-installment recurring items, ContaMì generates **planned** transactions through the end date or year end. For installment plans, it generates only the remaining number of payments, always within the optional end date. Confirming an installment makes it effective, reduces the remaining count, and automatically closes the recurring item after the final payment while retaining confirmed rows in history. During year rollover, the new workbook keeps the updated balance and regenerates only the installments still due in the new year. The app never executes payments.
 
 ## 11. Shared expenses
 

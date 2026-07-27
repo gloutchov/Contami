@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-25 · Applicazione / Application: 1.3.2
+Versione del documento / Document version: 2026-07-27 · Applicazione / Application: 1.3.3
 
 ## Italiano
 
