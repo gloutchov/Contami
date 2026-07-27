@@ -196,6 +196,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
     transaction.sharedExpenseId = entry.id;
   }
   replaceOrAdd(data.transactions, transaction);
+  confirmRecurringInstallment(data, previous, transaction);
 }
 
 export function upsertPropertyEntryWithLinks(data: FinanceData, value: PropertyEntry): void {
@@ -323,14 +324,43 @@ function addFrequency(date: Date, frequency: RecurringItem["frequency"]): void {
   else date.setUTCFullYear(date.getUTCFullYear() + 1);
 }
 
+function nextOccurrence(date: string, frequency: RecurringItem["frequency"]): string {
+  const next = new Date(`${date}T12:00:00Z`);
+  addFrequency(next, frequency);
+  return next.toISOString().slice(0, 10);
+}
+
+function confirmRecurringInstallment(data: FinanceData, previous: Transaction | undefined, transaction: Transaction): void {
+  if (!previous?.planned || transaction.planned || !transaction.recurringId) return;
+  const recurring = data.recurringItems.find((item) => item.id === transaction.recurringId);
+  if (recurring?.kind !== "installment" || recurring.remainingInstallments === undefined) return;
+
+  recurring.remainingInstallments = Math.max(0, recurring.remainingInstallments - 1);
+  const nextPlanned = data.transactions
+    .filter((item) => item.recurringId === recurring.id && item.planned)
+    .sort((left, right) => left.date.localeCompare(right.date))[0];
+  recurring.nextDueDate = nextPlanned?.date ?? nextOccurrence(transaction.date, recurring.frequency);
+
+  if (recurring.remainingInstallments === 0 || (recurring.endDate && recurring.nextDueDate > recurring.endDate)) {
+    recurring.remainingInstallments = 0;
+    recurring.active = false;
+    recurring.closedAt = transaction.date;
+  }
+  syncRecurringTransactions(data, recurring);
+}
+
 export function syncRecurringTransactions(data: FinanceData, recurring: RecurringItem): void {
   const planned = data.transactions.filter((item) => item.recurringId === recurring.id && item.planned);
   for (const transaction of planned) deleteLinkedEntity(data, "transaction", transaction.id);
   if (!recurring.active) return;
   const cursor = new Date(`${recurring.nextDueDate}T12:00:00Z`);
   const yearEnd = new Date(`${data.meta.activeYear}-12-31T12:00:00Z`);
-  let occurrences = 0;
-  while (cursor <= yearEnd && occurrences < 370) {
+  const endDate = recurring.endDate ? new Date(`${recurring.endDate}T12:00:00Z`) : yearEnd;
+  const scheduleEnd = endDate < yearEnd ? endDate : yearEnd;
+  const installmentLimit = recurring.kind === "installment" ? recurring.remainingInstallments : undefined;
+  let generated = 0;
+  let iterations = 0;
+  while (cursor <= scheduleEnd && iterations < 370 && (installmentLimit === undefined || generated < installmentLimit)) {
     const date = cursor.toISOString().slice(0, 10);
     if (date.startsWith(String(data.meta.activeYear))) {
       const direction = recurring.direction ?? "expense";
@@ -348,9 +378,10 @@ export function syncRecurringTransactions(data: FinanceData, recurring: Recurrin
           planned: true, shared: false, sharedPaidBy: "owner", sharedSettled: false,
           notes: recurring.notes, createdAt: timestamp, updatedAt: timestamp,
         });
+        generated += 1;
       }
     }
-    occurrences += 1;
+    iterations += 1;
     addFrequency(cursor, recurring.frequency);
   }
 }

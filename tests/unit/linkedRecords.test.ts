@@ -175,6 +175,47 @@ describe("linked finance records", () => {
     expect(data.propertyEntries.filter((item) => item.propertyId === propertyId && item.kind === "income")).toHaveLength(10);
   });
 
+  it("limits installment plans and closes them after the final confirmation", () => {
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic five-installment payment", kind: "installment", direction: "expense",
+      amount: 100, frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, nextDueDate: "2026-01-15",
+      remainingInstallments: 5, active: true, notes: "",
+    } });
+
+    const dates = ["2026-01-15", "2026-02-15", "2026-03-15", "2026-04-15", "2026-05-15"];
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned).map((item) => item.date)).toEqual(dates);
+
+    for (const [index, date] of dates.entries()) {
+      const transaction = data.transactions.find((item) => item.recurringId === recurringId && item.date === date && item.planned)!;
+      data = applyFinanceCommand(data, { type: "updateTransaction", value: { ...transaction, planned: false } });
+      expect(data.recurringItems[0].remainingInstallments).toBe(4 - index);
+      expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned)).toHaveLength(4 - index);
+    }
+
+    expect(data.recurringItems[0]).toMatchObject({
+      id: recurringId, remainingInstallments: 0, active: false, closedAt: "2026-05-15",
+    });
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned)).toHaveLength(0);
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && !item.planned)).toHaveLength(5);
+  });
+
+  it("does not plan recurring transactions after their end date", () => {
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic limited service", kind: "service", direction: "expense",
+      amount: 25, frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, nextDueDate: "2026-01-20", endDate: "2026-03-20",
+      active: true, notes: "",
+    } });
+
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned).map((item) => item.date))
+      .toEqual(["2026-01-20", "2026-02-20", "2026-03-20"]);
+  });
+
   it("creates and updates the linked transaction for a vehicle cost", () => {
     let data = createEmptyFinanceData(2026);
     const vehicleId = crypto.randomUUID();

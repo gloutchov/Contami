@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
 import { createRolloverFinanceData } from "../../src/domain/rollover";
 
 describe("createRolloverFinanceData", () => {
@@ -10,6 +10,7 @@ describe("createRolloverFinanceData", () => {
     const propertyId = crypto.randomUUID();
     const investmentId = crypto.randomUUID();
     const vehicleId = crypto.randomUUID();
+    const activeRecurringId = crypto.randomUUID();
     current.taxTypes[0] = { ...current.taxTypes[0], name: "Legacy TV levy", active: false };
     current.accounts.push({ id: accountId, name: "Main", kind: "bank", currency: "EUR", openingBalance: 1_000, active: true, openedAt: "2020-01-01", notes: "" });
     current.transactions.push(
@@ -26,7 +27,7 @@ describe("createRolloverFinanceData", () => {
     current.vehicles.push({ id: vehicleId, name: "Synthetic car", manufacturer: "Example", model: "One", fuelType: "hybrid", active: true, notes: "" });
     current.vehicleEntries.push({ id: crypto.randomUUID(), vehicleId, date: "2026-05-10", kind: "fuel", description: "Fuel", amount: 60, distanceKm: 700, fuelLiters: 35, odometerKm: 15_000, notes: "" });
     current.recurringItems.push(
-      { id: crypto.randomUUID(), name: "Active", kind: "subscription", amount: 10, frequency: "monthly", categoryId: current.categories[7].id, paymentMethodId: current.paymentMethods[0].id, nextDueDate: "2026-12-10", active: true, notes: "" },
+      { id: activeRecurringId, name: "Active", kind: "subscription", amount: 10, frequency: "monthly", categoryId: current.categories[7].id, paymentMethodId: current.paymentMethods[0].id, nextDueDate: "2026-12-10", active: true, notes: "" },
       { id: crypto.randomUUID(), name: "Finished", kind: "installment", amount: 10, frequency: "monthly", categoryId: current.categories[7].id, paymentMethodId: current.paymentMethods[0].id, nextDueDate: "2026-12-10", remainingInstallments: 0, active: true, notes: "" },
     );
     current.sharedExpenses.push(
@@ -37,7 +38,7 @@ describe("createRolloverFinanceData", () => {
     const next = createRolloverFinanceData(current, 2027);
 
     expect(next.meta.activeYear).toBe(2027);
-    expect(next.transactions).toEqual([]);
+    expect(next.transactions.filter((item) => item.recurringId === activeRecurringId && item.planned)).toHaveLength(12);
     expect(next.accounts[0].openingBalance).toBe(1_375);
     expect(next.accounts[0].openedAt).toBe("2020-01-01");
     expect(next.propertyEntries).toMatchObject([{ propertyId, date: "2027-01-01", amount: 230_000 }]);
@@ -52,5 +53,28 @@ describe("createRolloverFinanceData", () => {
     expect(next.propertyAnnualSummaries).toMatchObject([{ propertyId, year: 2026, electricityKwh: 1250 }]);
     expect(next.investmentAnnualSummaries).toMatchObject([{ investmentId, year: 2026, closingValue: 20_000 }]);
     expect(next.vehicleAnnualSummaries).toMatchObject([{ vehicleId, year: 2026, totalCosts: 60, fuelCosts: 60, distanceKm: 700, fuelLiters: 35, averageKmPerLiter: 20 }]);
+  });
+
+  it("carries only the unpaid installments into the next year", () => {
+    let current = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    current = applyFinanceCommand(current, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic cross-year plan", kind: "installment", direction: "expense",
+      amount: 120, frequency: "monthly", categoryId: current.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: current.paymentMethods[0].id, nextDueDate: "2026-11-15", endDate: "2027-03-15",
+      remainingInstallments: 5, active: true, notes: "",
+    } });
+
+    for (const date of ["2026-11-15", "2026-12-15"]) {
+      const installment = current.transactions.find((item) => item.recurringId === recurringId && item.date === date && item.planned)!;
+      current = applyFinanceCommand(current, { type: "updateTransaction", value: { ...installment, planned: false } });
+    }
+
+    expect(current.recurringItems[0]).toMatchObject({ remainingInstallments: 3, nextDueDate: "2027-01-15", active: true });
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.recurringItems[0]).toMatchObject({ remainingInstallments: 3, nextDueDate: "2027-01-15", active: true });
+    expect(next.transactions.filter((item) => item.recurringId === recurringId && item.planned).map((item) => item.date))
+      .toEqual(["2027-01-15", "2027-02-15", "2027-03-15"]);
   });
 });
