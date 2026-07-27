@@ -39,7 +39,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M15 — Importazione guidata e atomica | `milestone/15-guided-import` | `1.3.0` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | Rilasciata; CI/release macOS e Windows verdi |
-| Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | In corso locale; non committata né pubblicata |
+| Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | Rilasciata; CI/release macOS e Windows verdi |
 | M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | `1.4.0` | Pianificata dopo la patch `1.3.3` |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.5.0` | Pianificata dopo M16 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.6.0` | Pianificata dopo M9 |
@@ -515,7 +515,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** aggiornare manuali IT/EN, README, MAP e versione applicativa. Non sono previste modifiche a UI, traduzioni, schema workbook, IPC o modello di sicurezza.
 
-**Stato locale 2026-07-27:** implementata sul branch `patch/1.3.3-installment-limits` e mantenuta senza commit o push come richiesto dal proprietario. Gate locale verde: lint, typecheck, 93 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px, incluso il controllo geometrico dell’allineamento tra strategia duplicati e pulsante di importazione.
+**Esito 2026-07-27:** implementata nel commit `9e4290a` sul branch `patch/1.3.3-installment-limits` e integrata in `main` dal merge commit `5e0a2f3`. Gate locale verde: lint, typecheck, 93 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px, incluso il controllo geometrico dell’allineamento tra strategia duplicati e pulsante di importazione. CI verdi sul branch (`30273773479`), su `main` (`30273847224`) e sul tag `v1.3.3` (`30273854813`). Il workflow Release `30273854755` ha completato packaging, ispezione, smoke installato e pubblicazione privata per macOS ARM64/x64 e Windows x64; gli asset includono DMG, ZIP, installer Windows e `SHA256SUMS.txt`.
 
 ## Decisione futura — Cifratura portabile
 
