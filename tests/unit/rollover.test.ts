@@ -77,4 +77,40 @@ describe("createRolloverFinanceData", () => {
     expect(next.transactions.filter((item) => item.recurringId === recurringId && item.planned).map((item) => item.date))
       .toEqual(["2027-01-15", "2027-02-15", "2027-03-15"]);
   });
+
+  it("rolls a recurring pension contribution forward with one linked movement per transaction", () => {
+    let current = createEmptyFinanceData(2026);
+    const pensionId = crypto.randomUUID();
+    const compartmentId = crypto.randomUUID();
+    const pensionTypeId = current.investmentTypes.find((item) => item.code === "pension")!.id;
+    const categoryId = current.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = current.paymentMethods[0].id;
+    current = applyFinanceCommand(current, { type: "addInvestment", value: {
+      id: pensionId, name: "Synthetic pension", kind: "pension", typeId: pensionTypeId,
+      provider: "", currency: "EUR", active: true, openedAt: "2020-01-01", notes: "",
+    } });
+    current = applyFinanceCommand(current, { type: "addInvestment", value: {
+      id: compartmentId, name: "Synthetic compartment", kind: "pension", typeId: pensionTypeId,
+      parentInvestmentId: pensionId, provider: "", currency: "EUR",
+      periodicAmount: 125, periodicFrequency: "monthly", periodicNextDueDate: "2026-12-15",
+      periodicCategoryId: categoryId, periodicPaymentMethodId: paymentMethodId,
+      active: true, openedAt: "2020-01-01", notes: "",
+    } });
+    const recurringId = current.recurringItems.find((item) => item.investmentId === compartmentId)!.id;
+
+    const next = createRolloverFinanceData(current, 2027);
+    const transactions = next.transactions.filter((item) => item.recurringId === recurringId);
+    const entryIds = new Set(transactions.map((item) => item.investmentEntryId));
+
+    expect(transactions).toHaveLength(12);
+    expect(entryIds.size).toBe(12);
+    expect(next.investmentEntries.filter((item) => entryIds.has(item.id))).toHaveLength(12);
+    expect(transactions.every((item) => item.planned
+      && item.kind === "transfer"
+      && item.cashFlowDirection === "outflow"
+      && item.investmentId === compartmentId)).toBe(true);
+    expect(next.investmentEntries.every((item) => item.kind === "contribution"
+      && item.investmentId === compartmentId
+      && transactions.some((transaction) => transaction.id === item.transactionId))).toBe(true);
+  });
 });

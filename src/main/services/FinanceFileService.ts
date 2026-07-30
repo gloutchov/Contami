@@ -177,7 +177,13 @@ export class FinanceFileService {
 
   private async loadWorkbook(filePath: string): Promise<FinanceData> {
     const loaded = await this.repository.loadWithUuidRepair(filePath);
-    this.warningCode = loaded.repairedIds > 0 ? "DUPLICATE_UUIDS_REPAIRED" : undefined;
+    this.warningCode = loaded.ambiguousInvestmentLinks > 0
+      ? "INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS"
+      : loaded.repairedInvestmentLinks > 0
+        ? "INVESTMENT_TRANSACTIONS_REPAIRED"
+        : loaded.repairedIds > 0
+          ? "DUPLICATE_UUIDS_REPAIRED"
+          : undefined;
     return loaded.data;
   }
 

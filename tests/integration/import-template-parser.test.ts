@@ -65,6 +65,11 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
       name: "Synthetic compartment", currency: "EUR", opened_at: "2020-01-01", ...common,
     },
     {
+      record_type: "contribution | versamento", pension_key: "pension-1", compartment_key: "compartment-1",
+      date: "2026-03-01", description: "Synthetic pension contribution", amount: 300,
+      category: ref(expense.id), payment_method: ref(payment.id), notes: "Synthetic import",
+    },
+    {
       record_type: "valuation | valutazione", pension_key: "pension-1", compartment_key: "compartment-1",
       date: "2026-04-01", description: "Synthetic pension valuation", amount: 12000, notes: "Synthetic import",
     },
@@ -136,8 +141,14 @@ describe("ExcelImportTemplateParser", () => {
       }
       if (type === "pension") {
         expect(next.investments).toHaveLength(2);
-        expect(next.investmentEntries).toHaveLength(1);
-        expect(next.transactions).toHaveLength(0);
+        expect(next.investmentEntries).toHaveLength(2);
+        expect(next.transactions).toHaveLength(1);
+        expect(next.transactions[0]).toMatchObject({
+          investmentId: next.investments.find((item) => item.parentInvestmentId)?.id,
+          kind: "transfer",
+          cashFlowDirection: "outflow",
+          amount: 300,
+        });
       }
       if (type === "shared_expenses") {
         expect(next.sharedExpenses).toHaveLength(1);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, computeDashboard, createEmptyFinanceData } from "../../src/domain/finance";
 import { portfolioValues } from "../../src/domain/investments";
 
 describe("linked finance records", () => {
@@ -55,6 +55,161 @@ describe("linked finance records", () => {
     expect(data.transactions).toHaveLength(1);
     expect(data.transactions[0]).toMatchObject({ kind: "transfer", cashFlowDirection: "outflow", investmentId, investmentEntryId: entryId, amount: 250 });
     expect(data.investmentEntries[0].transactionId).toBe(data.transactions[0].id);
+  });
+
+  it("keeps contributions and withdrawals bidirectional for investments and pension compartments", () => {
+    let data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const pensionId = crypto.randomUUID();
+    const compartmentId = crypto.randomUUID();
+    const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")!.id;
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: investmentId, name: "Synthetic ETF", kind: "etf", typeId: data.investmentTypes.find((item) => item.code === "etf")!.id,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: pensionId, name: "Synthetic pension", kind: "pension", typeId: pensionTypeId,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: compartmentId, name: "Synthetic compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    const inputs = [
+      { investmentId, kind: "contribution" as const, direction: "outflow" as const, amount: 300 },
+      { investmentId, kind: "withdrawal" as const, direction: "inflow" as const, amount: 90 },
+      { investmentId: compartmentId, kind: "contribution" as const, direction: "outflow" as const, amount: 200 },
+      { investmentId: compartmentId, kind: "withdrawal" as const, direction: "inflow" as const, amount: 50 },
+    ];
+
+    for (const [index, input] of inputs.entries()) {
+      data = applyFinanceCommand(data, { type: "addInvestmentEntry", value: {
+        id: crypto.randomUUID(), investmentId: input.investmentId, date: `2026-0${index + 1}-15`,
+        kind: input.kind, amount: input.amount, description: `Synthetic movement ${index + 1}`,
+        categoryId, paymentMethodId, notes: "",
+      } });
+    }
+
+    expect(data.transactions).toHaveLength(4);
+    inputs.forEach((input, index) => {
+      const entry = data.investmentEntries[index]!;
+      const linked = data.transactions.find((item) => item.id === entry.transactionId);
+      expect(linked).toMatchObject({
+        investmentId: input.investmentId,
+        investmentEntryId: entry.id,
+        kind: "transfer",
+        cashFlowDirection: input.direction,
+        amount: input.amount,
+      });
+    });
+
+    const withdrawal = data.investmentEntries[1]!;
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...withdrawal, amount: 110, description: "Updated liquidation",
+    } });
+    expect(data.transactions.find((item) => item.id === withdrawal.transactionId)).toMatchObject({
+      amount: 110,
+      description: "Updated liquidation",
+      cashFlowDirection: "inflow",
+    });
+
+    data = applyFinanceCommand(data, { type: "deleteEntity", entity: "investmentEntry", id: withdrawal.id });
+    expect(data.investmentEntries.some((item) => item.id === withdrawal.id)).toBe(false);
+    expect(data.transactions.some((item) => item.id === withdrawal.transactionId)).toBe(false);
+  });
+
+  it("confirms a periodic contribution in place without duplicating its movement", () => {
+    let data = createEmptyFinanceData(2026);
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const investmentId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: investmentId, name: "Synthetic recurring ETF", kind: "etf", typeId: data.investmentTypes.find((item) => item.code === "etf")!.id,
+      provider: "", currency: "EUR", periodicAmount: 100, periodicFrequency: "monthly",
+      periodicNextDueDate: "2026-09-01", periodicCategoryId: categoryId,
+      periodicPaymentMethodId: paymentMethodId, active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    const planned = data.transactions.find((item) => item.investmentId === investmentId && item.planned)!;
+    const plannedEntryId = planned.investmentEntryId!;
+
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...planned,
+      planned: false,
+      updatedAt: new Date().toISOString(),
+    } });
+
+    expect(data.transactions.filter((item) => item.id === planned.id)).toHaveLength(1);
+    expect(data.investmentEntries.filter((item) => item.id === plannedEntryId)).toHaveLength(1);
+    expect(data.transactions.find((item) => item.id === planned.id)).toMatchObject({
+      planned: false,
+      recurringId: planned.recurringId,
+      investmentEntryId: plannedEntryId,
+    });
+    expect(data.investmentEntries.find((item) => item.id === plannedEntryId)).toMatchObject({
+      transactionId: planned.id,
+      kind: "contribution",
+      amount: 100,
+    });
+  });
+
+  it("creates and updates a pension movement from a cash-affecting transaction", () => {
+    let data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const pensionId = crypto.randomUUID();
+    const compartmentId = crypto.randomUUID();
+    const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")!.id;
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const timestamp = new Date().toISOString();
+    data = applyFinanceCommand(data, { type: "addAccount", value: {
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: pensionId, name: "Synthetic pension", kind: "pension", typeId: pensionTypeId,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: compartmentId, name: "Synthetic compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    const transactionId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addTransaction", value: {
+      id: transactionId, date: "2026-08-10", description: "Synthetic pension contribution",
+      categoryId, paymentMethodId, accountId, kind: "transfer", cashFlowDirection: "outflow",
+      amount: 200, currency: "EUR", investmentId: compartmentId, notes: "",
+      createdAt: timestamp, updatedAt: timestamp,
+    } });
+
+    expect(data.investmentEntries).toHaveLength(1);
+    const entryId = data.transactions[0]!.investmentEntryId!;
+    expect(data.investmentEntries[0]).toMatchObject({
+      id: entryId,
+      transactionId,
+      investmentId: compartmentId,
+      kind: "contribution",
+      amount: 200,
+    });
+    expect(data.transactions[0]).toMatchObject({ accountId, investmentEntryId: entryId });
+    expect(computeDashboard(data)).toMatchObject({ liquidBalance: 800, yearIncome: 0, yearExpenses: 0 });
+
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...data.transactions[0]!,
+      description: "Synthetic pension liquidation",
+      cashFlowDirection: "inflow",
+      amount: 75,
+    } });
+    expect(data.investmentEntries[0]).toMatchObject({
+      id: entryId,
+      kind: "withdrawal",
+      description: "Synthetic pension liquidation",
+      amount: 75,
+    });
+    expect(data.transactions).toHaveLength(1);
+    expect(data.investmentEntries).toHaveLength(1);
+    expect(computeDashboard(data)).toMatchObject({ liquidBalance: 1_075, yearIncome: 0, yearExpenses: 0 });
   });
 
   it("creates an investment with an initial countervalue and a non-recurring transaction", () => {
