@@ -117,6 +117,111 @@ describe("ExcelWorkbookRepository", () => {
     expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
   });
 
+  it("reconciles orphan investment movements once and preserves a recoverable backup", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-investment-repair-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-2026.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId,
+      investmentId,
+      date: "2026-05-10",
+      kind: "withdrawal",
+      amount: 150,
+      description: "Synthetic orphan liquidation",
+      categoryId: data.categories.find((item) => item.nameIt === "Investimenti")!.id,
+      paymentMethodId: data.paymentMethods[0].id,
+      notes: "",
+    });
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+
+    const loaded = await repository.loadWithUuidRepair(filePath);
+
+    expect(loaded.repairedInvestmentLinks).toBe(1);
+    expect(loaded.ambiguousInvestmentLinks).toBe(0);
+    expect(loaded.data.transactions).toHaveLength(1);
+    expect(loaded.data.transactions[0]).toMatchObject({
+      investmentId,
+      investmentEntryId: entryId,
+      kind: "transfer",
+      cashFlowDirection: "inflow",
+      amount: 150,
+    });
+    expect(loaded.data.investmentEntries[0]?.transactionId).toBe(loaded.data.transactions[0]?.id);
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+
+    const secondLoad = await repository.loadWithUuidRepair(filePath);
+    expect(secondLoad.repairedInvestmentLinks).toBe(0);
+    expect(secondLoad.data).toEqual(loaded.data);
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+  });
+
+  it("reports ambiguous legacy matches without changing the workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-investment-ambiguous-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-2026.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId,
+      investmentId,
+      date: "2026-05-10",
+      kind: "contribution",
+      amount: 150,
+      description: "Ambiguous contribution",
+      categoryId,
+      paymentMethodId,
+      notes: "",
+    });
+    data.transactions.push(...[crypto.randomUUID(), crypto.randomUUID()].map((id) => ({
+      id,
+      date: "2026-05-10",
+      description: "Ambiguous contribution",
+      categoryId,
+      paymentMethodId,
+      kind: "expense" as const,
+      amount: 150,
+      currency: "EUR",
+      notes: "",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })));
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+
+    const loaded = await repository.loadWithUuidRepair(filePath);
+
+    expect(loaded.repairedInvestmentLinks).toBe(0);
+    expect(loaded.ambiguousInvestmentLinks).toBe(1);
+    expect(loaded.data).toEqual(data);
+    await expect(readdir(path.join(directory, ".contami-backups"))).rejects.toThrow();
+  });
+
   it("rejects unsupported extensions before touching the filesystem", async () => {
     const repository = new ExcelWorkbookRepository();
     await expect(repository.save(path.join(tmpdir(), "bad.csv"), createEmptyFinanceData())).rejects.toThrow("INVALID_WORKBOOK_PATH");

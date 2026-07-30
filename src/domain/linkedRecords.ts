@@ -1,5 +1,6 @@
 import type { FinanceData, Investment, InvestmentEntry, PropertyEntry, RecurringItem, SharedExpense, Transaction, VehicleEntry } from "./models";
 import { catalogUsageCount } from "./catalogUsage";
+import { investmentEntryFromTransaction, transactionFromInvestmentEntry } from "./investmentTransactionSync";
 
 export interface SharedExpenseSplit {
   id: string;
@@ -37,32 +38,6 @@ function transactionForProperty(entry: PropertyEntry, existing?: Transaction): T
     recurringId: existing?.recurringId,
     propertyId: entry.propertyId,
     propertyEntryId: entry.id,
-    shared: existing?.shared ?? false,
-    planned: existing?.planned,
-    sharedPaidBy: existing?.sharedPaidBy ?? "owner",
-    sharedSettled: existing?.sharedSettled ?? false,
-    notes: entry.notes,
-    createdAt: existing?.createdAt ?? timestamp,
-    updatedAt: timestamp,
-  };
-}
-
-function transactionForInvestment(data: FinanceData, entry: InvestmentEntry, existing?: Transaction): Transaction {
-  const timestamp = nowIso();
-  return {
-    id: existing?.id ?? entry.transactionId ?? randomUUID(),
-    date: entry.date,
-    description: entry.description,
-    categoryId: entry.categoryId!,
-    paymentMethodId: entry.paymentMethodId!,
-    accountId: existing?.accountId,
-    kind: "transfer",
-    cashFlowDirection: entry.kind === "contribution" ? "outflow" : "inflow",
-    amount: entry.amount,
-    currency: data.investments.find((item) => item.id === entry.investmentId)?.currency ?? "EUR",
-    recurringId: existing?.recurringId,
-    investmentId: entry.investmentId,
-    investmentEntryId: entry.id,
     shared: existing?.shared ?? false,
     planned: existing?.planned,
     sharedPaidBy: existing?.sharedPaidBy ?? "owner",
@@ -145,14 +120,11 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
   }
   if (transaction.investmentId && (transaction.kind !== "transfer" || transaction.cashFlowDirection === "inflow" || transaction.cashFlowDirection === "outflow")) {
     const existing = data.investmentEntries.find((item) => item.id === transaction.investmentEntryId || item.transactionId === transaction.id);
-    const entry: InvestmentEntry = {
-      id: existing?.id ?? randomUUID(), investmentId: transaction.investmentId, date: transaction.date,
-      kind: transaction.kind === "transfer" ? (transaction.cashFlowDirection === "outflow" ? "contribution" : "withdrawal") : transaction.kind === "expense" ? "contribution" : "withdrawal", amount: transaction.amount,
-      description: transaction.description, categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId,
-      transactionId: transaction.id, notes: transaction.notes,
-    };
-    replaceOrAdd(data.investmentEntries, entry);
-    transaction.investmentEntryId = entry.id;
+    const entry = investmentEntryFromTransaction(transaction, existing);
+    if (entry) {
+      replaceOrAdd(data.investmentEntries, entry);
+      transaction.investmentEntryId = entry.id;
+    }
   }
 
   const previousVehicleEntryId = previous?.vehicleEntryId;
@@ -244,7 +216,7 @@ export function upsertInvestmentEntryWithLinks(data: FinanceData, value: Investm
   replaceOrAdd(data.investmentEntries, value);
   if (value.kind !== "valuation") {
     const existing = data.transactions.find((item) => item.id === value.transactionId || item.investmentEntryId === value.id);
-    const transaction = transactionForInvestment(data, value, existing);
+    const transaction = transactionFromInvestmentEntry(data, value, existing);
     value.transactionId = transaction.id;
     replaceOrAdd(data.investmentEntries, value);
     upsertTransactionWithLinks(data, transaction);

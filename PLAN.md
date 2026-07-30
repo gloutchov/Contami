@@ -41,7 +41,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | Rilasciata; CI/release macOS e Windows verdi |
 | M17 — Filtri e azioni nelle viste di dettaglio | `milestone/17-detail-filters` | `1.4.0` | Rilasciata; CI/release macOS e Windows verdi |
-| M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Pianificata dopo M17 |
+| M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Implementata localmente; gate locale verde |
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.6.0` | Pianificata dopo M18 |
 | M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.7.0` | Ripianificata dopo M19 |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.8.0` | Pianificata dopo M16 |
@@ -498,6 +498,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Test richiesti:** unit test di dominio per tutte le combinazioni investimento/comparto, Versamento/Liquidazione e una tantum/periodico; test di sincronizzazione bidirezionale, idempotenza e casi ambigui; integration test workbook, backup e round-trip; regressione KPI/liquidità/rollover/importazione; e2e dalle viste Investimenti, Pensione Integrativa, Ricorrenze e Transazioni.
 
 **Documentazione:** manuali IT/EN, README, schema workbook se modificato, MAP e SECURITY_MODEL per ogni cambiamento a persistenza, migrazione o confini di salvataggio.
+
+**Esito locale 2026-07-30:** implementata una trasformazione di dominio unica per le coppie movimento patrimoniale/Transazione, usata in entrambe le direzioni da investimenti ordinari e comparti pensione. Versamenti e Liquidazioni una tantum, iniziali, importati o derivati da ricorrenze sono trasferimenti con effetto di cassa `outflow`/`inflow`, restano esclusi dai consuntivi correnti e conservano UUID e collegamenti durante modifica, conferma e cancellazione. All’apertura dei workbook v5, una riconciliazione idempotente collega le corrispondenze esatte univoche, crea il solo record mancante, salva con verifica e backup e segnala senza modificare i casi ambigui; non è stata necessaria alcuna migrazione di schema. Versione applicativa portata a `1.5.0`; aggiornati demo sintetica, dizionari IT/EN, manuali, README, MAP, modello di sicurezza e test di dominio, importazione, workbook, rollover e Playwright. Gate locale verde: lint, typecheck, 109 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px con verifica dei movimenti una tantum e periodici di investimenti e comparti nelle Transazioni. Restano commit, push e CI multipiattaforma prima della promozione.
 
 ## M19 — Cambio tariffa delle ricorrenze
 

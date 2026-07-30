@@ -82,7 +82,7 @@ export function InvestmentEntryForm({ data, value, initialInvestmentId, initialK
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? data.categories.find((item) => item.active && item.kind === "both")?.id ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [kind, setKind] = useState<InvestmentEntry["kind"]>(value?.kind ?? initialKind);
   const monetary = kind !== "valuation";
-  const valid = Boolean(investmentId && description.trim() && Number(amount) >= 0 && (!monetary || (paymentMethodId && categoryId)));
+  const valid = Boolean(investmentId && description.trim() && (monetary ? Number(amount) > 0 : Number(amount) >= 0) && (!monetary || (paymentMethodId && categoryId)));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const item: InvestmentEntry = { ...value, id: value?.id ?? crypto.randomUUID(), investmentId, date, kind, amount: Number(amount), description, categoryId: monetary ? categoryId : undefined, paymentMethodId: monetary ? paymentMethodId : undefined, transactionId: value?.transactionId, notes };

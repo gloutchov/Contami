@@ -105,6 +105,118 @@ describe("FinanceFileService startup recovery", () => {
     expect(new Set(snapshot.data.investmentEntries.map((entry) => entry.id)).size).toBe(2);
   });
 
+  it("reports automatic investment transaction reconciliation when opening a legacy workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-investment-repair-warning-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push({
+      id: crypto.randomUUID(),
+      investmentId,
+      date: "2026-06-15",
+      kind: "contribution",
+      amount: 250,
+      description: "Synthetic legacy contribution",
+      categoryId: data.categories.find((item) => item.nameIt === "Investimenti")!.id,
+      paymentMethodId: data.paymentMethods[0].id,
+      notes: "",
+    });
+    await repository.save(workbookPath, data);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+
+    const snapshot = await service.snapshot();
+
+    expect(snapshot.warningCode).toBe("INVESTMENT_TRANSACTIONS_REPAIRED");
+    expect(snapshot.data.transactions).toHaveLength(1);
+    expect(snapshot.data.transactions[0]).toMatchObject({
+      investmentId,
+      kind: "transfer",
+      cashFlowDirection: "outflow",
+      amount: 250,
+    });
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+  });
+
+  it("warns about ambiguous investment transaction links without rewriting the workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-investment-ambiguous-warning-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId,
+      name: "Synthetic fund",
+      kind: "fund",
+      provider: "",
+      currency: "EUR",
+      active: true,
+      openedAt: "2026-01-01",
+      notes: "",
+    });
+    data.investmentEntries.push({
+      id: crypto.randomUUID(),
+      investmentId,
+      date: "2026-05-10",
+      kind: "contribution",
+      amount: 150,
+      description: "Ambiguous contribution",
+      categoryId,
+      paymentMethodId,
+      notes: "",
+    });
+    data.transactions.push(...[crypto.randomUUID(), crypto.randomUUID()].map((id) => ({
+      id,
+      date: "2026-05-10",
+      description: "Ambiguous contribution",
+      categoryId,
+      paymentMethodId,
+      kind: "expense" as const,
+      amount: 150,
+      currency: "EUR",
+      notes: "",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })));
+    await repository.save(workbookPath, data);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+
+    const snapshot = await service.snapshot();
+
+    expect(snapshot.warningCode).toBe("INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS");
+    expect(snapshot.data).toEqual(data);
+    await expect(readdir(path.join(directory, ".contami-backups"))).rejects.toThrow();
+  });
+
   it("saves an import batch atomically with one recoverable backup", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-atomic-import-"));
     directories.push(directory);

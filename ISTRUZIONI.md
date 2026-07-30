@@ -85,7 +85,7 @@ Premi **Nuova transazione** e indica:
 
 Puoi filtrare per testo, tipo, categoria, metodo di pagamento e mese. **Azzera filtri** ripristina insieme tutti i criteri e l’elenco completo. Con un mese selezionato i riquadri mostrano i parziali filtrati; sono inoltre disponibili i totali dell’anno e quelli maturati fino a oggi. Le righe generate da una ricorrenza sono evidenziate; quelle future sono pianificate e possono essere confermate quando il movimento avviene.
 
-Collegare una transazione a un immobile, investimento o spesa condivisa crea/aggiorna automaticamente la registrazione corrispondente. Modifica e cancellazione restano sincronizzate, per evitare doppie contabilizzazioni.
+Collegare una transazione a un immobile, investimento o spesa condivisa crea/aggiorna automaticamente la registrazione corrispondente. Per investimenti e comparti pensione, un trasferimento in uscita diventa un Versamento e uno in entrata una Liquidazione. Modifica, conferma e cancellazione restano sincronizzate, per evitare doppie contabilizzazioni.
 
 Esempio: per una spesa alimentare seleziona **Uscita**, categoria **Alimentari**, il metodo effettivamente usato e il conto interessato.
 
@@ -126,7 +126,9 @@ Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazio
 
 Apri un investimento per il dettaglio. I movimenti possono essere filtrati insieme per descrizione e mese e i parziali di Versamenti e Liquidazioni seguono le righe visibili. **Nuovo movimento** registra soltanto **Versamento** o **Liquidazione**; **Aggiorna valore**, disponibile anche accanto a **Modifica investimento** nella modale, aggiunge invece una valutazione che alimenta dashboard e patrimonio netto. Puoi modificare e cancellare investimenti e movimenti con conferma.
 
-Un versamento/liquidazione genera un trasferimento collegato con uscita/entrata dalla liquidità; una transazione associata a un investimento genera il movimento corrispondente. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non lo modificano. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
+Un Versamento/Liquidazione genera una sola Transazione collegata come trasferimento con uscita/entrata dalla liquidità; una Transazione associata a un investimento genera o aggiorna lo stesso movimento. La regola vale per operazioni una tantum, versamento iniziale, importazione e ricorrenze; la conferma di una pianificazione conserva la coppia esistente senza duplicarla. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non lo modificano. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
+
+Quando apri un workbook esistente, ContaMì riconcilia automaticamente i movimenti patrimoniali privi del collegamento: usa solo riferimenti espliciti o corrispondenze esatte e univoche, conserva un backup recuperabile e non modifica i casi ambigui, che vengono segnalati nell’interfaccia.
 
 ContaMì è uno strumento di registrazione, non fornisce consulenza finanziaria né quotazioni di mercato.
 
@@ -137,7 +139,7 @@ La sezione **Pensione integrativa** è separata dagli altri investimenti e usa d
 - **Crea pensione** aggiunge il raccoglitore principale, per esempio **Fondo Pensione Fideuram**;
 - **Crea comparto** aggiunge una posizione associata a una pensione esistente, per esempio **Linea Equilibrio**, **Linea Crescita** o **Linea Valore**.
 
-Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni: la modale consente di filtrarli insieme per descrizione e mese e mostra i relativi parziali. Il controvalore include i movimenti confermati, usa le valutazioni come nuovo riferimento e il raccoglitore aggrega le stesse serie senza duplicarle. Può inoltre avere un versamento periodico collegato automaticamente a Ricorrenze e Transazioni.
+Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni: la modale consente di filtrarli insieme per descrizione e mese e mostra i relativi parziali. Versamenti e Liquidazioni, una tantum o periodici, mantengono una sola Transazione collegata con effetto di cassa coerente. Il controvalore include i movimenti confermati, usa le valutazioni come nuovo riferimento e il raccoglitore aggrega le stesse serie senza duplicarle.
 
 Nel workbook pensioni e comparti restano nella tabella `Investments`, identificati dal tipo pensione e dalla relazione padre/figlio. In questo modo i file già creati restano compatibili e leggibili senza migrazioni distruttive.
 

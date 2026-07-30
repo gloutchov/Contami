@@ -85,7 +85,7 @@ Choose **New transaction** and enter:
 
 Filter by text, type, category, payment method, and month. **Reset filters** clears every criterion together and restores the complete list. When a month is selected, cards show filtered subtotals; yearly totals and totals accrued through today remain available. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
 
-Linking a transaction to a property, investment, or shared expense creates/updates the corresponding record automatically. Editing and deletion stay synchronized to prevent double counting.
+Linking a transaction to a property, investment, or shared expense creates/updates the corresponding record automatically. For investments and pension compartments, an outflow transfer becomes a Contribution and an inflow transfer becomes a Liquidation. Editing, confirmation, and deletion stay synchronized to prevent double counting.
 
 ## 6. Properties
 
@@ -111,7 +111,9 @@ The dashboard shows current-year costs, fuel, and distance. Each vehicle card sh
 
 Open an investment for its detail. Movements can be filtered together by description and month, with Contribution and Liquidation subtotals following the visible rows. **New movement** records only **Contribution** or **Liquidation**; **Update value**, also available beside **Edit investment** in the detail dialog, adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
 
-A contribution/liquidation creates a linked cash-outflow/inflow transfer; a transaction assigned to an investment creates its movement. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions do not change it. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
+A Contribution/Liquidation creates exactly one linked cash-outflow/inflow transfer; a Transaction assigned to an investment creates or updates that same movement. The rule applies to one-off operations, initial contributions, imports, and recurring plans; confirming a planned occurrence preserves the existing pair without duplicating it. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions do not change it. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
+
+When an existing workbook is opened, ContaMì automatically reconciles asset movements that lack a link. It uses only explicit references or exact unique matches, keeps a recoverable backup, and reports ambiguous cases without changing them.
 
 ContaMì is a record-keeping tool. It does not provide financial advice or market prices.
 
@@ -122,7 +124,7 @@ The **Private pension** section is separate from other investments and uses two 
 - **Create pension** adds the main collector, such as **Fondo Pensione Fideuram**;
 - **Create compartment** adds a position associated with an existing pension, such as **Linea Equilibrio**, **Linea Crescita**, or **Linea Valore**.
 
-The pension card totals its active compartments without duplication. Each compartment dialog filters movements together by description and month and shows the matching subtotals. Its countervalue includes confirmed contributions and liquidations, with each valuation establishing a new reference value; the collector aggregates those compartment series without duplication. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
+The pension card totals its active compartments without duplication. Each compartment dialog filters movements together by description and month and shows the matching subtotals. One-off and recurring Contributions and Liquidations each keep exactly one linked Transaction with the correct cash effect. Countervalue includes confirmed movements, with each valuation establishing a new reference value; the collector aggregates those compartment series without duplication.
 
 In the workbook, pensions and compartments remain in the `Investments` table, identified by the reserved pension type and parent/child relationship. Existing workbooks therefore remain compatible and readable without a destructive migration.
 

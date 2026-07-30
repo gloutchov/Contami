@@ -48,6 +48,8 @@ function warningKey(code: string | undefined): TranslationKey | undefined {
   if (code === "NUMBERS_MIRROR_FAILED") return "mirrorWarning";
   if (code === "WORKBOOK_MISSING") return "workbookMissing";
   if (code === "DUPLICATE_UUIDS_REPAIRED") return "duplicateUuidsRepaired";
+  if (code === "INVESTMENT_TRANSACTIONS_REPAIRED") return "investmentTransactionsRepaired";
+  if (code === "INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS") return "investmentTransactionLinksAmbiguous";
   return undefined;
 }
 
