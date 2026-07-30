@@ -7,6 +7,8 @@
 .filter-row-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .filter-row-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .filter-row > select, .filter-row > button { width: 100%; min-width: 0; }
+.filter-actions { display: flex; justify-content: flex-end; }
+.filter-reset-button:disabled { opacity: .45; cursor: not-allowed; }
 .scroll-table { overflow-x: auto; }
 .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 3px; white-space: nowrap; }
 .icon-button.danger, .text-button.danger { color: var(--coral); }
@@ -65,10 +67,12 @@
 .detail-history-section { margin: 0 0 18px; padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--background); }
 .detail-history-section h3 { margin: 0 0 13px; font-size: 13px; }
 .detail-history-chart { height: 230px; padding-bottom: 4px; }
-.detail-filters { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(180px, .45fr); gap: 10px; align-items: center; margin-bottom: 14px; }
+.detail-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, .45fr) auto; gap: 10px; align-items: center; margin-bottom: 14px; }
 .detail-filters .search-field { min-width: 0; max-width: none; }
-.filtered-property-totals { grid-column: 1 / -1; display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--muted); font-size: 11px; }
-.filtered-property-totals strong { color: var(--text); margin-left: 4px; }
+.filter-reset-button { white-space: nowrap; }
+.filtered-entry-totals { grid-column: 1 / -1; display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--muted); font-size: 11px; }
+.filtered-entry-totals strong { color: var(--text); margin-left: 4px; }
+.table-panel > .entry-filters { margin: 4px 22px 14px; }
 .utility-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .utility-cost-charts { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .utility-charts article { min-width: 0; min-height: 242px; padding: 13px; border-radius: 11px; background: var(--surface-solid); border: 1px solid var(--border); }
@@ -108,7 +112,7 @@
   .detail-facts, .consumption-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utility-charts { grid-template-columns: 1fr; }
   .detail-filters { grid-template-columns: 1fr; }
-  .filtered-property-totals { grid-column: auto; }
+  .filtered-entry-totals { grid-column: auto; }
   .recurrence-list { grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(95px, auto)) auto; }
   .recurrence-list .list-cell:nth-of-type(3) { display: none; }
   .filter-row-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -67,6 +67,7 @@ ContaMì/
 │   │   └── index.ts                    # bridge minimo e congelato verso la UI
 │   ├── renderer/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
+│   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
 │   │   │   └── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
@@ -78,6 +79,7 @@ ContaMì/
 │   │   ├── services/api.ts             # bridge reale + demo locale di sviluppo
 │   │   ├── theme/ThemeProvider.tsx     # tema sistema/chiaro/scuro reattivo
 │   │   ├── utils/                      # formati, liste as-of-today, indicatori e serie storiche
+│   │   │   ├── detailFilters.ts        # logica pura condivisa per descrizione, mese e opzioni annuali
 │   │   │   ├── investmentHistory.ts    # tutte le osservazioni di investito/controvalore, inclusi i raccoglitori pensione
 │   │   │   ├── overviewTransactions.ts # recenti confermati / confirmed recent records
 │   │   │   ├── propertyHistory.ts      # serie, mesi e filtri delle registrazioni immobiliari
@@ -110,6 +112,7 @@ ContaMì/
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
 │       ├── finance.test.ts              # comandi e KPI finanziari
+│       ├── detailFilters.test.tsx       # combinazione/reset dei filtri condivisi IT/EN
 │       ├── dialogAccessibility.test.tsx # focus trap, ripristino focus e nomi accessibili
 │       ├── ipcValidation.test.ts         # payload e arità dei canali privilegiati
 │       ├── performance.test.ts           # budget dashboard su dataset sintetico ampio
