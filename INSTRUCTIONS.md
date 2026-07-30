@@ -83,7 +83,7 @@ Choose **New transaction** and enter:
 - whether an expense is shared and who paid it;
 - amount, EUR currency, and optional notes.
 
-Filter by text, type, category, payment method, and month. When a month is selected, cards show filtered subtotals; yearly totals and totals accrued through today remain available. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
+Filter by text, type, category, payment method, and month. **Reset filters** clears every criterion together and restores the complete list. When a month is selected, cards show filtered subtotals; yearly totals and totals accrued through today remain available. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
 
 Linking a transaction to a property, investment, or shared expense creates/updates the corresponding record automatically. Editing and deletion stay synchronized to prevent double counting.
 
@@ -95,7 +95,7 @@ Open a property and choose **New entry** for income, expense, valuation, or cons
 
 Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. The **Taxes** catalog starts with TV licence, IMU, and TARI but can be changed under Settings. Each tax can apply to all properties, the residence only, or rental properties only and can define 1–24 instalments. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
 
-Details can be filtered across all twelve months of the active year and by description, with matching subtotals. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent. When adding a new rental-property income entry with the Rent category, you can also create the monthly recurring rent and link the current instalment to it.
+Details can be filtered across all twelve months of the active year and by description, with matching subtotals. The **Common property expenses** summary provides the same combinable filters and recalculates its total from visible rows only. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals also plot income and expenses on their entry dates, show actuals, and flag overdue expected rent. When adding a new rental-property income entry with the Rent category, you can also create the monthly recurring rent and link the current instalment to it.
 
 ## 7. Vehicles
 
@@ -103,13 +103,13 @@ Use **New vehicle** to record its name, make, model, fuel type, and purchase/sal
 
 **New cost / reading** records fuel, installments, road tax, insurance, tyres, routine maintenance, repairs/extraordinary maintenance, valuations, and other costs. Every cost requires date, description, category, and payment method and is mirrored to Transactions. Fuel entries can also store odometer, distance, litres, and price per litre.
 
-The dashboard shows current-year costs, fuel, and distance. Each vehicle card shows lifetime ownership costs; opening it shows the category breakdown and yearly comparison. The comparison chart places vehicle names on the horizontal axis and cost per kilometre on the vertical axis, combining detailed current-vehicle records with prior-vehicle actuals.
+The dashboard shows current-year costs, fuel, and distance. Each vehicle card shows lifetime ownership costs; opening it shows the category breakdown, combinable description/month filters with a filtered total, and yearly comparison. The comparison chart places vehicle names on the horizontal axis and cost per kilometre on the vertical axis, combining detailed current-vehicle records with prior-vehicle actuals.
 
 ## 8. Investments and savings
 
 **New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, optional parent/group, and an optional initial contribution. The initial contribution immediately establishes countervalue and creates its linked Transaction. Investments are grouped by customizable type, with a subtotal for each group.
 
-Open an investment for its detail. **New movement** records only **Contribution** or **Liquidation**; **Update value** adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
+Open an investment for its detail. Movements can be filtered together by description and month, with Contribution and Liquidation subtotals following the visible rows. **New movement** records only **Contribution** or **Liquidation**; **Update value**, also available beside **Edit investment** in the detail dialog, adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
 
 A contribution/liquidation creates a linked cash-outflow/inflow transfer; a transaction assigned to an investment creates its movement. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions do not change it. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
 
@@ -122,7 +122,7 @@ The **Private pension** section is separate from other investments and uses two 
 - **Create pension** adds the main collector, such as **Fondo Pensione Fideuram**;
 - **Create compartment** adds a position associated with an existing pension, such as **Linea Equilibrio**, **Linea Crescita**, or **Linea Valore**.
 
-The pension card totals its active compartments without duplication. Each compartment countervalue includes confirmed contributions and liquidations, with each valuation establishing a new reference value; the collector aggregates those compartment series without duplication. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
+The pension card totals its active compartments without duplication. Each compartment dialog filters movements together by description and month and shows the matching subtotals. Its countervalue includes confirmed contributions and liquidations, with each valuation establishing a new reference value; the collector aggregates those compartment series without duplication. It may also define a recurring contribution linked automatically to Recurring Items and Transactions.
 
 In the workbook, pensions and compartments remain in the `Investments` table, identified by the reserved pension type and parent/child relationship. Existing workbooks therefore remain compatible and readable without a destructive migration.
 
@@ -143,7 +143,7 @@ Create a shared expense in its dedicated view or select **Shared expense** on a 
 - When you paid, a positive balance is owed to you by the partner.
 - When the partner paid, a negative balance is what you owe.
 - **Mark settled** closes one balance; **Reopen balance** makes it pending again.
-- The month filter shows period subtotals and can settle/reopen an entire month with one action.
+- Combinable description and month filters show subtotals for visible rows only; when a month is selected it can be settled with one action.
 - **Print unsettled** prepares a printable list of pending rows for the selected month.
 - Editing or deleting updates the linked Transaction automatically.
 

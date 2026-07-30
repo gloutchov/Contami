@@ -83,7 +83,7 @@ Premi **Nuova transazione** e indica:
 - se una spesa è condivisa e chi l’ha pagata;
 - importo, valuta EUR e note opzionali.
 
-Puoi filtrare per testo, tipo, categoria, metodo di pagamento e mese. Con un mese selezionato i riquadri mostrano i parziali filtrati; sono inoltre disponibili i totali dell’anno e quelli maturati fino a oggi. Le righe generate da una ricorrenza sono evidenziate; quelle future sono pianificate e possono essere confermate quando il movimento avviene.
+Puoi filtrare per testo, tipo, categoria, metodo di pagamento e mese. **Azzera filtri** ripristina insieme tutti i criteri e l’elenco completo. Con un mese selezionato i riquadri mostrano i parziali filtrati; sono inoltre disponibili i totali dell’anno e quelli maturati fino a oggi. Le righe generate da una ricorrenza sono evidenziate; quelle future sono pianificate e possono essere confermate quando il movimento avviene.
 
 Collegare una transazione a un immobile, investimento o spesa condivisa crea/aggiorna automaticamente la registrazione corrispondente. Modifica e cancellazione restano sincronizzate, per evitare doppie contabilizzazioni.
 
@@ -110,7 +110,7 @@ I comandi dedicati **Utenze** e **Tasse** rendono più strutturate le spese rico
 
 Per entrate e spese, **Categoria** usa le stesse categorie delle Transazioni e richiede anche il metodo di pagamento. La registrazione viene riportata automaticamente nelle Transazioni; vale anche il percorso opposto.
 
-Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sulle date delle registrazioni e segnalano il canone atteso non registrato entro la scadenza. Nella nuova registrazione di un immobile in affitto, scegliendo Entrata e categoria Affitti puoi creare anche la ricorrenza mensile collegata alla rata corrente. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
+Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Anche il riepilogo **Spese comuni degli immobili** dispone degli stessi filtri combinabili e ricalcola il totale sulle sole righe visibili. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sulle date delle registrazioni e segnalano il canone atteso non registrato entro la scadenza. Nella nuova registrazione di un immobile in affitto, scegliendo Entrata e categoria Affitti puoi creare anche la ricorrenza mensile collegata alla rata corrente. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
 
 ## 7. Automobile
 
@@ -118,13 +118,13 @@ Usa **Nuova automobile** per registrare nome, marca, modello, alimentazione, dat
 
 Con **Nuova spesa / rilevazione** puoi inserire rifornimenti, rate, bollo, assicurazione, pneumatici, manutenzione ordinaria, riparazioni/manutenzione straordinaria, valutazioni e altre spese. Ogni costo richiede data, descrizione, categoria e metodo di pagamento ed è riportato nelle Transazioni. Per i rifornimenti puoi indicare chilometraggio, distanza, litri e prezzo al litro.
 
-La dashboard mostra costi dell’anno, carburante e percorrenza. Ogni scheda vettura mostra invece i costi complessivi dell’intero periodo di possesso; aprendo una vettura trovi il dettaglio per categoria e il confronto annuale. Il grafico di confronto dispone i nomi delle vetture sull’asse orizzontale e il costo per chilometro su quello verticale, combinando le registrazioni della vettura corrente con i consuntivi delle precedenti.
+La dashboard mostra costi dell’anno, carburante e percorrenza. Ogni scheda vettura mostra invece i costi complessivi dell’intero periodo di possesso; aprendo una vettura trovi il dettaglio per categoria, i filtri combinabili per descrizione e mese con totale filtrato e il confronto annuale. Il grafico di confronto dispone i nomi delle vetture sull’asse orizzontale e il costo per chilometro su quello verticale, combinando le registrazioni della vettura corrente con i consuntivi delle precedenti.
 
 ## 8. Investimenti e risparmio
 
 Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazioni o altre forme di risparmio non pensionistiche. Indica tipologia, gestore, data di apertura, eventuale investimento padre e, quando disponibile, il versamento iniziale. Il versamento iniziale diventa subito controvalore e genera il trasferimento collegato nelle Transazioni. Gli investimenti sono raggruppati per tipologia e ogni gruppo mostra il proprio totale.
 
-Apri un investimento per il dettaglio. **Nuovo movimento** registra soltanto **Versamento** o **Liquidazione**; **Aggiorna valore** aggiunge invece una valutazione, che alimenta dashboard e patrimonio netto. Puoi modificare e cancellare investimenti e movimenti con conferma.
+Apri un investimento per il dettaglio. I movimenti possono essere filtrati insieme per descrizione e mese e i parziali di Versamenti e Liquidazioni seguono le righe visibili. **Nuovo movimento** registra soltanto **Versamento** o **Liquidazione**; **Aggiorna valore**, disponibile anche accanto a **Modifica investimento** nella modale, aggiunge invece una valutazione che alimenta dashboard e patrimonio netto. Puoi modificare e cancellare investimenti e movimenti con conferma.
 
 Un versamento/liquidazione genera un trasferimento collegato con uscita/entrata dalla liquidità; una transazione associata a un investimento genera il movimento corrispondente. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non lo modificano. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
 
@@ -137,7 +137,7 @@ La sezione **Pensione integrativa** è separata dagli altri investimenti e usa d
 - **Crea pensione** aggiunge il raccoglitore principale, per esempio **Fondo Pensione Fideuram**;
 - **Crea comparto** aggiunge una posizione associata a una pensione esistente, per esempio **Linea Equilibrio**, **Linea Crescita** o **Linea Valore**.
 
-Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni: il controvalore include i movimenti confermati, usa le valutazioni come nuovo riferimento e il raccoglitore aggrega le stesse serie senza duplicarle. Può inoltre avere un versamento periodico collegato automaticamente a Ricorrenze e Transazioni.
+Il riquadro della pensione mostra il totale dei comparti attivi senza duplicazioni. Ogni comparto conserva valutazioni, versamenti e liquidazioni: la modale consente di filtrarli insieme per descrizione e mese e mostra i relativi parziali. Il controvalore include i movimenti confermati, usa le valutazioni come nuovo riferimento e il raccoglitore aggrega le stesse serie senza duplicarle. Può inoltre avere un versamento periodico collegato automaticamente a Ricorrenze e Transazioni.
 
 Nel workbook pensioni e comparti restano nella tabella `Investments`, identificati dal tipo pensione e dalla relazione padre/figlio. In questo modo i file già creati restano compatibili e leggibili senza migrazioni distruttive.
 
@@ -158,7 +158,7 @@ Puoi creare la spesa dalla vista dedicata oppure selezionare **Spesa condivisa**
 - Se hai pagato tu, il saldo positivo rappresenta quanto il partner deve restituire.
 - Se ha pagato il partner, il saldo negativo rappresenta quanto devi restituire tu.
 - **Segna saldata** chiude la singola posizione; **Riapri saldo** la rimette tra le pendenze.
-- Il filtro mese mostra i parziali del periodo e permette di saldare/riaprire l’intero mese con un solo comando.
+- I filtri combinabili per descrizione e mese mostrano i parziali delle sole righe visibili; quando è selezionato un mese puoi saldarlo con un solo comando.
 - **Stampa non saldate** prepara una lista stampabile delle sole pendenze del mese selezionato.
 - Modifica e cancellazione aggiornano automaticamente anche la Transazione collegata.
 
