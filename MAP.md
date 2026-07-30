@@ -37,6 +37,7 @@ ContaMì/
 │   │   ├── commands.ts                 # comandi validati e tipi azione
 │   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
+│   │   ├── investmentTransactionSync.ts # coppie movimento/Transazione e riconciliazione idempotente
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
@@ -120,6 +121,7 @@ ContaMì/
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
+│       ├── investmentTransactionSync.test.ts # sincronizzazione, riparazione e casi ambigui
 │       ├── importTemplates.test.ts       # contratti e chiavi gerarchiche degli otto template
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
