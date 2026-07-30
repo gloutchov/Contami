@@ -1,5 +1,6 @@
 import { createPropertyAnnualSummaries } from "../../domain/annualHistory";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
+import { detailEntryMonths, filterDatedEntries } from "./detailFilters";
 
 export function calculatePropertyValuation(property: Property | undefined, mode: "total" | "sqm", totalValue: number, valuePerSqm: number): number {
   return mode === "sqm" ? valuePerSqm * (property?.areaSqm ?? 0) : totalValue;
@@ -47,11 +48,9 @@ export function propertyCashFlowTimeline(data: FinanceData, propertyId: string) 
 }
 
 export function propertyEntryMonths(year: number): string[] {
-  return Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
+  return detailEntryMonths(year);
 }
 
 export function filterPropertyEntries(entries: PropertyEntry[], month: string, search: string): PropertyEntry[] {
-  const query = search.trim().toLocaleLowerCase();
-  return entries.filter((item) => (!month || item.date.startsWith(month))
-    && (!query || `${item.description} ${item.category}`.toLocaleLowerCase().includes(query)));
+  return filterDatedEntries(entries, month, search, (item) => `${item.description} ${item.category}`);
 }
