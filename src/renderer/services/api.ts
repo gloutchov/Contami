@@ -1,4 +1,5 @@
 import { applyFinanceCommand, computeDashboard, createEmptyFinanceData } from "../../domain/finance";
+import { reconcileInvestmentTransactions } from "../../domain/investmentTransactionSync";
 import type { FinanceData } from "../../domain/models";
 import type { AppSettings, ContaMiApi, FinanceSnapshot } from "../../shared/contracts";
 
@@ -98,7 +99,7 @@ function demoData(): FinanceData {
     { year: data.meta.activeYear - 2, income: 37_800, expenses: 29_400, netCashFlow: 8_400, closingNetWorth: 367_000, liquidBalance: 28_000, propertyValue: 260_000, investmentValue: 79_000, pensionValue: 0, monthlyRecurring: 245, vehicleCosts: 0 },
     { year: data.meta.activeYear - 1, income: 39_600, expenses: 31_200, netCashFlow: 8_400, closingNetWorth: 386_500, liquidBalance: 31_500, propertyValue: 270_000, investmentValue: 85_000, pensionValue: 0, monthlyRecurring: 230, vehicleCosts: 0 },
   );
-  return data;
+  return reconcileInvestmentTransactions(data).data;
 }
 function createDevelopmentApi(): ContaMiApi {
   const missingWorkbookScenario = new URLSearchParams(window.location.search).get("qa") === "missing-workbook";

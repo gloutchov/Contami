@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-07-30 · Applicazione / Application: 1.4.0
+Versione del documento / Document version: 2026-07-30 · Applicazione / Application: 1.5.0
 
 ## Italiano
 
@@ -61,6 +61,7 @@ La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato 
 - Lo schema v5 mantiene UUID espliciti tra transazioni e registrazioni collegate, incluse le spese dell’automobile. Le tasse immobiliari sono un catalogo validato nel workbook con UUID, nome, ambito, 1–24 rate e stato attivo/archiviato; i nuovi inserimenti accettano soltanto tasse attive e applicabili. I comandi dedicati a utenze, tasse e affitti ricorrenti salvano atomicamente la voce immobile, la Transazione, la Ricorrenza e l’eventuale Spesa condivisa. `Property History` include aggregati annuali separati per Telefono/Internet e Condominio. Le modifiche vengono propagate dal dominio; una cancellazione rimuove i record dipendenti, mentre cataloghi in uso, incluse le tasse, restituiscono `ENTITY_IN_USE` e non possono lasciare riferimenti orfani.
 - I trasferimenti finanziari dichiarano esplicitamente l’effetto sulla liquidità (`inflow`, `outflow` o `neutral`). Il dominio applica tale direzione solo al saldo del conto e li esclude dai consuntivi di entrate/uscite, evitando che acquisti, vendite e versamenti vengano contabilizzati come spesa corrente.
 - Pensioni e comparti riusano le tabelle Investimenti dello schema v5: il tipo tecnico `pension` è riservato e protetto da modifica/cancellazione. Il controvalore applica in ordine temporale soltanto valutazioni e movimenti confermati, escludendo le transazioni pianificate; i selettori separano investimenti e pensioni e aggregano soltanto le posizioni finali attive, impedendo il doppio conteggio.
+- Versamenti e Liquidazioni di investimenti e comparti condividono una coppia UUID bidirezionale con una sola Transazione di tipo trasferimento. All’apertura, la riconciliazione usa prima i riferimenti espliciti e poi soltanto impronte esatte e univoche; crea il solo lato mancante, non modifica i casi ambigui e convalida nuovamente l’intero `FinanceData` prima di ogni scrittura.
 - I workbook v1, v2, v3 e v4 sono trasformati in memoria tramite migrazioni deterministiche e vengono convalidati integralmente come v5 prima di poter essere salvati. La migrazione v3 associa Canone TV, IMU e TARI a UUID stabili e converte i marcatori di rata senza modificare importi o collegamenti; la migrazione v4 aggiunge gli aggregati Telefono/Internet e Condominio a zero dove assenti.
 - Dopo la validazione, il caricamento verifica l’unicità degli UUID in ogni tabella identificata. Le occorrenze successive di un UUID duplicato ricevono un nuovo identificativo senza rimuovere record; i collegamenti bidirezionali vengono aggiornati soltanto quando la corrispondenza è univoca. Se anche il riferimento è stato copiato e risulta ambiguo, la copia successiva resta nel workbook ma viene scollegata per evitare cancellazioni o aggiornamenti incrociati.
 - I consuntivi annuali dettagliati (`Property History`, `Investment History`, `Vehicle History`) contengono solo dati aggregati e identificativi interni; il rollover non copia le transazioni storiche nel nuovo workbook.
@@ -82,6 +83,7 @@ Limite residuo: un `.xlsx` compresso sotto 250 MB può espandersi molto durante 
 - La sostituzione usa rename e un file di rollback quando la piattaforma non consente la sovrascrittura diretta.
 - Prima della sostituzione viene creata una copia in `.contami-backups`; sono mantenuti gli ultimi 10 backup `.xlsx`.
 - La riparazione automatica degli UUID modifica in posto soltanto le celle necessarie e il timestamp tecnico, scrive un temporaneo, rilegge le celle corrette, crea un backup e usa la stessa sostituzione con rollback. Un file già corretto non viene riscritto alla riapertura.
+- La riconciliazione dei movimenti patrimoniali può aggiungere righe mancanti e quindi riscrive il workbook canonico tramite il normale salvataggio temporaneo, rilettura, backup e sostituzione con rollback. È idempotente: un workbook già riconciliato non viene riscritto; corrispondenze multiple o conflittuali vengono soltanto segnalate.
 - Dimensione e timestamp del file vengono catturati dopo apertura/salvataggio. Se cambiano esternamente, il successivo salvataggio viene bloccato e l’utente deve riaprire il workbook.
 - Il passaggio d’anno crea un nuovo file e non elimina, sposta o rende inaccessibile il precedente.
 - Se all’avvio il percorso ricordato non esiste più (`ENOENT`), ContaMì non crea né sovrascrive file: rimuove soltanto il collegamento obsoleto dalle preferenze, usa uno stato vuoto in memoria e richiede di aprire o creare esplicitamente un workbook. Errori di schema o corruzione non vengono confusi con un file mancante.
@@ -123,7 +125,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 12. Verifiche implementate
 
-- unit test per comandi, catalogo tasse e relativi vincoli, aggregazioni di consumi/condominio/automobili, separazione investimenti/pensioni senza doppio conteggio, protezione del tipo pensione, rollover, migrazione v1/v2/v3/v4→v5 e sincronizzazione bidirezionale/cancellazione;
+- unit test per comandi, catalogo tasse e relativi vincoli, aggregazioni di consumi/condominio/automobili, separazione investimenti/pensioni senza doppio conteggio, protezione del tipo pensione, rollover, migrazione v1/v2/v3/v4→v5, sincronizzazione bidirezionale/cancellazione e riconciliazione idempotente di Versamenti/Liquidazioni;
 - integrazione round-trip workbook e controllo file modificato esternamente;
 - integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
@@ -149,6 +151,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 ### 14. Miglioramenti pianificati
 
 - M15 completata: importazione con preflight, anteprima, conferma, backup e applicazione atomica;
+- M18 completata localmente: Versamenti e Liquidazioni una tantum o periodici condividono una sola Transazione; i collegamenti mancanti vengono riconciliati con backup senza indovinare i casi ambigui;
 - M9: limiti preventivi sull’espansione ZIP e test fuzz per tutti i workbook ostili;
 - M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
 - M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
@@ -194,6 +197,8 @@ Zod validates UUIDs, ISO dates, timestamps, enum values, text length, finite amo
 
 Pensions and compartments reuse the schema-v5 Investments tables. The technical `pension` type is reserved and protected against editing/deletion. Countervalue applies dated valuations and confirmed movements only, excluding planned Transactions; domain selectors separate investments from pensions and aggregate active leaf positions only, preventing double counting. Detailed property, investment, and vehicle history sheets store annual aggregates only; rollover does not copy old transactions into the new workbook.
 
+Investment and pension-compartment Contributions and Liquidations share a bidirectional UUID pair with exactly one transfer Transaction. On load, reconciliation first uses explicit references and then exact unique fingerprints only; it creates only the missing side, leaves ambiguous cases unchanged, and validates the complete `FinanceData` again before any write.
+
 After schema validation, loading checks UUID uniqueness within every identified table. Later occurrences of a duplicate UUID receive a new identifier without removing records, and bidirectional links are updated only when the match is unambiguous. If a copied reference is also ambiguous, the later copy remains in the workbook but is detached to prevent cross-record deletion or updates.
 
 User strings are written as values, not interpolated into formulas. The loader never executes macros or formulas. A compressed workbook may still expand heavily before schema validation and exhaust memory; open trusted ContaMì files only.
@@ -209,6 +214,8 @@ The renderer receives only the base file name, counts, an aggregate amount, row/
 ContaMì writes a same-directory temporary workbook, reopens it to verify critical sheets, creates an adjacent backup, and then replaces the active file with rollback behavior. It retains 10 backups. Size and modification time detect external changes and block the next save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
 
 Automatic UUID repair changes only the required cells and technical timestamp in place, writes a temporary file, rereads the repaired cells, creates a backup, and uses the same rollback-capable replacement. Reopening an already repaired workbook does not rewrite it.
+
+Asset-movement reconciliation may add missing rows, so it rewrites the canonical workbook through the normal temporary save, reread verification, backup, and rollback-capable replacement. It is idempotent: an already reconciled workbook is not rewritten, while multiple or conflicting matches are only reported.
 
 If the remembered path no longer exists at startup (`ENOENT`), ContaMì creates or overwrites no file: it removes only the stale preference, uses an empty in-memory state, and requires the user to explicitly open or create a workbook. Schema and corruption errors are not treated as missing files.
 
@@ -232,13 +239,13 @@ Residual risks: transitive `exceljs` and `electron-builder` chains still contain
 
 ### 10. Tests and recovery
 
-Implemented checks cover domain aggregation (including utilities, condominium, and vehicles), configurable-tax CRUD and constraints, investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2/v3/v4→v5 migration, bidirectional record synchronization and deletion, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, structural and round-trip verification of all eight templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including utilities, condominium, and vehicles), configurable-tax CRUD and constraints, investment/private-pension separation without double counting, reserved pension-type protection and rollover, v1/v2/v3/v4→v5 migration, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, structural and round-trip verification of all eight templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 11. Planned improvements
 
-M15 now imports the local versioned Excel templates with preflight, preview, confirmation, backup, and atomic application. M9 will generalize ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
+M15 imports the local versioned Excel templates with preflight, preview, confirmation, backup, and atomic application. M18 locally keeps every one-off or recurring Contribution/Liquidation paired with exactly one Transaction and reconciles missing links with backup without guessing ambiguous cases. M9 will generalize ZIP-expansion limits and hostile-workbook fuzzing; M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
 
 Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 

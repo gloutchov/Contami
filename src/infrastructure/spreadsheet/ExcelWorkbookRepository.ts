@@ -4,6 +4,7 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 import { APP_CONFIG } from "../../config/appConfig";
 import { computeDashboard } from "../../domain/finance";
+import { reconcileInvestmentTransactions } from "../../domain/investmentTransactionSync";
 import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
@@ -163,6 +164,8 @@ export class ExcelWorkbookRepository {
     data: FinanceData;
     repairedIds: number;
     repairedLinks: number;
+    repairedInvestmentLinks: number;
+    ambiguousInvestmentLinks: number;
   }> {
     assertWorkbookPath(filePath);
     const info = await stat(filePath);
@@ -232,14 +235,20 @@ export class ExcelWorkbookRepository {
     }
     const migrated = migrateFinanceData(raw);
     const repaired = repairDuplicateRecordIds(migrated);
-    if (repaired.repairs.length > 0) {
+    const investmentReconciliation = reconcileInvestmentTransactions(repaired.data);
+    if (investmentReconciliation.repairs.length > 0) {
+      investmentReconciliation.data.meta.updatedAt = new Date().toISOString();
+      await this.save(filePath, investmentReconciliation.data);
+    } else if (repaired.repairs.length > 0) {
       repaired.data.meta.updatedAt = new Date().toISOString();
       await this.persistUuidRepairs(filePath, workbook, definitions, physicalRows, migrated, repaired.data);
     }
     return {
-      data: repaired.data,
+      data: investmentReconciliation.data,
       repairedIds: repaired.repairs.length,
       repairedLinks: repaired.repairedLinks,
+      repairedInvestmentLinks: investmentReconciliation.repairs.length,
+      ambiguousInvestmentLinks: investmentReconciliation.ambiguousEntries + investmentReconciliation.ambiguousTransactions,
     };
   }
 
