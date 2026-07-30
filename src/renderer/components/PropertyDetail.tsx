@@ -1,10 +1,11 @@
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
 import { formatCurrency, formatDate } from "../utils/format";
-import { filterPropertyEntries, propertyCashFlowTimeline, propertyEntryMonths, propertyHistory, propertyValueTimeline } from "../utils/propertyHistory";
+import { filterPropertyEntries, propertyCashFlowTimeline, propertyHistory, propertyValueTimeline } from "../utils/propertyHistory";
 import { summarizeResidenceEntries } from "../utils/propertyIndicators";
 import { useI18n } from "../i18n/I18nContext";
+import { EntryFilters } from "./EntryFilters";
 import { HistoryChart } from "./HistoryChart";
 import { TrendBars } from "./TrendBars";
 
@@ -24,7 +25,6 @@ export function PropertyDetail({
   const [search, setSearch] = useState("");
   const entries = useMemo(() => data.propertyEntries.filter((item) => item.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [data.propertyEntries, property.id]);
   const filtered = useMemo(() => filterPropertyEntries(entries, month, search), [entries, month, search]);
-  const months = useMemo(() => propertyEntryMonths(data.meta.activeYear), [data.meta.activeYear]);
   const history = useMemo(() => propertyHistory(data, property.id), [data, property.id]);
   const valueTimeline = useMemo(() => propertyValueTimeline(data, property.id), [data, property.id]);
   const cashFlowTimeline = useMemo(() => propertyCashFlowTimeline(data, property.id), [data, property.id]);
@@ -33,12 +33,14 @@ export function PropertyDetail({
   const filteredExpenses = filtered.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
   const current = history.find((item) => item.year === data.meta.activeYear);
   const commercialValue = valueTimeline.at(-1)?.commercialValue ?? property.purchasePrice;
-  const monthLabel = (value: string) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}-01T12:00:00Z`));
-  const filterControls = <section className="detail-filters" aria-label={t("filters")}>
-    <label className="search-field"><Search size={16}/><input aria-label={t("searchByDescription")} placeholder={t("searchByDescription")} value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-    <select aria-label={t("month")} value={month} onChange={(event) => setMonth(event.target.value)}><option value="">{t("allMonths")}</option>{months.map((item) => <option key={item} value={item}>{monthLabel(item)}</option>)}</select>
-    <div className="filtered-property-totals"><span>{t("filteredIncome")} <strong>{formatCurrency(filteredIncome, language)}</strong></span><span>{t("filteredExpenses")} <strong>{formatCurrency(filteredExpenses, language)}</strong></span></div>
-  </section>;
+  const filterControls = <EntryFilters
+    activeYear={data.meta.activeYear}
+    search={search}
+    month={month}
+    onSearchChange={setSearch}
+    onMonthChange={setMonth}
+    summary={<><span>{t("filteredIncome")} <strong>{formatCurrency(filteredIncome, language)}</strong></span><span>{t("filteredExpenses")} <strong>{formatCurrency(filteredExpenses, language)}</strong></span></>}
+  />;
   const entriesTable = <div className="detail-table"><table className="data-table"><thead><tr><th>{t("date")}</th><th>{t("type")}</th><th>{t("description")}</th><th>{t("amount")}</th><th /></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td>{formatDate(item.date, language)}</td><td><span className="pill">{t(item.kind)}</span></td><td>{item.description}</td><td>{formatCurrency(item.amount, language)}</td><td><div className="row-actions"><button className="icon-button" aria-label={t("edit")} onClick={() => onEditEntry(item)}><Pencil size={14}/></button><button className="icon-button danger" aria-label={t("delete")} onClick={() => onDeleteEntry(item.id)}><Trash2 size={14}/></button></div></td></tr>)}</tbody></table>{!filtered.length && <p className="empty-inline">{t("noFilteredPropertyEntries")}</p>}</div>;
   const charts = <>
     {property.usage === "residence" && <>

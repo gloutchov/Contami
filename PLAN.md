@@ -40,12 +40,15 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | Patch residenza e storico immobili | `patch/1.3.1-residence-property-history` | `1.3.1` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch grafici, menu e integrità UUID | `patch/1.3.2-property-charts-app-menu` | `1.3.2` | Rilasciata; CI/release macOS e Windows verdi |
 | Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | Rilasciata; CI/release macOS e Windows verdi |
-| M16 — Trasporti, rate e filtri del dettaglio | `milestone/16-transport-improvements` | `1.4.0` | Pianificata dopo la patch `1.3.3` |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.5.0` | Pianificata dopo M16 |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.6.0` | Pianificata dopo M9 |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.7.0` | Pianificata dopo M10 |
+| M17 — Filtri e azioni nelle viste di dettaglio | `milestone/17-detail-filters` | `1.4.0` | Implementata localmente; gate completo, in attesa di commit/CI |
+| M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Pianificata dopo M17 |
+| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.6.0` | Pianificata dopo M18 |
+| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.7.0` | Ripianificata dopo M19 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.8.0` | Pianificata dopo M16 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.9.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.10.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → trasporti `v1.4.0` → apertura workbook `v1.5.0` → integrità salvataggi `v1.6.0` → CSP rigorosa `v1.7.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → cambio tariffa `v1.6.0` → trasporti `v1.7.0` → apertura workbook `v1.8.0` → integrità salvataggi `v1.9.0` → CSP rigorosa `v1.10.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -440,26 +443,108 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito implementazione:** completati preflight ZIP limitato, parser per gli otto contratti v1, riferimenti deterministici, tre strategie esplicite per le corrispondenze esatte, anteprima senza scritture con errori riga/colonna e piano opaco mantenuto nel main. La conferma applica una sola trasformazione `FinanceData` tramite comandi di dominio e un solo salvataggio verificato con revisione, backup e rollback; annullamento ed errore non modificano il workbook. Formule, macro, link esterni, oggetti incorporati, fogli o intestazioni inattesi, archivi cifrati/anomali e limiti superati vengono rifiutati prima della scrittura.
 
-## M16 — Trasporti, rate e filtri del dettaglio
+## M17 — Filtri e azioni nelle viste di dettaglio
 
-**Obiettivo:** rendere più generale e coerente la gestione dei mezzi, collegando correttamente i pagamenti rateali alle Ricorrenze e facilitando la consultazione delle registrazioni nel dettaglio.
+**Obiettivo:** rendere omogenea e più rapida la consultazione delle registrazioni nelle modali di dettaglio e portare l’aggiornamento del valore degli investimenti nel punto in cui l’utente consulta la singola posizione.
+
+**Attività pianificate**
+
+- Aggiungere nella sezione Spese comuni della vista Immobili un filtro testuale per descrizione e un filtro per mese con tutti i dodici mesi e l’opzione per mostrare l’intero anno.
+- Aggiungere in Transazioni un pulsante **Azzera filtri / Reset filters** che ripristini insieme descrizione, tipo, categoria, metodo di pagamento e mese.
+- Aggiungere nelle modali delle singole automobili i filtri combinabili per descrizione e mese.
+- Aggiungere nelle modali dei singoli investimenti i filtri combinabili per descrizione e mese.
+- Aggiungere nelle modali dei comparti di Pensione Integrativa i filtri combinabili per descrizione e mese; i raccoglitori pensione continuano ad aggregare i comparti senza duplicarne i movimenti.
+- Aggiungere in Spese condivise il filtro per descrizione accanto al filtro per mese già esistente.
+- Applicare in tutte le viste la stessa semantica: ricerca testuale senza distinzione tra maiuscole e minuscole, selezione esplicita di tutti i mesi, combinazione dei criteri, reset prevedibile e stato vuoto dedicato quando nessuna registrazione corrisponde.
+- Ricalcolare elenchi, conteggi, parziali e totali visibili sul solo insieme filtrato, senza alterare i dati autorevoli o i totali finanziari non filtrati.
+- Aggiungere nella modale del singolo investimento il pulsante bilingue **Aggiorna valore / Update value** accanto a **Modifica investimento / Edit investment**, riusando lo stesso comando, la stessa validazione e lo stesso flusso di salvataggio verificato dell’azione già disponibile nella vista principale.
+- Conservare leggibilità, ordine del focus e layout in IT/EN, tema chiaro/scuro e alla larghezza minima di 1080 px, inclusi reset, stato disabilitato e assenza di risultati.
+
+**Criteri di accettazione**
+
+- Ogni area prevista filtra correttamente per descrizione, per uno dei dodici mesi o per entrambi i criteri e ripristina l’elenco completo tramite reset; Transazioni azzera in una sola azione tutti e cinque i propri criteri.
+- Spese comuni, automobili, investimenti, comparti pensione e Spese condivise mostrano risultati, parziali e stati vuoti coerenti con i filtri attivi.
+- **Aggiorna valore** è raggiungibile dalla modale dell’investimento, registra una valutazione tramite il flusso esistente e aggiorna immediatamente controvalore, grafico e riepiloghi senza creare movimenti economici impropri.
+- I controlli sono accessibili da tastiera, tradotti e privi di overflow nelle combinazioni IT/EN e chiaro/scuro a 1080 px.
+
+**Test richiesti:** unit test delle funzioni di filtro e dei parziali; test renderer delle cinque aree; regressione dell’aggiornamento valore; Playwright con filtri singoli/combinati/reset, assenza di risultati, focus tastiera e azione **Aggiorna valore** in IT/EN e chiaro/scuro.
+
+**Documentazione:** manuali IT/EN, README se cambia la descrizione delle funzioni e MAP soltanto se vengono introdotti nuovi moduli.
+
+**Esito locale 2026-07-30:** implementati filtri condivisi e combinabili per descrizione/mese con reset, stato vuoto e parziali coerenti nelle Spese comuni degli immobili, nelle modali di automobili, investimenti e comparti pensione e nelle Spese condivise; in Transazioni **Azzera filtri** ripristina insieme descrizione, tipo, categoria, metodo di pagamento e mese. **Aggiorna valore** è disponibile accanto a **Modifica investimento** nelle modali delle posizioni finali e riusa il flusso di valutazione esistente. Versione applicativa portata a `1.4.0`; aggiornati dizionari IT/EN, demo e test esclusivamente sintetici, README, manuali, MAP e intestazione del modello di sicurezza. Gate locale verde: lint, typecheck, 96 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px con filtri singoli/combinati/reset, stato senza risultati, focus e assenza di overflow. Il browser integrato non era disponibile nella sessione; il collaudo visuale automatizzato e geometrico Playwright è stato completato. Restano commit, push e CI multipiattaforma prima della promozione.
+
+## M18 — Movimenti di investimenti e pensioni nelle Transazioni
+
+**Obiettivo:** garantire che ogni Versamento o Liquidazione confermato, una tantum o derivato da una ricorrenza, sia rappresentato anche nelle Transazioni tramite un solo collegamento autorevole e senza alterare impropriamente i consuntivi di entrate e uscite.
+
+**Attività pianificate**
+
+- Verificare separatamente i flussi di Versamento e Liquidazione per investimenti ordinari, comparti di Pensione Integrativa, movimenti una tantum e movimenti generati o confermati da piani periodici.
+- Correggere il dominio affinché un Versamento crei o aggiorni una Transazione collegata con effetto di cassa `outflow` e una Liquidazione con effetto `inflow`; entrambi restano trasferimenti patrimoniali esclusi dai consuntivi di entrate/uscite correnti.
+- Mantenere bidirezionali creazione, modifica, conferma, chiusura e cancellazione: importo, data, descrizione, conto e collegamenti devono restare coerenti senza duplicare il movimento.
+- Assicurare che la conferma di una Transazione pianificata da una ricorrenza produca o aggiorni il movimento dell’investimento o del comparto corretto e non una seconda Transazione.
+- Verificare il versamento iniziale, i movimenti successivi e le liquidazioni parziali o totali, preservando il calcolo cronologico di cifra investita e controvalore.
+- Introdurre una riconciliazione idempotente e coperta da backup per i workbook esistenti che contengono movimenti confermati privi della Transazione collegata; i casi ambigui devono essere segnalati e lasciati invariati, mai indovinati.
+- Conservare lo schema v5 se i collegamenti esistenti sono sufficienti; qualunque migrazione o nuovo campo necessario deve essere versionato, validato e documentato prima del salvataggio.
+
+**Criteri di accettazione**
+
+- Ogni nuovo Versamento o Liquidazione di un investimento o comparto compare una sola volta nelle Transazioni e nella relativa vista patrimoniale.
+- Movimenti una tantum e periodici seguono la stessa regola; conferma, modifica o cancellazione da una vista mantengono coerente l’altra.
+- Liquidità e saldo del conto riflettono correttamente `outflow` e `inflow`, mentre entrate e uscite correnti non vengono gonfiate.
+- La riconciliazione dei dati esistenti non modifica importi, date o descrizioni, non crea duplicati ed è ripetibile senza ulteriori scritture.
+- Rollover, importazione e round-trip workbook preservano collegamenti e storico.
+
+**Test richiesti:** unit test di dominio per tutte le combinazioni investimento/comparto, Versamento/Liquidazione e una tantum/periodico; test di sincronizzazione bidirezionale, idempotenza e casi ambigui; integration test workbook, backup e round-trip; regressione KPI/liquidità/rollover/importazione; e2e dalle viste Investimenti, Pensione Integrativa, Ricorrenze e Transazioni.
+
+**Documentazione:** manuali IT/EN, README, schema workbook se modificato, MAP e SECURITY_MODEL per ogni cambiamento a persistenza, migrazione o confini di salvataggio.
+
+## M19 — Cambio tariffa delle ricorrenze
+
+**Obiettivo:** consentire una variazione di importo con decorrenza esplicita, mantenendo immutati lo storico e le scadenze precedenti e aggiornando in modo deterministico tutte le Transazioni ancora programmate dal mese scelto in avanti.
+
+**Attività pianificate**
+
+- Aggiungere alla modifica di una ricorrenza l’azione **Cambia tariffa / Change rate**, con nuovo importo e mese di decorrenza obbligatori; la decorrenza è normalizzata al primo giorno del mese selezionato.
+- Persistire una cronologia tariffaria versionata con importo e decorrenza, mantenendo l’importo originario come base, affinché riapertura, rigenerazione delle scadenze e rollover applichino sempre la tariffa corretta.
+- Applicare la nuova tariffa soltanto alle Transazioni pianificate e non confermate con data uguale o successiva alla decorrenza; le Transazioni confermate e tutte le occorrenze precedenti restano immutate.
+- Aggiornare in posto le Transazioni pianificate già esistenti e rigenerare soltanto quelle mancanti, preservando UUID e collegamenti quando possibile ed evitando duplicati.
+- Applicare la stessa regola a servizi, entrate ricorrenti, investimenti periodici, comparti pensione, rate e ogni altro tipo di ricorrenza supportato.
+- Per i piani rateali modificare l’importo delle sole rate future senza cambiare il numero di rate residue, la prossima scadenza, la data di fine o lo stato delle rate già confermate.
+- Propagare l’importo aggiornato ai record collegati che nasceranno dalla futura conferma, inclusi movimenti di investimento/comparto e spese condivise, senza riscrivere record storici.
+- Consentire più cambi tariffa successivi, validandone ordine, importi, date e sovrapposizioni; modifica o annullamento di un cambio futuro deve ricalcolare soltanto le occorrenze non confermate interessate.
+- Eseguire ogni cambio in una sola trasformazione atomica con controllo della revisione, backup, rilettura e rollback, mostrando prima della conferma il numero di scadenze future che verranno aggiornate.
+- Aggiornare lo schema workbook con una migrazione deterministica dalla v5 alla nuova versione necessaria; i workbook precedenti ricevono una sola tariffa base e mantengono invariati tutti i record esistenti.
+
+**Criteri di accettazione**
+
+- Impostando un nuovo importo da un mese scelto, tutte e sole le scadenze non confermate da quel mese in avanti assumono la nuova tariffa.
+- Le scadenze precedenti e ogni Transazione già confermata mantengono l’importo storico, anche dopo riapertura, modifica successiva, rollover o rigenerazione delle pianificazioni.
+- Più cambi tariffa vengono applicati in ordine cronologico senza sovrapposizioni, duplicati o salti; la tariffa visibile per ciascuna scadenza è riconciliabile con la cronologia.
+- Servizi, investimenti/comparti periodici, entrate, spese condivise e piani rateali conservano collegamenti e semantica finanziaria.
+- Annullamento, errore o conflitto esterno lasciano invariato il workbook e l’ultima copia valida resta recuperabile.
+
+**Test richiesti:** unit test su decorrenza mensile, confini anno, più variazioni, modifica/annullamento, importi invalidi e rate residue; integrazione su pianificazione, UUID, collegamenti, migrazione, backup, rollback, riapertura e rollover; regressione M18 per investimenti/pensioni; Playwright IT/EN e chiaro/scuro con anteprima e conferma da tastiera.
+
+**Documentazione:** manuali IT/EN con esempi sintetici prima/dopo la decorrenza, README, schema workbook, MAP, SECURITY_MODEL, messaggi di migrazione e note di rilascio.
+
+## M16 — Trasporti e collegamento dei pagamenti rateali
+
+**Obiettivo:** rendere più generale e coerente la gestione dei mezzi e collegare correttamente i pagamenti rateali alle Ricorrenze.
 
 **Attività pianificate**
 
 - Rinominare la sezione visibile **Automobile** in **Trasporti** in navigazione, titoli, dashboard, modali, stati vuoti e manuali, aggiornando coerentemente le stringhe italiane e inglesi senza imporre una migrazione dei nomi tecnici già salvati nel workbook.
 - Quando, durante la creazione o la modifica di un mezzo, viene indicato un pagamento rateale, creare o aggiornare la relativa registrazione in **Ricorrenze** tramite un collegamento stabile, evitando duplicati e mantenendo sincronizzati importo, frequenza, scadenze e stato.
 - Definire il comportamento del collegamento rateale anche per modifica, chiusura, riapertura e cancellazione del mezzo, preservando storico, conferme e atomicità del salvataggio.
-- Aggiungere alla modale di dettaglio del mezzo un filtro testuale per descrizione e un filtro per mese tramite menu a discesa con tutti i dodici mesi e l’opzione per mostrare tutti i mesi.
-- Rendere i due filtri combinabili e mantenere coerenti elenco, stato vuoto, totali/parziali e reset dei filtri.
 
 **Criteri di accettazione**
 
 - Tutte le superfici utente mostrano **Trasporti** al posto di **Automobile** in IT/EN, mentre workbook esistenti, importazione e rollover continuano a funzionare senza perdita dati.
 - Un mezzo con pagamento rateale produce una sola ricorrenza collegata e immediatamente visibile; modifiche e cambi di stato non creano duplicati né lasciano riferimenti orfani.
-- La modale consente di filtrare le registrazioni per descrizione, per ciascun mese o con entrambi i criteri, mostrando risultati e totali coerenti.
 - I flussi restano accessibili da tastiera e leggibili in tema chiaro/scuro, IT/EN e alla larghezza minima di 1080 px.
 
-**Test richiesti:** unit test del collegamento mezzo/ricorrenza e delle transizioni di stato; integrazione e round-trip workbook; regressione importazione e rollover; test dei filtri e dei totali; Playwright della creazione rateale e della modale in IT/EN e chiaro/scuro.
+**Test richiesti:** unit test del collegamento mezzo/ricorrenza e delle transizioni di stato; integrazione e round-trip workbook; regressione importazione, cambio tariffa e rollover; Playwright della creazione rateale e della modale in IT/EN e chiaro/scuro.
 
 **Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario e note di rilascio.
 
@@ -516,6 +601,15 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Documentazione:** aggiornare manuali IT/EN, README, MAP e versione applicativa. Non sono previste modifiche a UI, traduzioni, schema workbook, IPC o modello di sicurezza.
 
 **Esito 2026-07-27:** implementata nel commit `9e4290a` sul branch `patch/1.3.3-installment-limits` e integrata in `main` dal merge commit `5e0a2f3`. Gate locale verde: lint, typecheck, 93 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px, incluso il controllo geometrico dell’allineamento tra strategia duplicati e pulsante di importazione. CI verdi sul branch (`30273773479`), su `main` (`30273847224`) e sul tag `v1.3.3` (`30273854813`). Il workflow Release `30273854755` ha completato packaging, ispezione, smoke installato e pubblicazione privata per macOS ARM64/x64 e Windows x64; gli asset includono DMG, ZIP, installer Windows e `SHA256SUMS.txt`.
+
+## Revisione roadmap — 2026-07-30
+
+- Inserite M17, M18 e M19 prima di M16 e delle successive attività di hardening, integrità dei salvataggi e CSP.
+- M17 raccoglie i filtri mancanti nelle modali di Immobili, automobili, investimenti e comparti pensione, completa il filtro descrizione delle Spese condivise e porta **Aggiorna valore** nel dettaglio dell’investimento.
+- M18 verifica e rende obbligatoria la rappresentazione nelle Transazioni dei Versamenti e delle Liquidazioni di investimenti e comparti, sia una tantum sia periodici, mantenendoli trasferimenti patrimoniali senza doppio conteggio.
+- M19 introduce cambi tariffa con decorrenza mensile e cronologia persistente: lo storico confermato resta immutato e vengono aggiornate soltanto le pianificazioni future interessate.
+- Il filtro delle automobili già previsto in M16 è stato anticipato in M17; M16 resta dedicata alla rinomina Automobile→Trasporti e al collegamento stabile dei pagamenti rateali con le Ricorrenze.
+- La sequenza di versione è stata ripianificata da `v1.4.0` a `v1.10.0`; le funzioni restano locali e non introducono rete, telemetria, cloud o dati reali nei test.
 
 ## Decisione futura — Cifratura portabile
 

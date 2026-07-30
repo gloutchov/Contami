@@ -30,8 +30,8 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-03-18`, kind: "expense", category: "Electricity", categoryId: category("Home"), description: "Electricity bill", amount: 126.90, paymentMethodId: payment, notes: "" },
     { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-03-19`, kind: "expense", category: "Gas", categoryId: category("Home"), description: "Gas bill", amount: 98.40, paymentMethodId: payment, notes: "" },
     { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-03-20`, kind: "expense", category: "Water", categoryId: category("Home"), description: "Water bill", amount: 42.50, paymentMethodId: payment, notes: "" },
-    { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-02-15`, kind: "expense", category: "Condominium", categoryId: category("Home"), description: "Condominium installment", amount: 540, paymentMethodId: payment, notes: "" },
-    { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-04-01`, kind: "expense", category: "Internet", categoryId: category("Home"), description: "Home internet", amount: 180, paymentMethodId: payment, notes: "" },
+    { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-02-15`, kind: "expense", category: "Condominium", categoryId: category("Home"), description: "Condominium installment", amount: 540, paymentMethodId: payment, isCommonExpense: true, notes: "" },
+    { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-04-01`, kind: "expense", category: "Internet", categoryId: category("Home"), description: "Home internet", amount: 180, paymentMethodId: payment, isCommonExpense: true, notes: "" },
     { id: crypto.randomUUID(), propertyId, date: `${data.meta.activeYear}-01-31`, kind: "expense", category: "Canone TV", categoryId: category("Home"), description: "Canone TV", amount: 90, paymentMethodId: payment, notes: "" },
   );
   data.propertyAnnualSummaries.push(
@@ -90,7 +90,10 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), vehicleId: currentVehicleId, date: `${data.meta.activeYear}-06-20`, kind: "insurance", description: "Demo insurance", amount: 620, categoryId: category("Transport"), paymentMethodId: payment, notes: "" },
   );
   data.recurringItems.push({ id: recurringId, name: "Music", kind: "subscription", amount: 10.99, frequency: "monthly", categoryId: category("Services & subscriptions"), paymentMethodId: payment, nextDueDate: `${data.meta.activeYear}-08-01`, active: true, notes: "" });
-  data.sharedExpenses.push({ id: crypto.randomUUID(), date: `${data.meta.activeYear}-07-12`, description: "Weekend groceries", categoryId: category("Groceries"), paymentMethodId: payment, amount: 86, ownerShare: 43, partnerShare: 43, paidBy: "owner", settled: false, notes: "" });
+  data.sharedExpenses.push(
+    { id: crypto.randomUUID(), date: `${data.meta.activeYear}-06-08`, description: "Shared train tickets", categoryId: category("Transport"), paymentMethodId: payment, amount: 120, ownerShare: 60, partnerShare: 60, paidBy: "partner", settled: true, notes: "" },
+    { id: crypto.randomUUID(), date: `${data.meta.activeYear}-07-12`, description: "Weekend groceries", categoryId: category("Groceries"), paymentMethodId: payment, amount: 86, ownerShare: 43, partnerShare: 43, paidBy: "owner", settled: false, notes: "" },
+  );
   data.annualSummaries.push(
     { year: data.meta.activeYear - 2, income: 37_800, expenses: 29_400, netCashFlow: 8_400, closingNetWorth: 367_000, liquidBalance: 28_000, propertyValue: 260_000, investmentValue: 79_000, pensionValue: 0, monthlyRecurring: 245, vehicleCosts: 0 },
     { year: data.meta.activeYear - 1, income: 39_600, expenses: 31_200, netCashFlow: 8_400, closingNetWorth: 386_500, liquidBalance: 31_500, propertyValue: 270_000, investmentValue: 85_000, pensionValue: 0, monthlyRecurring: 230, vehicleCosts: 0 },
