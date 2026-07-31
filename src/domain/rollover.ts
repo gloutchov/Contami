@@ -7,7 +7,11 @@ import type { FinanceData, InvestmentEntry, PropertyEntry } from "./models";
 function balanceForAccount(data: FinanceData, accountId: string): number {
   const account = data.accounts.find((item) => item.id === accountId);
   if (!account) return 0;
-  return account.openingBalance + data.transactions.filter((item) => item.accountId === accountId).reduce((sum, item) => {
+  return account.openingBalance + data.transactions.filter((item) =>
+    item.accountId === accountId
+    && !item.planned
+    && item.date >= account.openedAt
+    && (!account.closedAt || item.date <= account.closedAt)).reduce((sum, item) => {
     if (item.kind === "income") return sum + item.amount;
     if (item.kind === "expense") return sum - item.amount;
     if (item.kind === "transfer" && item.cashFlowDirection === "inflow") return sum + item.amount;

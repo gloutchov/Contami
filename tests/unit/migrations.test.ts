@@ -18,7 +18,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.investmentTypes).toHaveLength(7);
     expect(migrated.taxTypes.map((item) => item.name)).toEqual(["Canone TV", "IMU", "TARI"]);
     expect(migrated.annualSummaries[0]).toMatchObject({
@@ -53,7 +53,7 @@ describe("finance data migrations", () => {
     const migrated = migrateFinanceData(legacy);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
 
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.propertyEntries[0]).toMatchObject({
       taxTypeId: imu.id,
       taxInstallmentNumber: 2,
@@ -85,10 +85,95 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({
       phoneInternetCost: 0,
       condominiumCost: 0,
     });
+  });
+
+  it("upgrades version 5 investment cash movements when the active account is unambiguous", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026));
+    const accountId = crypto.randomUUID();
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    legacy.meta.schemaVersion = 5 as 6;
+    legacy.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    legacy.investments.push({
+      id: investmentId, name: "Synthetic investment", kind: "fund", provider: "", currency: "EUR",
+      periodicAmount: 100, periodicFrequency: "monthly", periodicNextDueDate: "2026-08-01",
+      periodicCategoryId: legacy.categories[8].id, periodicPaymentMethodId: legacy.paymentMethods[0].id,
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    legacy.investmentEntries.push({
+      id: entryId, investmentId, date: "2026-02-01", kind: "contribution", amount: 250,
+      description: "Synthetic contribution", categoryId: legacy.categories[8].id,
+      paymentMethodId: legacy.paymentMethods[0].id, transactionId, notes: "",
+    });
+    legacy.transactions.push({
+      id: transactionId, date: "2026-02-01", description: "Synthetic contribution",
+      categoryId: legacy.categories[8].id, paymentMethodId: legacy.paymentMethods[0].id,
+      kind: "transfer", cashFlowDirection: "outflow", amount: 250, currency: "EUR",
+      investmentId, investmentEntryId: entryId, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    legacy.recurringItems.push({
+      id: recurringId, name: "Synthetic plan", kind: "investment", direction: "expense",
+      amount: 100, frequency: "monthly", categoryId: legacy.categories[8].id,
+      paymentMethodId: legacy.paymentMethods[0].id, investmentId, nextDueDate: "2026-08-01",
+      active: true, notes: "",
+    });
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.investmentEntries[0]?.accountId).toBe(accountId);
+    expect(migrated.transactions[0]?.accountId).toBe(accountId);
+    expect(migrated.investments[0]?.periodicAccountId).toBe(accountId);
+    expect(migrated.recurringItems[0]?.accountId).toBe(accountId);
+  });
+
+  it("does not guess an investment cash account when multiple accounts are active", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026));
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    legacy.meta.schemaVersion = 5 as 6;
+    legacy.accounts.push(
+      {
+        id: crypto.randomUUID(), name: "Synthetic account A", kind: "bank", currency: "EUR",
+        openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+      },
+      {
+        id: crypto.randomUUID(), name: "Synthetic account B", kind: "bank", currency: "EUR",
+        openingBalance: 2_000, active: true, openedAt: "2026-01-01", notes: "",
+      },
+    );
+    legacy.investments.push({
+      id: investmentId, name: "Synthetic investment", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    legacy.investmentEntries.push({
+      id: entryId, investmentId, date: "2026-02-01", kind: "contribution", amount: 250,
+      description: "Synthetic contribution", categoryId: legacy.categories[8].id,
+      paymentMethodId: legacy.paymentMethods[0].id, transactionId, notes: "",
+    });
+    legacy.transactions.push({
+      id: transactionId, date: "2026-02-01", description: "Synthetic contribution",
+      categoryId: legacy.categories[8].id, paymentMethodId: legacy.paymentMethods[0].id,
+      kind: "transfer", cashFlowDirection: "outflow", amount: 250, currency: "EUR",
+      investmentId, investmentEntryId: entryId, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.investmentEntries[0]?.accountId).toBeUndefined();
+    expect(migrated.transactions[0]?.accountId).toBeUndefined();
   });
 });

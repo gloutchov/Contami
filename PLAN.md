@@ -42,13 +42,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | Patch limiti e chiusura rate | `patch/1.3.3-installment-limits` | `1.3.3` | Rilasciata; CI/release macOS e Windows verdi |
 | M17 — Filtri e azioni nelle viste di dettaglio | `milestone/17-detail-filters` | `1.4.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Completata e rilasciata |
+| Patch conti e flussi di cassa investimenti | `patch/1.5.1-investment-cash-accounts` | `1.5.1` | Completata localmente; gate verde e workbook privato migrato |
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.6.0` | Pianificata dopo M18 |
 | M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.7.0` | Ripianificata dopo M19 |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.8.0` | Pianificata dopo M16 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.9.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.10.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → cambio tariffa `v1.6.0` → trasporti `v1.7.0` → apertura workbook `v1.8.0` → integrità salvataggi `v1.9.0` → CSP rigorosa `v1.10.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → cambio tariffa `v1.6.0` → trasporti `v1.7.0` → apertura workbook `v1.8.0` → integrità salvataggi `v1.9.0` → CSP rigorosa `v1.10.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -500,6 +501,26 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Documentazione:** manuali IT/EN, README, schema workbook se modificato, MAP e SECURITY_MODEL per ogni cambiamento a persistenza, migrazione o confini di salvataggio.
 
 **Esito 2026-07-30:** implementata una trasformazione di dominio unica per le coppie movimento patrimoniale/Transazione, usata in entrambe le direzioni da investimenti ordinari e comparti pensione. Versamenti e Liquidazioni una tantum, iniziali, importati o derivati da ricorrenze sono trasferimenti con effetto di cassa `outflow`/`inflow`, restano esclusi dai consuntivi correnti e conservano UUID e collegamenti durante modifica, conferma e cancellazione. All’apertura dei workbook v5, una riconciliazione idempotente collega le corrispondenze esatte univoche, crea il solo record mancante, salva con verifica e backup e segnala senza modificare i casi ambigui; non è stata necessaria alcuna migrazione di schema. Versione applicativa portata a `1.5.0`; aggiornati demo sintetica, dizionari IT/EN, manuali, README, MAP, modello di sicurezza e test di dominio, importazione, workbook, rollover e Playwright. La milestone è stata implementata nel commit `a180618` e integrata in `main` dal merge commit `ad57bb0` tramite la PR `#29`. Gate locale verde: lint, typecheck, 109 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px con verifica dei movimenti una tantum e periodici di investimenti e comparti nelle Transazioni. CI verdi sul branch (`30554793632`), sulla PR (`30554813762`), su `main` (`30555433619`) e sul tag `v1.5.0` (`30556082613`). Il workflow Release `30556082598` ha completato packaging, ispezione, smoke installato e pubblicazione per macOS ARM64/x64 e Windows x64; gli asset includono DMG, ZIP, installer Windows e `SHA256SUMS.txt`, i cui sei checksum corrispondono ai digest pubblicati.
+
+## Patch `1.5.1` — Conti e flussi di cassa degli investimenti
+
+**Obiettivo:** garantire che Versamenti e Liquidazioni incidano sempre sul conto interessato e sui totalizzatori di cassa, restando separati dai consuntivi di redditi e spese correnti.
+
+**Attività**
+
+- Portare il workbook allo schema v6 aggiungendo il conto ai movimenti e ai piani periodici di investimenti/comparti.
+- Richiedere il conto nei moduli di Versamento, Liquidazione, versamento iniziale e contribuzione periodica, propagandolo alla Transazione e alla Ricorrenza collegate.
+- Migrare i workbook v5 completando i riferimenti mancanti soltanto quando esiste un unico conto attivo; con più conti conservare il dato non assegnato senza indovinare.
+- Mostrare in Transazioni Entrate di cassa, Uscite di cassa e saldo includendo i trasferimenti direzionati, mantenendo separati redditi e spese correnti nelle dashboard annuali.
+- Includere i saldi iniziali nel saldo filtrato e nel saldo alla data odierna di Transazioni; ignorare nella liquidità e nel rollover i movimenti fuori dall’intervallo di apertura/chiusura del conto.
+- Richiedere il conto per i nuovi movimenti di cassa; all’apertura completare i riferimenti storici soltanto quando il conto compatibile con la data è univoco e segnalare gli altri casi.
+- Escludere ogni Transazione pianificata dalla liquidità corrente e dal saldo di apertura del rollover.
+- Chiudere in modo idempotente i piani rateali attivi già arrivati a zero e mostrare, al passaggio del mouse o al focus sul KPI Rate residue, i piani ancora aperti con conteggio e prossima scadenza.
+- Aggiornare con backup e rilettura la copia workbook privata usata per la verifica, senza inserirla in Git o nei test.
+
+**Test richiesti:** migrazione v5→v6 con conto unico e casi non ambigui, propagazione bidirezionale una tantum/periodica, totalizzatori di cassa, saldo iniziale e confini temporali dei conti, riparazione conservativa dei conti mancanti e delle rate a zero, esclusione delle pianificazioni da liquidità e rollover, round-trip workbook, popup accessibile UI IT/EN chiaro/scuro e gate completo.
+
+**Esito 2026-07-31:** implementato lo schema workbook v6 con conto sui movimenti e sui piani periodici di investimenti e comparti pensione. La migrazione v5 e la riparazione all’apertura completano i riferimenti soltanto quando il conto compatibile è univoco, mentre gli altri casi restano esplicitamente non assegnati e vengono segnalati. I trasferimenti direzionati partecipano ai totalizzatori Entrate/Uscite di cassa e alla liquidità del conto senza essere riclassificati come redditi o spese correnti; la liquidità e il rollover ignorano i movimenti fuori dall’intervallo di validità del conto e le pianificazioni. I saldi di Transazioni comprendono il saldo iniziale. I piani rateali attivi già a zero vengono chiusi all’apertura e il KPI Rate residue espone un dettaglio accessibile dei piani aperti. Aggiornati moduli, importazione, demo sintetica, manuali IT/EN, README, MAP e modello di sicurezza. La copia workbook privata è stata migrata con backup, rilettura strutturale e seconda apertura idempotente, senza inserirla in Git o nei test permanenti. Gate locale verde: lint, typecheck, 124 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px.
 
 ## M19 — Cambio tariffa delle ricorrenze
 

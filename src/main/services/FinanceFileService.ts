@@ -183,7 +183,13 @@ export class FinanceFileService {
         ? "INVESTMENT_TRANSACTIONS_REPAIRED"
         : loaded.repairedIds > 0
           ? "DUPLICATE_UUIDS_REPAIRED"
-          : undefined;
+          : loaded.unresolvedTransactionAccounts > 0
+            ? "TRANSACTIONS_WITHOUT_ACCOUNT"
+            : loaded.repairedTransactionAccounts > 0
+              ? "TRANSACTION_ACCOUNTS_REPAIRED"
+              : loaded.closedInstallmentPlans > 0
+                ? "FINISHED_INSTALLMENTS_CLOSED"
+                : undefined;
     return loaded.data;
   }
 

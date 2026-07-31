@@ -50,6 +50,9 @@ function warningKey(code: string | undefined): TranslationKey | undefined {
   if (code === "DUPLICATE_UUIDS_REPAIRED") return "duplicateUuidsRepaired";
   if (code === "INVESTMENT_TRANSACTIONS_REPAIRED") return "investmentTransactionsRepaired";
   if (code === "INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS") return "investmentTransactionLinksAmbiguous";
+  if (code === "TRANSACTION_ACCOUNTS_REPAIRED") return "transactionAccountsRepaired";
+  if (code === "TRANSACTIONS_WITHOUT_ACCOUNT") return "transactionsWithoutAccount";
+  if (code === "FINISHED_INSTALLMENTS_CLOSED") return "finishedInstallmentsClosed";
   return undefined;
 }
 

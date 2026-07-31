@@ -16,13 +16,85 @@ function compatibleCategoryId(categories: RawRecord[], kind: "income" | "expense
   return id;
 }
 
+function migrateInvestmentCashAccounts(raw: RawRecord): void {
+  const accounts = list(raw.accounts);
+  const activeAccountIds = accounts
+    .filter((account) => account.active === true && typeof account.id === "string")
+    .map((account) => account.id as string);
+  const soleActiveAccountId = activeAccountIds.length === 1 ? activeAccountIds[0] : undefined;
+  const transactions = list(raw.transactions);
+  const entries = list(raw.investmentEntries);
+  const investments = list(raw.investments);
+  const recurringItems = list(raw.recurringItems);
+  const transactionById = new Map(transactions
+    .filter((transaction) => typeof transaction.id === "string")
+    .map((transaction) => [transaction.id as string, transaction]));
+  const transactionsByEntryId = new Map<string, RawRecord[]>();
+  for (const transaction of transactions) {
+    if (typeof transaction.investmentEntryId !== "string") continue;
+    const matches = transactionsByEntryId.get(transaction.investmentEntryId) ?? [];
+    matches.push(transaction);
+    transactionsByEntryId.set(transaction.investmentEntryId, matches);
+  }
+
+  for (const entry of entries) {
+    if (entry.kind === "valuation") continue;
+    const explicit = typeof entry.transactionId === "string"
+      ? transactionById.get(entry.transactionId)
+      : undefined;
+    const reverseMatches = typeof entry.id === "string" ? transactionsByEntryId.get(entry.id) ?? [] : [];
+    const transaction = explicit ?? (reverseMatches.length === 1 ? reverseMatches[0] : undefined);
+    const accountId = typeof entry.accountId === "string"
+      ? entry.accountId
+      : typeof transaction?.accountId === "string"
+        ? transaction.accountId
+        : soleActiveAccountId;
+    if (accountId) {
+      entry.accountId = accountId;
+      if (transaction && typeof transaction.accountId !== "string") transaction.accountId = accountId;
+    }
+  }
+
+  for (const transaction of transactions) {
+    if (transaction.kind !== "transfer" || typeof transaction.investmentId !== "string") continue;
+    if (typeof transaction.accountId !== "string" && soleActiveAccountId) transaction.accountId = soleActiveAccountId;
+  }
+
+  const investmentById = new Map(investments
+    .filter((investment) => typeof investment.id === "string")
+    .map((investment) => [investment.id as string, investment]));
+  for (const recurring of recurringItems) {
+    if (recurring.kind !== "investment" || typeof recurring.investmentId !== "string") continue;
+    const investment = investmentById.get(recurring.investmentId);
+    const accountId = typeof recurring.accountId === "string"
+      ? recurring.accountId
+      : typeof investment?.periodicAccountId === "string"
+        ? investment.periodicAccountId
+        : soleActiveAccountId;
+    if (accountId) {
+      recurring.accountId = accountId;
+      if (investment && typeof investment.periodicAccountId !== "string") investment.periodicAccountId = accountId;
+    }
+  }
+  for (const investment of investments) {
+    if (investment.periodicAmount && typeof investment.periodicAccountId !== "string" && soleActiveAccountId) {
+      investment.periodicAccountId = soleActiveAccountId;
+    }
+  }
+
+  raw.transactions = transactions;
+  raw.investmentEntries = entries;
+  raw.investments = investments;
+  raw.recurringItems = recurringItems;
+}
+
 export function migrateFinanceData(rawValue: unknown): FinanceData {
   if (!rawValue || typeof rawValue !== "object") throw new Error("INVALID_WORKBOOK_SCHEMA");
   const raw = structuredClone(rawValue) as RawRecord;
   const meta = raw.meta as RawRecord | undefined;
   const version = Number(meta?.schemaVersion);
-  if (version === 5) return financeDataSchema.parse(raw);
-  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
+  if (version === 6) return financeDataSchema.parse(raw);
+  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
 
   if (version === 1) {
     const categories = list(raw.categories);
@@ -90,6 +162,7 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
     condominiumCost: 0,
     ...item,
   }));
-  meta.schemaVersion = 5;
+  migrateInvestmentCashAccounts(raw);
+  meta.schemaVersion = 6;
   return financeDataSchema.parse(raw);
 }

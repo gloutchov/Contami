@@ -3,6 +3,54 @@ import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/fi
 import { createRolloverFinanceData } from "../../src/domain/rollover";
 
 describe("createRolloverFinanceData", () => {
+  it("carries forward only confirmed account movements", () => {
+    const current = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    current.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    current.transactions.push(
+      {
+        id: crypto.randomUUID(), date: "2026-06-01", description: "Confirmed contribution",
+        categoryId: current.categories[8].id, paymentMethodId: current.paymentMethods[0].id,
+        accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 100, currency: "EUR",
+        notes: "", createdAt: timestamp, updatedAt: timestamp,
+      },
+      {
+        id: crypto.randomUUID(), date: "2026-12-01", description: "Planned contribution",
+        categoryId: current.categories[8].id, paymentMethodId: current.paymentMethods[0].id,
+        accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 200, currency: "EUR",
+        planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+      },
+    );
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.accounts[0]?.openingBalance).toBe(900);
+  });
+
+  it("excludes movements dated before the account opening from rollover cash", () => {
+    const current = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    current.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    current.transactions.push({
+      id: crypto.randomUUID(), date: "2025-12-01", description: "Synthetic historical transfer",
+      categoryId: current.categories[8].id, paymentMethodId: current.paymentMethods[0].id,
+      accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 800, currency: "EUR",
+      notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.accounts[0]?.openingBalance).toBe(1_000);
+  });
+
   it("carries only active positions, closing balances and prior-year totals", () => {
     const current = createEmptyFinanceData(2026);
     const now = new Date().toISOString();
