@@ -10,6 +10,14 @@ updates:
         patterns:
           - react
           - react-dom
+      playwright:
+        patterns:
+          - playwright
+          - "@playwright/test"
+      lint-tooling:
+        patterns:
+          - eslint
+          - globals
   - package-ecosystem: github-actions
     directory: /
     schedule:
