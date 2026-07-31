@@ -30,7 +30,12 @@ export function TransactionForm({ data, value, onClose, onSave }: { data: Financ
   const selectedLegacyPosition = value?.investmentId && !positions.some((item) => item.id === value.investmentId) ? data.investments.find((item) => item.id === value.investmentId) : undefined;
   const regularPositions = [...positions.filter((item) => !pensionIds.has(item.id)), ...(selectedLegacyPosition && !pensionIds.has(selectedLegacyPosition.id) ? [selectedLegacyPosition] : [])];
   const pensionPositions = [...positions.filter((item) => pensionIds.has(item.id)), ...(selectedLegacyPosition && pensionIds.has(selectedLegacyPosition.id) ? [selectedLegacyPosition] : [])];
-  const valid = Boolean(description.trim() && Number(amount) > 0 && categoryId && paymentMethodId);
+  const requiresAccount = kind !== "transfer" || cashFlowDirection !== "neutral";
+  const selectedAccount = data.accounts.find((item) => item.id === accountId);
+  const accountValid = !requiresAccount || Boolean(selectedAccount
+    && date >= selectedAccount.openedAt
+    && (!selectedAccount.closedAt || date <= selectedAccount.closedAt));
+  const valid = Boolean(description.trim() && Number(amount) > 0 && categoryId && paymentMethodId && accountValid);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const timestamp = new Date().toISOString();
@@ -53,7 +58,7 @@ export function TransactionForm({ data, value, onClose, onSave }: { data: Financ
     <Field label={t("description")} wide><input required maxLength={240} value={description} onChange={(event) => setDescription(event.target.value)} autoFocus /></Field>
     <Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">—</option>{categories.map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field>
     <Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-    <Field label={t("account")}><select value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+    <Field label={t("account")}><select required={requiresAccount} value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active || item.id === accountId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     <Field label={t("amount")}><input required min="0.01" step="0.01" inputMode="decimal" type="number" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
     <Field label={t("property")}><select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}><option value="">—</option>{data.properties.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     <Field label={t("investmentOrCompartment")}><select value={investmentId} onChange={(event) => setInvestmentId(event.target.value)}><option value="">—</option>{regularPositions.length > 0 && <optgroup label={t("investments")}>{regularPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}{pensionPositions.length > 0 && <optgroup label={t("pensionCompartments")}>{pensionPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}</select></Field>

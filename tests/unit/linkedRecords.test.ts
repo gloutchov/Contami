@@ -124,12 +124,18 @@ describe("linked finance records", () => {
     let data = createEmptyFinanceData(2026);
     const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
     const paymentMethodId = data.paymentMethods[0].id;
+    const accountId = crypto.randomUUID();
     const investmentId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addAccount", value: {
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    } });
     data = applyFinanceCommand(data, { type: "addInvestment", value: {
       id: investmentId, name: "Synthetic recurring ETF", kind: "etf", typeId: data.investmentTypes.find((item) => item.code === "etf")!.id,
       provider: "", currency: "EUR", periodicAmount: 100, periodicFrequency: "monthly",
       periodicNextDueDate: "2026-09-01", periodicCategoryId: categoryId,
-      periodicPaymentMethodId: paymentMethodId, active: true, openedAt: "2026-01-01", notes: "",
+      periodicPaymentMethodId: paymentMethodId, periodicAccountId: accountId,
+      active: true, openedAt: "2026-01-01", notes: "",
     } });
     const planned = data.transactions.find((item) => item.investmentId === investmentId && item.planned)!;
     const plannedEntryId = planned.investmentEntryId!;
@@ -146,11 +152,13 @@ describe("linked finance records", () => {
       planned: false,
       recurringId: planned.recurringId,
       investmentEntryId: plannedEntryId,
+      accountId,
     });
     expect(data.investmentEntries.find((item) => item.id === plannedEntryId)).toMatchObject({
       transactionId: planned.id,
       kind: "contribution",
       amount: 100,
+      accountId,
     });
   });
 

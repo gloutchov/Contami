@@ -529,11 +529,11 @@ function parseProperties(parsed: ParsedWorkbook, data: FinanceData, builder: Imp
   }
 }
 
-function periodicInvestmentFields(reader: RowReader): Pick<Investment, "periodicAmount" | "periodicFrequency" | "periodicNextDueDate" | "periodicCategoryId" | "periodicPaymentMethodId"> {
+function periodicInvestmentFields(reader: RowReader): Pick<Investment, "periodicAmount" | "periodicFrequency" | "periodicNextDueDate" | "periodicCategoryId" | "periodicPaymentMethodId" | "periodicAccountId"> {
   const amount = reader.number("periodic_amount", false, { positive: true });
   const frequency = reader.enum("periodic_frequency", ["monthly", "yearly"] as const, Boolean(amount));
   const due = reader.date("periodic_next_due_date", Boolean(amount));
-  return { periodicAmount: amount, periodicFrequency: frequency, periodicNextDueDate: due, periodicCategoryId: undefined, periodicPaymentMethodId: undefined };
+  return { periodicAmount: amount, periodicFrequency: frequency, periodicNextDueDate: due, periodicCategoryId: undefined, periodicPaymentMethodId: undefined, periodicAccountId: undefined };
 }
 
 function readInvestment(
@@ -554,6 +554,9 @@ function readInvestment(
   if (periodic.periodicAmount) {
     periodic.periodicCategoryId = reader.catalog("periodic_category", categoryItems(data, "expense"), true);
     periodic.periodicPaymentMethodId = reader.catalog("periodic_payment_method", catalogs.payments, true);
+    periodic.periodicAccountId = data.accounts.filter((item) => item.active).length === 1
+      ? data.accounts.find((item) => item.active)?.id
+      : undefined;
   }
   if (reader.errors.length || !name || !currency || !openedAt || active === undefined) return undefined;
   return {
@@ -604,9 +607,13 @@ function parseInvestmentEntries(
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
+    const accountId = data.accounts.filter((item) => item.active).length === 1
+      ? data.accounts.find((item) => item.active)?.id
+      : choice.current?.accountId;
     const value: InvestmentEntry = {
       id: choice.current?.id ?? crypto.randomUUID(), investmentId, date, kind: recordType,
-      amount, description, categoryId, paymentMethodId, transactionId: choice.current?.transactionId, notes: rowNotes,
+      amount, description, categoryId, paymentMethodId, accountId: recordType === "valuation" ? undefined : accountId,
+      transactionId: choice.current?.transactionId, notes: rowNotes,
     };
     if (reader.errors.length) { builder.reject(reader); continue; }
     builder.add(rowNumber, "record_type", choice.action, {
@@ -758,8 +765,13 @@ function parseRecurring(parsed: ParsedWorkbook, data: FinanceData, builder: Impo
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
+    const accountId = kind === "investment" && data.accounts.filter((item) => item.active).length === 1
+      ? data.accounts.find((item) => item.active)?.id
+      : kind === "investment"
+        ? choice.current?.accountId
+        : undefined;
     const value: RecurringItem = {
-      id: choice.current?.id ?? crypto.randomUUID(), name, kind, direction, amount, frequency, categoryId, paymentMethodId,
+      id: choice.current?.id ?? crypto.randomUUID(), name, kind, direction, amount, frequency, categoryId, paymentMethodId, accountId,
       nextDueDate, endDate, remainingInstallments, active, closedAt: active ? undefined : (choice.current?.closedAt ?? nextDueDate),
       propertyId, investmentId, vehicleId, notes: rowNotes,
     };

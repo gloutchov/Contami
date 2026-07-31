@@ -53,7 +53,7 @@ function demoData(): FinanceData {
   const investmentId = crypto.randomUUID();
   data.investments.push({ id: investmentId, name: "Balanced portfolio", kind: "fund", typeId: data.investmentTypes.find((item) => item.code === "fund")?.id, provider: "", currency: "EUR", active: true, openedAt: `${data.meta.activeYear - 4}-01-01`, notes: "" });
   data.investmentEntries.push(
-    { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-02-01`, kind: "contribution", amount: 5_000, description: "Contribution", categoryId: category("Investments"), paymentMethodId: payment, notes: "" },
+    { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-02-01`, kind: "contribution", amount: 5_000, description: "Contribution", categoryId: category("Investments"), paymentMethodId: payment, accountId, notes: "" },
     { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-03-01`, kind: "valuation", amount: 92_450, description: "Current value", notes: "" },
   );
   data.investmentAnnualSummaries.push(
@@ -69,7 +69,7 @@ function demoData(): FinanceData {
   );
   pensionComponents.forEach((item, index) => {
     data.investmentEntries.push(
-      { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-01-31`, kind: "contribution", amount: 600, description: "Pension contribution", categoryId: category("Investments"), paymentMethodId: payment, notes: "" },
+      { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-01-31`, kind: "contribution", amount: 600, description: "Pension contribution", categoryId: category("Investments"), paymentMethodId: payment, accountId, notes: "" },
       { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-06-30`, kind: "valuation", amount: [18_450, 12_780, 9_620][index], description: "Current value", notes: "" },
     );
     data.investmentAnnualSummaries.push(
@@ -91,6 +91,12 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), vehicleId: currentVehicleId, date: `${data.meta.activeYear}-06-20`, kind: "insurance", description: "Demo insurance", amount: 620, categoryId: category("Transport"), paymentMethodId: payment, notes: "" },
   );
   data.recurringItems.push({ id: recurringId, name: "Music", kind: "subscription", amount: 10.99, frequency: "monthly", categoryId: category("Services & subscriptions"), paymentMethodId: payment, nextDueDate: `${data.meta.activeYear}-08-01`, active: true, notes: "" });
+  data.recurringItems.push({
+    id: crypto.randomUUID(), name: "Demo installment", kind: "installment", direction: "expense",
+    amount: 45, frequency: "monthly", categoryId: category("Services & subscriptions"),
+    paymentMethodId: payment, nextDueDate: `${data.meta.activeYear}-08-15`,
+    remainingInstallments: 2, active: true, notes: "",
+  });
   data.sharedExpenses.push(
     { id: crypto.randomUUID(), date: `${data.meta.activeYear}-06-08`, description: "Shared train tickets", categoryId: category("Transport"), paymentMethodId: payment, amount: 120, ownerShare: 60, partnerShare: 60, paidBy: "partner", settled: true, notes: "" },
     { id: crypto.randomUUID(), date: `${data.meta.activeYear}-07-12`, description: "Weekend groceries", categoryId: category("Groceries"), paymentMethodId: payment, amount: 86, ownerShare: 43, partnerShare: 43, paidBy: "owner", settled: false, notes: "" },

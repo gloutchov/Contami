@@ -256,7 +256,8 @@ function periodicRecurring(investment: Investment, existing?: RecurringItem): Re
   return {
     id: existing?.id ?? randomUUID(), name: investment.name, kind: "investment", direction: "expense",
     amount: investment.periodicAmount, frequency: investment.periodicFrequency, categoryId: investment.periodicCategoryId,
-    paymentMethodId: investment.periodicPaymentMethodId, investmentId: investment.id, nextDueDate: investment.periodicNextDueDate,
+    paymentMethodId: investment.periodicPaymentMethodId, accountId: investment.periodicAccountId ?? existing?.accountId,
+    investmentId: investment.id, nextDueDate: investment.periodicNextDueDate,
     active: investment.active, closedAt: investment.closedAt, notes: investment.notes,
   };
 }
@@ -277,6 +278,7 @@ export function syncRecurringLink(data: FinanceData, recurring: RecurringItem): 
       investment.periodicNextDueDate = recurring.nextDueDate;
       investment.periodicCategoryId = recurring.categoryId;
       investment.periodicPaymentMethodId = recurring.paymentMethodId;
+      investment.periodicAccountId = recurring.accountId;
     }
   }
   if (recurring.propertyId && recurring.direction === "income" && recurring.frequency === "monthly") {
@@ -345,7 +347,8 @@ export function syncRecurringTransactions(data: FinanceData, recurring: Recurrin
         const timestamp = nowIso();
         upsertTransactionWithLinks(data, {
           id: randomUUID(), date, description: recurring.name, categoryId: recurring.categoryId,
-          paymentMethodId: recurring.paymentMethodId, kind: transactionKind, cashFlowDirection, amount: recurring.amount, currency: "EUR",
+          paymentMethodId: recurring.paymentMethodId, accountId: recurring.accountId,
+          kind: transactionKind, cashFlowDirection, amount: recurring.amount, currency: "EUR",
           recurringId: recurring.id, propertyId: recurring.propertyId, investmentId: recurring.investmentId, vehicleId: recurring.vehicleId,
           planned: true, shared: false, sharedPaidBy: "owner", sharedSettled: false,
           notes: recurring.notes, createdAt: timestamp, updatedAt: timestamp,
