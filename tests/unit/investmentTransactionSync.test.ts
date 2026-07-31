@@ -198,6 +198,34 @@ describe("investment and transaction reconciliation", () => {
     expect(reconciled.data.transactions.map((item) => item.investmentEntryId)).toEqual(entryIds);
   });
 
+  it("treats linked records as equal regardless of object property order", () => {
+    const data = createEmptyFinanceData(2026);
+    const investment = addPosition(data, { id: crypto.randomUUID(), name: "Synthetic ordered fund" });
+    const entry = movement(data, investment.id, {
+      id: crypto.randomUUID(),
+      transactionId: crypto.randomUUID(),
+      kind: "contribution",
+      amount: 125,
+      description: "Synthetic ordered contribution",
+    });
+    const linked = transaction(data, {
+      id: entry.transactionId!,
+      investmentId: investment.id,
+      investmentEntryId: entry.id,
+      kind: "transfer",
+      cashFlowDirection: "outflow",
+      amount: entry.amount,
+      description: entry.description,
+    });
+    data.investmentEntries.push(entry);
+    data.transactions.push(Object.fromEntries(Object.entries(linked).reverse()) as Transaction);
+
+    const reconciled = reconcileInvestmentTransactions(data, { now: () => "2026-07-31T10:00:00.000Z" });
+
+    expect(reconciled.repairs).toEqual([]);
+    expect(reconciled.data.transactions[0]?.updatedAt).toBe(timestamp);
+  });
+
   it("does not rewrite conflicting explicit cross-links", () => {
     const data = createEmptyFinanceData(2026);
     const firstInvestment = addPosition(data, { id: crypto.randomUUID(), name: "First" });

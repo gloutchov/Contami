@@ -8,6 +8,7 @@ import { InvestmentForm } from "../../src/renderer/forms/InvestmentForms";
 import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
 import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
+import { TransactionForm } from "../../src/renderer/forms/TransactionForm";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
 import { PropertiesView } from "../../src/renderer/views/PropertiesView";
 
@@ -38,8 +39,28 @@ function dataWithUnrelatedSharedExpense() {
 }
 
 describe("v0.8 review forms", () => {
+  it("requires an account for a cash-affecting transaction", async () => {
+    const data = createEmptyFinanceData(2026);
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<TransactionForm data={data} onClose={() => undefined} onSave={onSave} />);
+
+    await user.type(screen.getByLabelText("Descrizione"), "Spesa sintetica");
+    await user.selectOptions(screen.getByLabelText("Categoria"), data.categories.find((item) => item.kind === "expense")!.id);
+    await user.type(screen.getByLabelText("Importo"), "25");
+
+    expect(screen.getByLabelText("Conto")).toBeRequired();
+    expect(screen.getByRole("button", { name: "Salva" })).toBeDisabled();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it("creates a new investment together with its initial contribution", async () => {
     const data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    data.accounts.push({
+      id: accountId, name: "Conto sintetico", kind: "bank", currency: "EUR",
+      openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "",
+    });
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderIt(<InvestmentForm data={data} onClose={() => undefined} onSave={onSave} />);
@@ -52,7 +73,7 @@ describe("v0.8 review forms", () => {
     const command = onSave.mock.calls[0][0];
     expect(command.type).toBe("addInvestmentWithInitialContribution");
     if (command.type === "addInvestmentWithInitialContribution") {
-      expect(command.value.initialContribution).toMatchObject({ amount: 2_500, kind: "contribution" });
+      expect(command.value.initialContribution).toMatchObject({ amount: 2_500, kind: "contribution", accountId });
       expect(command.value.initialContribution.investmentId).toBe(command.value.investment.id);
     }
   });

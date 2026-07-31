@@ -97,6 +97,13 @@ h1 { margin: 0; font-size: clamp(28px, 3vw, 40px); letter-spacing: -.04em; color
 .kpi-card span { color: var(--muted); font-size: 12px; font-weight: 600; }
 .kpi-card strong { margin-top: 8px; font-family: "Manrope"; font-size: clamp(18px, 2vw, 25px); letter-spacing: -.04em; }
 .kpi-card small { color: var(--muted); margin-top: 3px; font-size: 10px; }
+.kpi-card.has-tooltip { overflow: visible; cursor: help; z-index: 2; }
+.kpi-tooltip { position: absolute; z-index: 20; top: calc(100% - 8px); left: 18px; min-width: min(330px, calc(100vw - 64px)); max-width: 390px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-solid); box-shadow: var(--shadow); color: var(--text); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .15s ease, transform .15s ease, visibility .15s; pointer-events: none; }
+.kpi-card.has-tooltip:hover .kpi-tooltip, .kpi-card.has-tooltip:focus .kpi-tooltip, .kpi-card.has-tooltip:focus-within .kpi-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
+.kpi-tooltip strong { margin: 0 0 8px; font-family: inherit; font-size: 12px; letter-spacing: 0; }
+.kpi-tooltip ul { margin: 0; padding-left: 17px; display: grid; gap: 7px; }
+.kpi-tooltip li { font-size: 11px; line-height: 1.35; }
+.kpi-tooltip li span { margin-top: 1px; font-size: 10px; font-weight: 500; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .8fr); gap: 18px; }
 .chart-wrap { height: 260px; padding: 10px 12px 18px; }
 .legend { display: flex; gap: 15px; align-items: center; color: var(--muted); font-size: 11px; }

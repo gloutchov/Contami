@@ -48,6 +48,7 @@ function transactionConflictsWithEntry(transaction: Transaction, entry: Investme
   return Boolean(
     (transaction.investmentId && transaction.investmentId !== entry.investmentId)
     || (transaction.investmentEntryId && transaction.investmentEntryId !== entry.id)
+    || (transaction.accountId && entry.accountId && transaction.accountId !== entry.accountId)
     || transaction.propertyId
     || transaction.propertyEntryId
     || transaction.vehicleId
@@ -80,7 +81,7 @@ export function transactionFromInvestmentEntry(
     description: entry.description,
     categoryId: entry.categoryId!,
     paymentMethodId: entry.paymentMethodId!,
-    accountId: existing?.accountId,
+    accountId: entry.accountId ?? existing?.accountId,
     kind: "transfer",
     cashFlowDirection: entry.kind === "contribution" ? "outflow" : "inflow",
     amount: entry.amount,
@@ -115,13 +116,17 @@ export function investmentEntryFromTransaction(
     description: transaction.description,
     categoryId: transaction.categoryId,
     paymentMethodId: transaction.paymentMethodId,
+    accountId: transaction.accountId,
     transactionId: transaction.id,
     notes: transaction.notes,
   };
 }
 
 function sameRecord<T>(left: T, right: T): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const keys = new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
+  return [...keys].every((key) => Object.is(leftRecord[key], rightRecord[key]));
 }
 
 export function reconcileInvestmentTransactions(

@@ -55,7 +55,7 @@ La scelta del formato nelle Impostazioni si applica al prossimo workbook creato.
 La pagina iniziale mostra:
 
 - patrimonio netto: liquidità + valore degli immobili attivi + investimenti attivi + pensioni integrative;
-- liquidità: saldi iniziali dei conti più entrate meno uscite associate;
+- liquidità: saldi iniziali dei conti più movimenti confermati associati, inclusi i trasferimenti con entrata/uscita di cassa; i movimenti anteriori all’apertura o successivi alla chiusura del conto non incidono sul totale;
 - valore immobili: ultima valutazione disponibile, oppure prezzo di acquisto, moltiplicata per la quota di proprietà;
 - valore investimenti: ultima valutazione degli investimenti attivi, esclusi i comparti pensione;
 - valore pensioni: somma delle ultime valutazioni dei comparti attivi, senza duplicare il raccoglitore;
@@ -69,7 +69,7 @@ La pagina iniziale mostra:
 
 I punti degli anni chiusi provengono da `Annual Summaries`; il punto dell’anno corrente viene ricalcolato dalle registrazioni. Il passaggio d’anno conserva automaticamente i totali necessari ai confronti.
 
-I trasferimenti non sono conteggiati come entrata o uscita. Possono essere neutri tra conti oppure indicare un’entrata/uscita dalla liquidità: versamenti, acquisti, liquidazioni e vendite di investimenti usano questa direzione per aggiornare il saldo del conto senza alterare i consuntivi delle spese correnti. Le valute sono registrate, ma la versione iniziale non effettua conversioni automatiche.
+I trasferimenti non sono conteggiati come reddito o spesa corrente. Possono essere neutri tra conti oppure indicare un’entrata/uscita dalla liquidità: versamenti, acquisti, liquidazioni e vendite di investimenti usano questa direzione per aggiornare il saldo del conto e i totalizzatori di cassa. Le valute sono registrate, ma la versione iniziale non effettua conversioni automatiche.
 
 ## 5. Transazioni
 
@@ -79,11 +79,11 @@ Premi **Nuova transazione** e indica:
 - per un trasferimento, effetto sulla liquidità (uscita, entrata oppure neutro tra conti);
 - data e descrizione;
 - categoria e metodo di pagamento;
-- conto, immobile, investimento o ricorrenza opzionali;
+- conto obbligatorio per entrate, uscite e trasferimenti con effetto di cassa; immobile, investimento o ricorrenza restano collegamenti opzionali;
 - se una spesa è condivisa e chi l’ha pagata;
 - importo, valuta EUR e note opzionali.
 
-Puoi filtrare per testo, tipo, categoria, metodo di pagamento e mese. **Azzera filtri** ripristina insieme tutti i criteri e l’elenco completo. Con un mese selezionato i riquadri mostrano i parziali filtrati; sono inoltre disponibili i totali dell’anno e quelli maturati fino a oggi. Le righe generate da una ricorrenza sono evidenziate; quelle future sono pianificate e possono essere confermate quando il movimento avviene.
+Puoi filtrare per testo, tipo, categoria, metodo di pagamento e mese. **Azzera filtri** ripristina insieme tutti i criteri e l’elenco completo. I riquadri mostrano Entrate di cassa, Uscite di cassa e saldo filtrato, includendo i trasferimenti direzionati e i saldi iniziali dei conti; la fascia “alla data odierna” aggiunge gli stessi saldi iniziali alle sole righe confermate fino a oggi. Un avviso persistente segnala i movimenti di cassa dell’anno senza conto. All’apertura del workbook ContaMì assegna automaticamente il conto mancante soltanto se ne esiste uno compatibile con la data, senza scegliere arbitrariamente tra più conti. Le righe generate da una ricorrenza sono evidenziate; quelle future sono pianificate e possono essere confermate quando il movimento avviene.
 
 Collegare una transazione a un immobile, investimento o spesa condivisa crea/aggiorna automaticamente la registrazione corrispondente. Per investimenti e comparti pensione, un trasferimento in uscita diventa un Versamento e uno in entrata una Liquidazione. Modifica, conferma e cancellazione restano sincronizzate, per evitare doppie contabilizzazioni.
 
@@ -122,11 +122,11 @@ La dashboard mostra costi dell’anno, carburante e percorrenza. Ogni scheda vet
 
 ## 8. Investimenti e risparmio
 
-Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazioni o altre forme di risparmio non pensionistiche. Indica tipologia, gestore, data di apertura, eventuale investimento padre e, quando disponibile, il versamento iniziale. Il versamento iniziale diventa subito controvalore e genera il trasferimento collegato nelle Transazioni. Gli investimenti sono raggruppati per tipologia e ogni gruppo mostra il proprio totale.
+Con **Nuovo investimento** puoi registrare titoli, fondi, fogli, ETF, obbligazioni o altre forme di risparmio non pensionistiche. Indica tipologia, gestore, data di apertura, eventuale investimento padre e, quando disponibile, il versamento iniziale con il conto interessato. Il versamento iniziale diventa subito controvalore e genera il trasferimento collegato nelle Transazioni. Gli investimenti sono raggruppati per tipologia e ogni gruppo mostra il proprio totale.
 
 Apri un investimento per il dettaglio. I movimenti possono essere filtrati insieme per descrizione e mese e i parziali di Versamenti e Liquidazioni seguono le righe visibili. **Nuovo movimento** registra soltanto **Versamento** o **Liquidazione**; **Aggiorna valore**, disponibile anche accanto a **Modifica investimento** nella modale, aggiunge invece una valutazione che alimenta dashboard e patrimonio netto. Puoi modificare e cancellare investimenti e movimenti con conferma.
 
-Un Versamento/Liquidazione genera una sola Transazione collegata come trasferimento con uscita/entrata dalla liquidità; una Transazione associata a un investimento genera o aggiorna lo stesso movimento. La regola vale per operazioni una tantum, versamento iniziale, importazione e ricorrenze; la conferma di una pianificazione conserva la coppia esistente senza duplicarla. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non lo modificano. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
+Un Versamento/Liquidazione richiede il conto interessato e genera una sola Transazione collegata come trasferimento con uscita/entrata dalla liquidità; una Transazione associata a un investimento genera o aggiorna lo stesso movimento e lo stesso conto. La regola vale per operazioni una tantum, versamento iniziale, importazione e ricorrenze; la conferma di una pianificazione conserva la coppia esistente senza duplicarla. Il controvalore parte dai versamenti, viene sostituito da ogni valutazione e poi incorpora i movimenti confermati successivi; le operazioni pianificate non modificano né controvalore né liquidità corrente. Il badge **Ricorrente** appare soltanto sulle Transazioni collegate esplicitamente a una ricorrenza. Se dichiari un versamento periodico, ContaMì richiede il conto e crea o aggiorna anche la Ricorrenza e le transazioni pianificate dell’anno.
 
 Quando apri un workbook esistente, ContaMì riconcilia automaticamente i movimenti patrimoniali privi del collegamento: usa solo riferimenti espliciti o corrispondenze esatte e univoche, conserva un backup recuperabile e non modifica i casi ambigui, che vengono segnalati nell’interfaccia.
 
@@ -145,13 +145,13 @@ Nel workbook pensioni e comparti restano nella tabella `Investments`, identifica
 
 ## 10. Ricorrenze e rate
 
-**Nuova ricorrenza** gestisce abbonamenti, servizi, pagamenti rateali, affitti in entrata e versamenti periodici. Specifica direzione, importo, frequenza (inclusa mensile o una tantum annuale), categoria, metodo, prossima scadenza, eventuale data di fine e rate residue. Un investimento periodico può essere collegato a un investimento o comparto pensione esistente; un affitto può essere collegato all’immobile; una rata può essere associata a un’automobile.
+**Nuova ricorrenza** gestisce abbonamenti, servizi, pagamenti rateali, affitti in entrata e versamenti periodici. Specifica direzione, importo, frequenza (inclusa mensile o una tantum annuale), categoria, metodo, prossima scadenza, eventuale data di fine e rate residue. Per un investimento periodico devi anche scegliere il conto interessato e puoi collegarlo a un investimento o comparto pensione esistente; un affitto può essere collegato all’immobile; una rata può essere associata a un’automobile.
 
-La dashboard mostra equivalente mensile, numero di elementi attivi e rate residue note. Puoi filtrare per nome, tipo e mese: i totali seguono i filtri. Sono disponibili modifica, cancellazione, chiusura e riapertura.
+La dashboard mostra equivalente mensile, numero di elementi attivi e rate residue note. Passa il mouse sul riquadro **Rate residue**, oppure portagli il focus con la tastiera, per vedere nome del piano, numero di rate ancora dovute e prossima scadenza. Puoi filtrare per nome, tipo e mese: i totali e il dettaglio del riquadro seguono i filtri. Sono disponibili modifica, cancellazione, chiusura e riapertura.
 
 Se il pagamento rateale è iniziato prima del workbook corrente, inserisci in **Prossima scadenza** la prima rata non ancora pagata e in **Rate residue** soltanto quelle ancora dovute, non il numero originario del piano. Per esempio, di 12 rate iniziate l’anno scorso con 4 ancora da pagare, indica la prossima scadenza effettiva e `4`.
 
-Per le ricorrenze non rateali, ContaMì genera transazioni **pianificate** fino alla data di fine o alla fine dell’anno. Per i pagamenti rateali genera soltanto il numero di rate residue, sempre entro l’eventuale data di fine. Confermare una rata la rende effettiva, riduce il residuo e, dopo l’ultima, chiude automaticamente la ricorrenza conservando le righe confermate nello storico. Durante il passaggio d’anno, il nuovo workbook conserva il residuo aggiornato e rigenera soltanto le rate ancora dovute nell’anno nuovo. L’app non esegue pagamenti.
+Per le ricorrenze non rateali, ContaMì genera transazioni **pianificate** fino alla data di fine o alla fine dell’anno. Per i pagamenti rateali genera soltanto il numero di rate residue, sempre entro l’eventuale data di fine. Confermare una rata la rende effettiva, riduce il residuo e, dopo l’ultima, chiude automaticamente la ricorrenza conservando le righe confermate nello storico. All’apertura vengono chiusi anche eventuali piani rateali ancora attivi ma già arrivati a zero, rimuovendo soltanto le loro pianificazioni obsolete. Durante il passaggio d’anno, il nuovo workbook conserva il residuo aggiornato e rigenera soltanto le rate ancora dovute nell’anno nuovo. L’app non esegue pagamenti.
 
 ## 11. Spese condivise
 
@@ -217,7 +217,7 @@ Non contiene le singole transazioni dell’anno chiuso, i movimenti storici, gli
 
 ## 16. Il workbook e i backup
 
-I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v5; i workbook v1, v2, v3 e v4 vengono migrati all’apertura. `Property History` conserva anche i costi annuali aggregati di Telefono/Internet e Condominio.
+I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History` e `Vehicle History`. `_Meta` è nascosto e contiene versione schema e anno attivo. Lo schema corrente è v6; i workbook v1–v5 vengono migrati all’apertura. La v6 conserva il conto nei movimenti e nei piani periodici di investimenti/comparti; quando esiste un solo conto attivo, i riferimenti mancanti vengono completati automaticamente. `Property History` conserva anche i costi annuali aggregati di Telefono/Internet e Condominio.
 
 Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi leggerlo, copiarlo e archiviarlo liberamente.
 

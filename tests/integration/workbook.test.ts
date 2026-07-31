@@ -168,6 +168,51 @@ describe("ExcelWorkbookRepository", () => {
     expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
   });
 
+  it("repairs unambiguous transaction accounts and closes finished installment plans once", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-operational-repair-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-2026.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    data.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.transactions.push({
+      id: crypto.randomUUID(), date: "2026-05-10", description: "Synthetic account-less expense",
+      categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, kind: "expense", amount: 25,
+      currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    data.recurringItems.push({
+      id: recurringId, name: "Synthetic finished plan", kind: "installment", direction: "expense",
+      amount: 25, frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, nextDueDate: "2026-06-10",
+      remainingInstallments: 0, active: true, notes: "",
+    });
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+
+    const loaded = await repository.loadWithUuidRepair(filePath);
+
+    expect(loaded.repairedTransactionAccounts).toBe(1);
+    expect(loaded.unresolvedTransactionAccounts).toBe(0);
+    expect(loaded.closedInstallmentPlans).toBe(1);
+    expect(loaded.data.transactions[0]?.accountId).toBe(accountId);
+    expect(loaded.data.recurringItems[0]).toMatchObject({ active: false });
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+
+    const secondLoad = await repository.loadWithUuidRepair(filePath);
+    expect(secondLoad).toMatchObject({
+      repairedTransactionAccounts: 0,
+      unresolvedTransactionAccounts: 0,
+      closedInstallmentPlans: 0,
+    });
+    expect(secondLoad.data).toEqual(loaded.data);
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+  });
+
   it("reports ambiguous legacy matches without changing the workbook", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-investment-ambiguous-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-2026.xlsx");
@@ -227,7 +272,7 @@ describe("ExcelWorkbookRepository", () => {
     await expect(repository.save(path.join(tmpdir(), "bad.csv"), createEmptyFinanceData())).rejects.toThrow("INVALID_WORKBOOK_PATH");
   });
 
-  it("loads a version 3 workbook and migrates hardcoded taxes to schema v5", async () => {
+  it("loads a version 3 workbook and migrates hardcoded taxes to the current schema", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-v3-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-legacy.xlsx");
     const data = createEmptyFinanceData(2026);
@@ -260,11 +305,11 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.propertyEntries[0]).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 2, amount: 350 });
   });
 
-  it("loads a version 4 workbook and migrates property history to schema v5", async () => {
+  it("loads a version 4 workbook and migrates property history to the current schema", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-v4-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-v4.xlsx");
     const data = createEmptyFinanceData(2026);
@@ -301,7 +346,7 @@ describe("ExcelWorkbookRepository", () => {
     await workbook.xlsx.writeFile(filePath);
 
     const migrated = await repository.load(filePath);
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({ phoneInternetCost: 0, condominiumCost: 0 });
   });
 });

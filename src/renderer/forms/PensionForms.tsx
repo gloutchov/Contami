@@ -30,7 +30,8 @@ export function PensionEntityForm({ data, mode, value, initialPensionId, onClose
   const [periodicNextDueDate, setPeriodicNextDueDate] = useState(value?.periodicNextDueDate ?? todayIso());
   const [periodicCategoryId, setPeriodicCategoryId] = useState(value?.periodicCategoryId ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [periodicPaymentMethodId, setPeriodicPaymentMethodId] = useState(value?.periodicPaymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
-  const validPeriodic = !periodic || (Number(periodicAmount) > 0 && periodicCategoryId && periodicPaymentMethodId && periodicNextDueDate);
+  const [periodicAccountId, setPeriodicAccountId] = useState(value?.periodicAccountId ?? data.accounts.find((item) => item.active)?.id ?? "");
+  const validPeriodic = !periodic || (Number(periodicAmount) > 0 && periodicCategoryId && periodicPaymentMethodId && periodicAccountId && periodicNextDueDate);
   const valid = Boolean(name.trim() && pensionTypeId && (mode === "pension" || parentInvestmentId) && validPeriodic);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -53,6 +54,7 @@ export function PensionEntityForm({ data, mode, value, initialPensionId, onClose
       periodicNextDueDate: mode === "compartment" && periodic ? periodicNextDueDate : value?.periodicNextDueDate,
       periodicCategoryId: mode === "compartment" && periodic ? periodicCategoryId : value?.periodicCategoryId,
       periodicPaymentMethodId: mode === "compartment" && periodic ? periodicPaymentMethodId : value?.periodicPaymentMethodId,
+      periodicAccountId: mode === "compartment" && periodic ? periodicAccountId : value?.periodicAccountId,
       notes,
     };
     if (mode === "compartment" && !periodic) {
@@ -61,6 +63,7 @@ export function PensionEntityForm({ data, mode, value, initialPensionId, onClose
       item.periodicNextDueDate = undefined;
       item.periodicCategoryId = undefined;
       item.periodicPaymentMethodId = undefined;
+      item.periodicAccountId = undefined;
     }
     await saveAndClose(onSave, { type: value ? "updateInvestment" : "addInvestment", value: item }, onClose);
   };
@@ -72,7 +75,7 @@ export function PensionEntityForm({ data, mode, value, initialPensionId, onClose
     <Field label={t("date")}><input required type="date" value={openedAt} onChange={(event) => setOpenedAt(event.target.value)} /></Field>
     {mode === "pension" && <Field label={t("pensionCollector")} wide><small>{t("pensionCollectorHelp")}</small></Field>}
     {mode === "compartment" && <><Field label={t("periodicContribution")} wide><span className="check-field"><input type="checkbox" checked={periodic} onChange={(event) => setPeriodic(event.target.checked)} />{t("periodicContributionHelp")}</span></Field>
-      {periodic && <><Field label={t("amount")}><input required type="number" min="0.01" step="0.01" value={periodicAmount} onChange={(event) => setPeriodicAmount(event.target.value)} /></Field><Field label={t("frequency")}><select value={periodicFrequency} onChange={(event) => setPeriodicFrequency(event.target.value as "monthly" | "yearly")}><option value="monthly">{t("monthly")}</option><option value="yearly">{t("yearly")}</option></select></Field><Field label={t("nextDue")}><input required type="date" value={periodicNextDueDate} onChange={(event) => setPeriodicNextDueDate(event.target.value)} /></Field><Field label={t("category")}><select required value={periodicCategoryId} onChange={(event) => setPeriodicCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={periodicPaymentMethodId} onChange={(event) => setPeriodicPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
+      {periodic && <><Field label={t("amount")}><input required type="number" min="0.01" step="0.01" value={periodicAmount} onChange={(event) => setPeriodicAmount(event.target.value)} /></Field><Field label={t("frequency")}><select value={periodicFrequency} onChange={(event) => setPeriodicFrequency(event.target.value as "monthly" | "yearly")}><option value="monthly">{t("monthly")}</option><option value="yearly">{t("yearly")}</option></select></Field><Field label={t("nextDue")}><input required type="date" value={periodicNextDueDate} onChange={(event) => setPeriodicNextDueDate(event.target.value)} /></Field><Field label={t("category")}><select required value={periodicCategoryId} onChange={(event) => setPeriodicCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={periodicPaymentMethodId} onChange={(event) => setPeriodicPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label={t("account")}><select required value={periodicAccountId} onChange={(event) => setPeriodicAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active || item.id === periodicAccountId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
     </>}
     <Field label={t("notes")} wide><textarea value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;

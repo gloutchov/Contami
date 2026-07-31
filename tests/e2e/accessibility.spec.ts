@@ -185,6 +185,16 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
   await expect(page.getByRole("cell", { name: "Synthetic pension liquidation" })).toBeVisible();
   await pensionTransactionFilters.getByRole("button", { name: "Azzera filtri" }).click();
   await expect(page.getByRole("cell", { name: "Pension contribution", exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Ricorrenze", exact: true }).click();
+  const installmentCard = page.locator("article.kpi-card").filter({ hasText: "Rate residue" });
+  const installmentTooltip = installmentCard.getByRole("tooltip");
+  await expect(installmentTooltip).toBeHidden();
+  await installmentCard.hover();
+  await expect(installmentTooltip).toBeVisible();
+  await expect(installmentTooltip).toContainText("Demo installment");
+  await expect(installmentTooltip).toContainText("2 residue");
+  await installmentCard.focus();
+  await expect(installmentTooltip).toBeVisible();
   await page.getByRole("button", { name: "Spese condivise", exact: true }).click();
   const sharedFilters = page.locator(".entry-filters");
   await sharedFilters.getByRole("combobox", { name: "Mese" }).selectOption(`${activeYear}-07`);

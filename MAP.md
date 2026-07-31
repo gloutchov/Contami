@@ -41,9 +41,10 @@ ContaMì/
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
+│   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
-│   │   ├── migrations.ts               # migrazione workbook v1/v2/v3/v4 → v5
-│   │   ├── models.ts                   # schema Zod v5 e modello finanziario
+│   │   ├── migrations.ts               # migrazione workbook v1–v5 → v6 e riconciliazione conti
+│   │   ├── models.ts                   # schema Zod v6 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
 │   │   └── rollover.ts                 # passaggio d’anno e ripianificazione delle rate residue
 │   ├── infrastructure/
@@ -126,7 +127,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1/v2/v3/v4 → v5
+│       ├── migrations.test.ts            # compatibilità schema v1–v5 → v6
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
@@ -169,7 +170,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v5 + migrations
+                                                               ├── canonical .xlsx v6 + migrations
                                                                └── optional .numbers mirror
 ```
 
