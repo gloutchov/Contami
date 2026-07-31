@@ -87,10 +87,10 @@
   },
   "dependencies": {
     "exceljs": "^4.4.0",
-    "lucide-react": "^1.25.0",
+    "lucide-react": "^1.27.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "recharts": "^3.9.2",
+    "recharts": "^3.10.1",
     "zod": "^4.4.3"
   },
   "overrides": {
