@@ -55,7 +55,7 @@ The format preference applies to the next workbook you create. Opening an existi
 The home page shows:
 
 - net worth: liquidity + active property value + active investments + private pensions;
-- liquidity: account opening balances plus linked income less linked expenses;
+- liquidity: account opening balances plus confirmed linked movements, including cash-directed transfers; movements before an account opened or after it closed do not affect the total;
 - property value: latest valuation, or purchase price, multiplied by ownership share;
 - investment value: latest valuation for active non-pension investments;
 - pension value: latest active-compartment valuations, without double-counting their pension collector;
@@ -69,7 +69,7 @@ The home page shows:
 
 Closed-year points come from `Annual Summaries`; the current-year point is recalculated from live records. Year rollover preserves the totals required for these comparisons.
 
-Transfers do not count as income or expense. They may be neutral between accounts or carry a cash inflow/outflow: investment contributions, purchases, liquidations, and sales use that direction to update the account balance without changing current spending actuals. Currency is recorded, but the initial version does not convert currencies automatically.
+Transfers do not count as current income or expense. They may be neutral between accounts or carry a cash inflow/outflow: investment contributions, purchases, liquidations, and sales use that direction to update the account balance and cash-flow totals without changing current spending actuals. Currency is recorded, but the initial version does not convert currencies automatically.
 
 ## 5. Transactions
 
@@ -79,11 +79,11 @@ Choose **New transaction** and enter:
 - for a transfer, its cash effect (outflow, inflow, or neutral between accounts);
 - date and description;
 - category and payment method;
-- optional account, property, investment, or recurring-item link;
+- an account is required for income, expenses, and cash-directed transfers; property, investment, and recurring-item links remain optional;
 - whether an expense is shared and who paid it;
 - amount, EUR currency, and optional notes.
 
-Filter by text, type, category, payment method, and month. **Reset filters** clears every criterion together and restores the complete list. When a month is selected, cards show filtered subtotals; yearly totals and totals accrued through today remain available. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
+Filter by text, type, category, payment method, and month. **Reset filters** clears every criterion together and restores the complete list. Cards show filtered cash inflows, cash outflows, and net balance, including directed transfers and account opening balances; the “as of today” strip adds those opening balances to confirmed rows through today only. A persistent notice reports current-year cash movements without an account. On workbook load, ContaMì fills a missing account only when exactly one account is compatible with the transaction date, never choosing arbitrarily among multiple accounts. Recurring rows are highlighted, while future rows are marked as planned and can be confirmed when they occur.
 
 Linking a transaction to a property, investment, or shared expense creates/updates the corresponding record automatically. For investments and pension compartments, an outflow transfer becomes a Contribution and an inflow transfer becomes a Liquidation. Editing, confirmation, and deletion stay synchronized to prevent double counting.
 
@@ -107,11 +107,11 @@ The dashboard shows current-year costs, fuel, and distance. Each vehicle card sh
 
 ## 8. Investments and savings
 
-**New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, optional parent/group, and an optional initial contribution. The initial contribution immediately establishes countervalue and creates its linked Transaction. Investments are grouped by customizable type, with a subtotal for each group.
+**New investment** supports stocks, funds, savings sheets, ETFs, bonds, and other non-pension savings. Enter type, provider, opening date, optional parent/group, and an optional initial contribution with its affected account. The initial contribution immediately establishes countervalue and creates its linked Transaction. Investments are grouped by customizable type, with a subtotal for each group.
 
 Open an investment for its detail. Movements can be filtered together by description and month, with Contribution and Liquidation subtotals following the visible rows. **New movement** records only **Contribution** or **Liquidation**; **Update value**, also available beside **Edit investment** in the detail dialog, adds a valuation used by dashboards and net worth. Investments and movements can be edited or deleted with confirmation.
 
-A Contribution/Liquidation creates exactly one linked cash-outflow/inflow transfer; a Transaction assigned to an investment creates or updates that same movement. The rule applies to one-off operations, initial contributions, imports, and recurring plans; confirming a planned occurrence preserves the existing pair without duplicating it. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions do not change it. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution also creates or updates the Recurring Item and the year’s planned transactions.
+A Contribution/Liquidation requires the affected account and creates exactly one linked cash-outflow/inflow transfer; a Transaction assigned to an investment creates or updates that same movement and account. The rule applies to one-off operations, initial contributions, imports, and recurring plans; confirming a planned occurrence preserves the existing pair without duplicating it. Countervalue starts from contributions, resets at each valuation, and then incorporates later confirmed movements; planned transactions change neither countervalue nor current liquidity. The **Recurring** badge appears only on Transactions explicitly linked to a recurring item. Declaring a periodic contribution requires the account and also creates or updates the Recurring Item and the year’s planned transactions.
 
 When an existing workbook is opened, ContaMì automatically reconciles asset movements that lack a link. It uses only explicit references or exact unique matches, keeps a recoverable backup, and reports ambiguous cases without changing them.
 
@@ -130,13 +130,13 @@ In the workbook, pensions and compartments remain in the `Investments` table, id
 
 ## 10. Recurring items and installments
 
-**New recurring item** covers subscriptions, services, installments, rental income, and periodic investments. Enter direction, amount, frequency (including monthly or yearly one-off), category, payment method, next due date, and optional end date/installments left. A periodic contribution can link to an existing investment or pension compartment; rental income can link to its property; an installment can be associated with a vehicle.
+**New recurring item** covers subscriptions, services, installments, rental income, and periodic investments. Enter direction, amount, frequency (including monthly or yearly one-off), category, payment method, next due date, and optional end date/installments left. For a periodic investment, also choose the affected account and link it to an existing investment or pension compartment; rental income can link to its property; an installment can be associated with a vehicle.
 
-The view shows monthly equivalent, active item count, and known installments left. Filters by name, type, and month update the totals. Editing, deletion, close, and reopen are available.
+The view shows monthly equivalent, active item count, and known installments left. Hover or keyboard-focus the **Installments left** card to see each plan name, remaining count, and next due date. Filters by name, type, and month update both totals and card details. Editing, deletion, close, and reopen are available.
 
 If an installment plan began before the current workbook, enter the first unpaid installment under **Next due date** and only the payments still due under **Installments left**, not the plan’s original total. For example, for a 12-payment plan started last year with 4 payments still due, enter the actual next due date and `4`.
 
-For non-installment recurring items, ContaMì generates **planned** transactions through the end date or year end. For installment plans, it generates only the remaining number of payments, always within the optional end date. Confirming an installment makes it effective, reduces the remaining count, and automatically closes the recurring item after the final payment while retaining confirmed rows in history. During year rollover, the new workbook keeps the updated balance and regenerates only the installments still due in the new year. The app never executes payments.
+For non-installment recurring items, ContaMì generates **planned** transactions through the end date or year end. For installment plans, it generates only the remaining number of payments, always within the optional end date. Confirming an installment makes it effective, reduces the remaining count, and automatically closes the recurring item after the final payment while retaining confirmed rows in history. Loading also closes any installment plan that is still active after already reaching zero, removing only its obsolete planned rows. During year rollover, the new workbook keeps the updated balance and regenerates only the installments still due in the new year. The app never executes payments.
 
 ## 11. Shared expenses
 
@@ -185,7 +185,7 @@ It does not contain prior-year individual transactions/movements, closed items, 
 
 ## 16. Workbook and backups
 
-Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v5; v1, v2, v3, and v4 workbooks migrate on opening. `Property History` also keeps yearly aggregated Phone/Internet and Condominium costs.
+Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investment Types`, `Tax Types`, `Accounts`, `Transactions`, `Properties`, `Property Entries`, `Investments`, `Investment Entries`, `Recurring Items`, `Shared Expenses`, `Vehicles`, `Vehicle Entries`, `Annual Summaries`, `Property History`, `Investment History`, and `Vehicle History`. Hidden `_Meta` stores schema version and active year. The current schema is v6; v1–v5 workbooks migrate on opening. Version 6 stores the affected account on investment/compartment movements and periodic plans; when exactly one account is active, missing references are completed automatically. `Property History` also keeps yearly aggregated Phone/Internet and Condominium costs.
 
 Do not rename sheets or columns if you want ContaMì to reopen the file. You may freely read, copy, and archive it.
 

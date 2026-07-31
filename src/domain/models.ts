@@ -145,6 +145,7 @@ export const investmentSchema = z.object({
   periodicNextDueDate: isoDate.optional(),
   periodicCategoryId: id.optional(),
   periodicPaymentMethodId: id.optional(),
+  periodicAccountId: id.optional(),
   active: z.boolean(),
   openedAt: isoDate,
   closedAt: isoDate.optional(),
@@ -164,6 +165,7 @@ export const investmentEntrySchema = z.object({
   description: text,
   categoryId: id.optional(),
   paymentMethodId: id.optional(),
+  accountId: id.optional(),
   transactionId: id.optional(),
   notes,
 }).superRefine((value, context) => {
@@ -181,6 +183,7 @@ export const recurringItemSchema = z.object({
   frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
   categoryId: id,
   paymentMethodId: id,
+  accountId: id.optional(),
   investmentId: id.optional(),
   propertyId: id.optional(),
   vehicleId: id.optional(),
@@ -301,7 +304,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(5),
+    schemaVersion: z.literal(6),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,

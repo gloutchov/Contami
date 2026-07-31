@@ -23,14 +23,16 @@ export function InvestmentForm({ data, value, onClose, onSave }: { data: Finance
   const [periodicNextDueDate, setPeriodicNextDueDate] = useState(value?.periodicNextDueDate ?? todayIso());
   const [periodicCategoryId, setPeriodicCategoryId] = useState(value?.periodicCategoryId ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [periodicPaymentMethodId, setPeriodicPaymentMethodId] = useState(value?.periodicPaymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
+  const [periodicAccountId, setPeriodicAccountId] = useState(value?.periodicAccountId ?? data.accounts.find((item) => item.active)?.id ?? "");
   const [initialContribution, setInitialContribution] = useState("");
   const [initialDescription, setInitialDescription] = useState("");
   const [initialCategoryId, setInitialCategoryId] = useState(data.categories.find((item) => item.active && item.kind === "both")?.id ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [initialPaymentMethodId, setInitialPaymentMethodId] = useState(data.paymentMethods.find((item) => item.active)?.id ?? "");
+  const [initialAccountId, setInitialAccountId] = useState(data.accounts.find((item) => item.active)?.id ?? "");
   const hasInitialContribution = !value && Number(initialContribution) > 0;
   const valid = Boolean(name.trim() && typeId
-    && (!periodic || (Number(periodicAmount) > 0 && periodicCategoryId && periodicPaymentMethodId && periodicNextDueDate))
-    && (!hasInitialContribution || (initialCategoryId && initialPaymentMethodId)));
+    && (!periodic || (Number(periodicAmount) > 0 && periodicCategoryId && periodicPaymentMethodId && periodicAccountId && periodicNextDueDate))
+    && (!hasInitialContribution || (initialCategoryId && initialPaymentMethodId && initialAccountId)));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const selectedType = data.investmentTypes.find((item) => item.id === typeId);
@@ -41,7 +43,8 @@ export function InvestmentForm({ data, value, onClose, onSave }: { data: Finance
       currency: value?.currency ?? "EUR", active: value?.active ?? true, openedAt, closedAt: value?.closedAt,
       periodicAmount: periodic ? Number(periodicAmount) : undefined, periodicFrequency: periodic ? periodicFrequency : undefined,
       periodicNextDueDate: periodic ? periodicNextDueDate : undefined, periodicCategoryId: periodic ? periodicCategoryId : undefined,
-      periodicPaymentMethodId: periodic ? periodicPaymentMethodId : undefined, notes,
+      periodicPaymentMethodId: periodic ? periodicPaymentMethodId : undefined,
+      periodicAccountId: periodic ? periodicAccountId : undefined, notes,
     };
     const command: FinanceCommand = value
       ? { type: "updateInvestment", value: item }
@@ -53,7 +56,7 @@ export function InvestmentForm({ data, value, onClose, onSave }: { data: Finance
             initialContribution: {
               id: crypto.randomUUID(), investmentId, date: openedAt, kind: "contribution",
               amount: Number(initialContribution), description: initialDescription.trim() || `${t("initialContribution")} — ${name.trim()}`,
-              categoryId: initialCategoryId, paymentMethodId: initialPaymentMethodId, notes: "",
+              categoryId: initialCategoryId, paymentMethodId: initialPaymentMethodId, accountId: initialAccountId, notes: "",
             },
           },
         }
@@ -66,9 +69,9 @@ export function InvestmentForm({ data, value, onClose, onSave }: { data: Finance
     <Field label={t("investmentGroup")}><select value={parentInvestmentId} onChange={(event) => setParentInvestmentId(event.target.value)}><option value="">—</option>{regularInvestments(data).filter((item) => item.id !== value?.id && !item.parentInvestmentId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     <Field label={t("provider")}><input value={provider} maxLength={120} onChange={(event) => setProvider(event.target.value)} /></Field>
     <Field label={t("date")}><input required type="date" value={openedAt} onChange={(event) => setOpenedAt(event.target.value)} /></Field>
-    {!value && <><Field label={t("initialContribution")} hint={t("initialContributionHelp")}><input type="number" min="0" step="0.01" value={initialContribution} onChange={(event) => setInitialContribution(event.target.value)} /></Field>{hasInitialContribution && <><Field label={t("initialContributionDescription")} wide><input value={initialDescription} maxLength={240} placeholder={`${t("initialContribution")} — ${name}`} onChange={(event) => setInitialDescription(event.target.value)} /></Field><Field label={t("category")}><select required value={initialCategoryId} onChange={(event) => setInitialCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={initialPaymentMethodId} onChange={(event) => setInitialPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}</>}
+    {!value && <><Field label={t("initialContribution")} hint={t("initialContributionHelp")}><input type="number" min="0" step="0.01" value={initialContribution} onChange={(event) => setInitialContribution(event.target.value)} /></Field>{hasInitialContribution && <><Field label={t("initialContributionDescription")} wide><input value={initialDescription} maxLength={240} placeholder={`${t("initialContribution")} — ${name}`} onChange={(event) => setInitialDescription(event.target.value)} /></Field><Field label={t("category")}><select required value={initialCategoryId} onChange={(event) => setInitialCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={initialPaymentMethodId} onChange={(event) => setInitialPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label={t("account")}><select required value={initialAccountId} onChange={(event) => setInitialAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}</>}
     <Field label={t("periodicContribution")} wide><span className="check-field"><input type="checkbox" checked={periodic} onChange={(event) => setPeriodic(event.target.checked)} />{t("periodicContributionHelp")}</span></Field>
-    {periodic && <><Field label={t("amount")}><input required type="number" min="0.01" step="0.01" value={periodicAmount} onChange={(event) => setPeriodicAmount(event.target.value)} /></Field><Field label={t("frequency")}><select value={periodicFrequency} onChange={(event) => setPeriodicFrequency(event.target.value as "monthly" | "yearly")}><option value="monthly">{t("monthly")}</option><option value="yearly">{t("yearly")}</option></select></Field><Field label={t("nextDue")}><input required type="date" value={periodicNextDueDate} onChange={(event) => setPeriodicNextDueDate(event.target.value)} /></Field><Field label={t("category")}><select required value={periodicCategoryId} onChange={(event) => setPeriodicCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={periodicPaymentMethodId} onChange={(event) => setPeriodicPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
+    {periodic && <><Field label={t("amount")}><input required type="number" min="0.01" step="0.01" value={periodicAmount} onChange={(event) => setPeriodicAmount(event.target.value)} /></Field><Field label={t("frequency")}><select value={periodicFrequency} onChange={(event) => setPeriodicFrequency(event.target.value as "monthly" | "yearly")}><option value="monthly">{t("monthly")}</option><option value="yearly">{t("yearly")}</option></select></Field><Field label={t("nextDue")}><input required type="date" value={periodicNextDueDate} onChange={(event) => setPeriodicNextDueDate(event.target.value)} /></Field><Field label={t("category")}><select required value={periodicCategoryId} onChange={(event) => setPeriodicCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={periodicPaymentMethodId} onChange={(event) => setPeriodicPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label={t("account")}><select required value={periodicAccountId} onChange={(event) => setPeriodicAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active || item.id === periodicAccountId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
     <Field label={t("notes")} wide><textarea value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;
 }
@@ -78,14 +81,16 @@ export function InvestmentEntryForm({ data, value, initialInvestmentId, initialK
   const allowed = allowedInvestmentIds ? new Set(allowedInvestmentIds) : undefined;
   const positions = selectableFinancialPositions(data).filter((item) => !allowed || allowed.has(item.id));
   const [investmentId, setInvestmentId] = useState(value?.investmentId ?? initialInvestmentId ?? positions[0]?.id ?? "");
+  const linkedTransaction = value?.transactionId ? data.transactions.find((item) => item.id === value.transactionId) : undefined;
   const [date, setDate] = useState(value?.date ?? todayIso()); const [description, setDescription] = useState(value?.description ?? ""); const [amount, setAmount] = useState(value ? String(value.amount) : ""); const [notes, setNotes] = useState(value?.notes ?? ""); const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? "");
+  const [accountId, setAccountId] = useState(value?.accountId ?? linkedTransaction?.accountId ?? data.accounts.find((item) => item.active)?.id ?? "");
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? data.categories.find((item) => item.active && item.kind === "both")?.id ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [kind, setKind] = useState<InvestmentEntry["kind"]>(value?.kind ?? initialKind);
   const monetary = kind !== "valuation";
-  const valid = Boolean(investmentId && description.trim() && (monetary ? Number(amount) > 0 : Number(amount) >= 0) && (!monetary || (paymentMethodId && categoryId)));
+  const valid = Boolean(investmentId && description.trim() && (monetary ? Number(amount) > 0 : Number(amount) >= 0) && (!monetary || (paymentMethodId && categoryId && accountId)));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
-    const item: InvestmentEntry = { ...value, id: value?.id ?? crypto.randomUUID(), investmentId, date, kind, amount: Number(amount), description, categoryId: monetary ? categoryId : undefined, paymentMethodId: monetary ? paymentMethodId : undefined, transactionId: value?.transactionId, notes };
+    const item: InvestmentEntry = { ...value, id: value?.id ?? crypto.randomUUID(), investmentId, date, kind, amount: Number(amount), description, categoryId: monetary ? categoryId : undefined, paymentMethodId: monetary ? paymentMethodId : undefined, accountId: monetary ? accountId : undefined, transactionId: value?.transactionId, notes };
     await saveAndClose(onSave, { type: value ? "updateInvestmentEntry" : "addInvestmentEntry", value: item }, onClose);
   };
   const kinds: InvestmentEntry["kind"][] = value?.kind === "valuation" || initialKind === "valuation" ? ["valuation"] : ["contribution", "withdrawal"];
@@ -95,7 +100,7 @@ export function InvestmentEntryForm({ data, value, initialInvestmentId, initialK
     <Field label={t("type")}><select value={kind} onChange={(event) => setKind(event.target.value as InvestmentEntry["kind"])}>{kinds.map((item) => <option key={item} value={item}>{item === "withdrawal" ? t("liquidation") : t(item)}</option>)}</select></Field>
     <Field label={t("amount")}><input required type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
     <Field label={t("description")} wide><input required value={description} maxLength={240} onChange={(event) => setDescription(event.target.value)} /></Field>
-    {monetary && <><Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && (item.kind === (kind === "withdrawal" ? "income" : "expense") || item.kind === "both")).map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
+    {monetary && <><Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && (item.kind === (kind === "withdrawal" ? "income" : "expense") || item.kind === "both")).map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label={t("account")}><select required value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => item.active || item.id === accountId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
     <Field label={t("notes")} wide><textarea value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;
 }

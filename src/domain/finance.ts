@@ -15,6 +15,7 @@ import {
 import { portfolioValues } from "./investments";
 import type { AnnualSummary, FinanceData } from "./models";
 import { financeDataSchema } from "./models";
+import { repairOperationalData } from "./operationalDataRepair";
 
 const nowIso = () => new Date().toISOString();
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -25,7 +26,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 5, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 6, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -249,8 +250,9 @@ export function applyFinanceCommands(data: FinanceData, commands: readonly Finan
   for (const rawCommand of commands) {
     applyFinanceCommandInPlace(next, financeCommandSchema.parse(rawCommand));
   }
-  next.meta.updatedAt = nowIso();
-  return financeDataSchema.parse(next);
+  const repaired = repairOperationalData(next);
+  repaired.data.meta.updatedAt = nowIso();
+  return financeDataSchema.parse(repaired.data);
 }
 
 export function applyFinanceCommand(data: FinanceData, command: FinanceCommand): FinanceData {
@@ -281,6 +283,24 @@ export interface DashboardMetrics {
   history: HistoricalMetric[];
 }
 
+export function transactionCashTotals(items: readonly FinanceData["transactions"][number][]) {
+  return items.reduce((totals, item) => {
+    if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) {
+      totals.inflows += item.amount;
+    } else if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) {
+      totals.outflows += item.amount;
+    }
+    totals.net = totals.inflows - totals.outflows;
+    return totals;
+  }, { inflows: 0, outflows: 0, net: 0 });
+}
+
+export function accountOpeningBalance(data: FinanceData, throughDate?: string): number {
+  return data.accounts
+    .filter((account) => !throughDate || account.openedAt <= throughDate)
+    .reduce((sum, account) => sum + account.openingBalance, 0);
+}
+
 export function computeDashboard(data: FinanceData): DashboardMetrics {
   const year = String(data.meta.activeYear);
   let yearIncome = 0;
@@ -293,10 +313,14 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
     expenses: 0,
   }));
   for (const item of data.transactions) {
+    if (item.planned) continue;
     if (item.accountId) {
-      const current = accountMovements.get(item.accountId) ?? 0;
-      if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) accountMovements.set(item.accountId, current + item.amount);
-      else if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) accountMovements.set(item.accountId, current - item.amount);
+      const account = data.accounts.find((candidate) => candidate.id === item.accountId);
+      if (account && item.date >= account.openedAt && (!account.closedAt || item.date <= account.closedAt)) {
+        const current = accountMovements.get(item.accountId) ?? 0;
+        if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) accountMovements.set(item.accountId, current + item.amount);
+        else if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) accountMovements.set(item.accountId, current - item.amount);
+      }
     }
     if (!item.date.startsWith(year)) continue;
     const month = months[Number(item.date.slice(5, 7)) - 1];
@@ -309,7 +333,7 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
       categoryExpenses.set(item.categoryId, (categoryExpenses.get(item.categoryId) ?? 0) + item.amount);
     }
   }
-  const liquidBalance = data.accounts.reduce((sum, account) => sum + account.openingBalance + (accountMovements.get(account.id) ?? 0), 0);
+  const liquidBalance = accountOpeningBalance(data) + data.accounts.reduce((sum, account) => sum + (accountMovements.get(account.id) ?? 0), 0);
   const latestPropertyValues = new Map<string, { date: string; amount: number }>();
   let propertyIncome = 0;
   let propertyExpenses = 0;

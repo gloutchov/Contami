@@ -7,8 +7,9 @@ import { computeDashboard } from "../../domain/finance";
 import { reconcileInvestmentTransactions } from "../../domain/investmentTransactionSync";
 import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
+import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -166,6 +167,9 @@ export class ExcelWorkbookRepository {
     repairedLinks: number;
     repairedInvestmentLinks: number;
     ambiguousInvestmentLinks: number;
+    repairedTransactionAccounts: number;
+    unresolvedTransactionAccounts: number;
+    closedInstallmentPlans: number;
   }> {
     assertWorkbookPath(filePath);
     const info = await stat(filePath);
@@ -201,9 +205,11 @@ export class ExcelWorkbookRepository {
           ? WORKBOOK_TABLES_V3
           : schemaVersion === 4
             ? WORKBOOK_TABLES_V4
-            : schemaVersion === WORKBOOK_SCHEMA_VERSION
-              ? WORKBOOK_TABLES
-              : undefined;
+            : schemaVersion === 5
+              ? WORKBOOK_TABLES_V5
+              : schemaVersion === WORKBOOK_SCHEMA_VERSION
+                ? WORKBOOK_TABLES
+                : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     const physicalRows = new Map<WorkbookTableDefinition["key"], number[]>();
     for (const definition of definitions) {
@@ -236,19 +242,26 @@ export class ExcelWorkbookRepository {
     const migrated = migrateFinanceData(raw);
     const repaired = repairDuplicateRecordIds(migrated);
     const investmentReconciliation = reconcileInvestmentTransactions(repaired.data);
-    if (investmentReconciliation.repairs.length > 0) {
-      investmentReconciliation.data.meta.updatedAt = new Date().toISOString();
-      await this.save(filePath, investmentReconciliation.data);
+    const operationalRepair = repairOperationalData(investmentReconciliation.data);
+    if (schemaVersion !== WORKBOOK_SCHEMA_VERSION
+      || investmentReconciliation.repairs.length > 0
+      || operationalRepair.repairedTransactionAccounts > 0
+      || operationalRepair.closedInstallmentPlans > 0) {
+      operationalRepair.data.meta.updatedAt = new Date().toISOString();
+      await this.save(filePath, operationalRepair.data);
     } else if (repaired.repairs.length > 0) {
       repaired.data.meta.updatedAt = new Date().toISOString();
       await this.persistUuidRepairs(filePath, workbook, definitions, physicalRows, migrated, repaired.data);
     }
     return {
-      data: investmentReconciliation.data,
+      data: operationalRepair.data,
       repairedIds: repaired.repairs.length,
       repairedLinks: repaired.repairedLinks,
       repairedInvestmentLinks: investmentReconciliation.repairs.length,
       ambiguousInvestmentLinks: investmentReconciliation.ambiguousEntries + investmentReconciliation.ambiguousTransactions,
+      repairedTransactionAccounts: operationalRepair.repairedTransactionAccounts,
+      unresolvedTransactionAccounts: operationalRepair.unresolvedTransactionAccounts,
+      closedInstallmentPlans: operationalRepair.closedInstallmentPlans,
     };
   }
 
