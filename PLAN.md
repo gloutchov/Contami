@@ -43,13 +43,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M17 — Filtri e azioni nelle viste di dettaglio | `milestone/17-detail-filters` | `1.4.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Completata e rilasciata |
 | Patch conti e flussi di cassa investimenti | `patch/1.5.1-investment-cash-accounts` | `1.5.1` | Completata localmente; gate verde e workbook privato migrato |
-| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.6.0` | Pianificata dopo M18 |
-| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.7.0` | Ripianificata dopo M19 |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.8.0` | Pianificata dopo M16 |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.9.0` | Pianificata dopo M9 |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.10.0` | Pianificata dopo M10 |
+| M20 — Casse, trasferimenti interni e indicatori di perdita | `milestone/20-cash-registers` | `1.6.0` | Implementazione, conversione e gate locali completati; pronta per commit e CI |
+| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.7.0` | Ripianificata dopo M20 |
+| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.8.0` | Ripianificata dopo M19 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.9.0` | Pianificata dopo M16 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.10.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.11.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → cambio tariffa `v1.6.0` → trasporti `v1.7.0` → apertura workbook `v1.8.0` → integrità salvataggi `v1.9.0` → CSP rigorosa `v1.10.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → cambio tariffa `v1.7.0` → trasporti `v1.8.0` → apertura workbook `v1.9.0` → integrità salvataggi `v1.10.0` → CSP rigorosa `v1.11.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -522,6 +523,41 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito 2026-07-31:** implementato lo schema workbook v6 con conto sui movimenti e sui piani periodici di investimenti e comparti pensione. La migrazione v5 e la riparazione all’apertura completano i riferimenti soltanto quando il conto compatibile è univoco, mentre gli altri casi restano esplicitamente non assegnati e vengono segnalati. I trasferimenti direzionati partecipano ai totalizzatori Entrate/Uscite di cassa e alla liquidità del conto senza essere riclassificati come redditi o spese correnti; la liquidità e il rollover ignorano i movimenti fuori dall’intervallo di validità del conto e le pianificazioni. I saldi di Transazioni comprendono il saldo iniziale. I piani rateali attivi già a zero vengono chiusi all’apertura e il KPI Rate residue espone un dettaglio accessibile dei piani aperti. Aggiornati moduli, importazione, demo sintetica, manuali IT/EN, README, MAP e modello di sicurezza. La copia workbook privata è stata migrata con backup, rilettura strutturale e seconda apertura idempotente, senza inserirla in Git o nei test permanenti. Gate locale verde: lint, typecheck, 124 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px.
 
+## M20 — Casse, trasferimenti interni e indicatori di perdita
+
+**Obiettivo:** distinguere il denaro contante dai saldi bancari mediante una o più Casse, rappresentare i prelievi come trasferimenti interni e rendere immediatamente visibili le posizioni di investimento o pensione in perdita.
+
+**Attività pianificate**
+
+- Riutilizzare il tipo conto `cash` come Cassa applicativa, separandone creazione, elenco e stato nella vista Impostazioni e consentendo più Casse personali, familiari o aziendali.
+- Associare facoltativamente a ogni Cassa un conto di alimentazione predefinito, inteso come preferenza operativa e non come vincolo esclusivo; validare riferimenti, stato e valuta senza introdurre automatismi irreversibili.
+- Portare il workbook allo schema v7 aggiungendo il conto destinazione ai trasferimenti interni e il conto di alimentazione alle Casse, con migrazione deterministica dei workbook v6 che non riclassifica né sposta movimenti storici in modo euristico.
+- Rappresentare un prelievo o versamento di contante con una sola Transazione di trasferimento: uscita dal conto sorgente ed entrata nella Cassa destinazione, o percorso inverso, senza alterare la liquidità complessiva né i consuntivi di redditi e spese.
+- Richiedere una Cassa per i nuovi movimenti con metodo di pagamento Contanti; quando ne esiste una sola può essere proposta automaticamente, mentre con più Casse la scelta resta esplicita.
+- Rendere esplicito il conto o la Cassa interessati anche nei flussi collegati di Immobili, Trasporti e Spese condivise, preservando la sincronizzazione bidirezionale con le Transazioni.
+- Mostrare in Impostazioni il saldo corrente di ciascun conto e Cassa, includendo saldi iniziali, movimenti ordinari, trasferimenti direzionati e trasferimenti interni; applicare la stessa semantica al rollover annuale.
+- Mostrare in Panoramica il saldo complessivo delle Casse e dividere i KPI filtrati di Transazioni in due file da tre: Entrate, Uscite e Saldo per i conti, poi gli stessi valori per le Casse.
+- Colorare in rosso il controvalore mostrato nei box delle viste Investimenti e Pensione Integrativa quando è inferiore al capitale netto investito, calcolato nel dominio e aggregato correttamente per collettori e comparti.
+- Correggere fuori da Git la copia workbook privata indicata dal proprietario, associando alla Cassa unica i soli movimenti in contanti e trasformando gli eventuali prelievi riconoscibili in trasferimenti interni; creare prima una copia recuperabile, verificare rilettura e seconda apertura idempotente e non introdurre nell’app una migrazione automatica di questi dati storici.
+
+**Criteri di accettazione**
+
+- Un movimento in contanti modifica esclusivamente il saldo della Cassa selezionata e non quello del conto bancario associato.
+- Un trasferimento conto→Cassa riduce e aumenta dello stesso importo i rispettivi saldi, lasciando invariata la liquidità totale; sorgente e destinazione sono distinte, attive nella data e nella stessa valuta.
+- Più Casse possono essere create, chiuse, riaperte e collegate a conti di alimentazione differenti senza perdere lo storico o impedire trasferimenti legittimi da altri conti.
+- Il saldo Cassa della Panoramica coincide con la quota di liquidità attribuita alle Casse; i sei KPI di Transazioni applicano gli stessi filtri ma non mescolano saldi iniziali o movimenti tra conti e Casse.
+- Workbook v6 e v7 si aprono, migrano e completano il round-trip senza perdita di dati; i movimenti storici ambigui restano invariati e vengono segnalati.
+- I valori in perdita sono rossi soltanto quando il controvalore è strettamente minore del capitale netto investito e restano leggibili in italiano/inglese, tema chiaro/scuro e larghezza minima 1080 px.
+- La copia workbook privata corretta resta esclusa da Git, fixture, log e servizi remoti ed è accompagnata da backup locale e verifica strutturale.
+
+**Test richiesti:** unit test per effetti sui saldi, KPI filtrati separati, trasferimenti interni, validazione Cassa/metodo, capitale netto e aggregazioni; integration test per migrazione v6→v7, collegamenti, filesystem, backup, rollover e round-trip workbook con soli dati sintetici; regressione importazione e movimenti investimenti/pensione; Playwright IT/EN, chiaro/scuro e 1080 px per creazione Cassa, movimento contante, prelievo, due file di KPI e indicatori di perdita.
+
+**Documentazione:** manuali IT/EN, README, schema workbook, MAP, SECURITY_MODEL, messaggi di migrazione e note di rilascio.
+
+**Esito applicativo 2026-08-01:** implementate Casse multiple separate dai conti, conto di alimentazione predefinito facoltativo, saldi individuali, compatibilità tra metodo di pagamento e conto/Cassa e trasferimenti interni sorgente→destinazione neutrali per la liquidità complessiva. Lo schema workbook è v7 con migrazione conservativa v1–v6; i template di importazione sono v2 e rendono espliciti conto/Cassa e destinazione. Immobili, automobile, ricorrenze, spese condivise, investimenti e comparti propagano il riferimento coerente alle Transazioni. La Panoramica espone il Saldo Cassa; Transazioni separa in due righe i flussi e i saldi filtrati di Conto e Cassa, escludendo dai saldi le righe non assegnate. I box di investimenti, comparti e raccoglitori pensione mostrano in rosso il controvalore inferiore al capitale netto investito. Verifica locale completata con lint, typecheck, 132 test Vitest, build renderer/Electron, controllo documentale, `npm audit` senza vulnerabilità e 3 test Playwright a 1080 px; il collaudo interattivo ha coperto IT/EN e chiaro/scuro, creazione Cassa, prelievo, spesa contanti, riepiloghi separati e indicatori di perdita senza overflow o errori console.
+
+**Esito conversione privata 2026-08-01:** dopo autorizzazione esplicita del proprietario a usare l'adapter Excel locale di ContaMì come fallback, il workbook originale è rimasto intatto ed è stata prodotta una copia separata in schema v7, esclusa da Git. La conversione ha creato la Cassa unica associata all'unico conto bancario, assegnato alla Cassa i movimenti contanti e i relativi record collegati e trasformato soltanto i prelievi riconoscibili in trasferimenti interni. Nessun movimento mancante è stato inventato. Superati rilettura strutturale e seconda apertura idempotente, conservazione dei conteggi, controllo riferimenti e saldi, scansione degli errori formula e verifica visiva locale dei 20 fogli tramite Quick Look e Playwright; dati e anteprime private non sono entrati in fixture, Git o servizi remoti.
+
 ## M19 — Cambio tariffa delle ricorrenze
 
 **Obiettivo:** consentire una variazione di importo con decorrenza esplicita, mantenendo immutati lo storico e le scadenze precedenti e aggiornando in modo deterministico tutte le Transazioni ancora programmate dal mese scelto in avanti.
@@ -627,6 +663,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 ## Revisione roadmap — 2026-07-30
 
+- Il 2026-08-01 è stata inserita M20 davanti a tutte le attività ancora pianificate: introduce Casse, trasferimenti interni e indicatori di perdita; M19, M16, M9, M10 e M11 slittano rispettivamente ai checkpoint da `v1.7.0` a `v1.11.0`.
 - Inserite M17, M18 e M19 prima di M16 e delle successive attività di hardening, integrità dei salvataggi e CSP.
 - M17 raccoglie i filtri mancanti nelle modali di Immobili, automobili, investimenti e comparti pensione, completa il filtro descrizione delle Spese condivise e porta **Aggiorna valore** nel dettaglio dell’investimento.
 - M18 verifica e rende obbligatoria la rappresentazione nelle Transazioni dei Versamenti e delle Liquidazioni di investimenti e comparti, sia una tantum sia periodici, mantenendoli trasferimenti patrimoniali senza doppio conteggio.

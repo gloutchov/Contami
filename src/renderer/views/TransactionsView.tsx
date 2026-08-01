@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, CalendarDays, Pencil, RotateCcw, Scale, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FinanceCommand } from "../../domain/commands";
-import { accountOpeningBalance, transactionCashTotals } from "../../domain/finance";
+import { transactionAccountTotals, transactionCashTotals } from "../../domain/finance";
 import type { FinanceData, Transaction } from "../../domain/models";
 import { transactionHasCashEffect } from "../../domain/operationalDataRepair";
 import { EmptyState } from "../components/EmptyState";
@@ -25,11 +25,15 @@ export function TransactionsView({ data, onSave }: { data: FinanceData; onSave: 
     .filter((item) => month === "all" || item.date.startsWith(month))
     .filter((item) => item.description.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     .sort((a, b) => b.date.localeCompare(a.date)), [data.transactions, yearPrefix, kind, categoryId, paymentMethodId, month, query]);
-  const filtered = useMemo(() => transactionCashTotals(rows), [rows]);
+  const accountFiltered = useMemo(() => transactionAccountTotals(data, rows, "account", { includePlanned: true }), [data, rows]);
+  const cashRegisterFiltered = useMemo(() => transactionAccountTotals(data, rows, "cashRegister", { includePlanned: true }), [data, rows]);
   const today = todayIso();
-  const throughToday = useMemo(() => transactionCashTotals(rows.filter((item) => item.date <= today && !item.planned)), [rows, today]);
-  const openingBalance = useMemo(() => accountOpeningBalance(data), [data]);
-  const openingBalanceToday = useMemo(() => accountOpeningBalance(data, today), [data, today]);
+  const rowsThroughToday = useMemo(() => rows.filter((item) => item.date <= today && !item.planned), [rows, today]);
+  const throughToday = useMemo(() => transactionCashTotals(rowsThroughToday), [rowsThroughToday]);
+  const liquidityToday = useMemo(() =>
+    transactionAccountTotals(data, rowsThroughToday, "account", { openingThroughDate: today }).balance
+      + transactionAccountTotals(data, rowsThroughToday, "cashRegister", { openingThroughDate: today }).balance,
+  [data, rowsThroughToday, today]);
   const unassignedTransactions = useMemo(() => data.transactions.filter((item) =>
     item.date.startsWith(yearPrefix) && !item.accountId && transactionHasCashEffect(item)).length, [data.transactions, yearPrefix]);
   const categoryName = (id: string) => { const item = data.categories.find((candidate) => candidate.id === id); return item ? (language === "it" ? item.nameIt : item.nameEn) : "—"; };
@@ -47,8 +51,8 @@ export function TransactionsView({ data, onSave }: { data: FinanceData; onSave: 
   const months = Array.from({ length: 12 }, (_, index) => `${data.meta.activeYear}-${String(index + 1).padStart(2, "0")}`);
   const monthLabel = (value: string) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { month: "long", year: "numeric" }).format(new Date(`${value}-01T12:00:00Z`));
   return <><PageHeader eyebrow={`${data.meta.activeYear}`} title={t("transactions")} subtitle={t("transactionsSubtitle")} actionLabel={t("newTransaction")} onAction={() => setEditing(null)} />
-    <section className="view-kpi-grid"><KpiCard label={month === "all" ? t("filteredCashInflows") : t("monthCashInflows")} value={formatCurrency(filtered.inflows, language)} icon={ArrowUpRight} tone="mint"/><KpiCard label={month === "all" ? t("filteredCashOutflows") : t("monthCashOutflows")} value={formatCurrency(filtered.outflows, language)} icon={ArrowDownRight} tone="coral"/><KpiCard label={t("filteredNet")} value={formatCurrency(openingBalance + filtered.net, language)} icon={Scale} tone="blue" detail={t("openingBalanceIncluded", { amount: formatCurrency(openingBalance, language) })}/></section>
-    <section className="asof-strip"><CalendarDays size={17}/><span>{t("totalsToday")}</span><strong>{t("cashInflows")}: {formatCurrency(throughToday.inflows, language)}</strong><strong>{t("cashOutflows")}: {formatCurrency(throughToday.outflows, language)}</strong><strong>{t("balance")}: {formatCurrency(openingBalanceToday + throughToday.net, language)}</strong></section>
+    <section className="view-kpi-grid transaction-kpi-grid"><KpiCard label={t("filteredAccountInflows")} value={formatCurrency(accountFiltered.inflows, language)} icon={ArrowUpRight} tone="mint"/><KpiCard label={t("filteredAccountOutflows")} value={formatCurrency(accountFiltered.outflows, language)} icon={ArrowDownRight} tone="coral"/><KpiCard label={t("filteredAccountBalance")} value={formatCurrency(accountFiltered.balance, language)} icon={Scale} tone="blue" detail={t("openingBalanceIncluded", { amount: formatCurrency(accountFiltered.openingBalance, language) })}/><KpiCard label={t("filteredCashRegisterInflows")} value={formatCurrency(cashRegisterFiltered.inflows, language)} icon={ArrowUpRight} tone="mint"/><KpiCard label={t("filteredCashRegisterOutflows")} value={formatCurrency(cashRegisterFiltered.outflows, language)} icon={ArrowDownRight} tone="coral"/><KpiCard label={t("filteredCashRegisterBalance")} value={formatCurrency(cashRegisterFiltered.balance, language)} icon={Scale} tone="gold" detail={t("openingBalanceIncluded", { amount: formatCurrency(cashRegisterFiltered.openingBalance, language) })}/></section>
+    <section className="asof-strip"><CalendarDays size={17}/><span>{t("totalsToday")}</span><strong>{t("cashInflows")}: {formatCurrency(throughToday.inflows, language)}</strong><strong>{t("cashOutflows")}: {formatCurrency(throughToday.outflows, language)}</strong><strong>{t("liquidity")}: {formatCurrency(liquidityToday, language)}</strong></section>
     {unassignedTransactions > 0 && <div className="notice" role="status">{t("unassignedTransactionsWarning", { count: unassignedTransactions })}</div>}
     <div className="data-toolbar filter-toolbar"><div className="search-field filter-search"><Search size={17}/><input aria-label={t("searchByDescription")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("filterPlaceholder")} /></div>
       <div className="filter-row filter-row-four"><select aria-label={t("type")} value={kind} onChange={(event) => setKind(event.target.value)}><option value="all">{t("allTypes")}</option><option value="income">{t("income")}</option><option value="expense">{t("expenses")}</option><option value="transfer">{t("transfer")}</option></select>

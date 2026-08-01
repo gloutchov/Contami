@@ -373,17 +373,18 @@ function parseTransactions(parsed: ParsedWorkbook, data: FinanceData, builder: I
     const currency = readCurrency(reader);
     const categoryId = reader.catalog("category", categoryItems(data, kind === "income" ? "income" : kind === "expense" ? "expense" : undefined), true);
     const paymentMethodId = reader.catalog("payment_method", catalogs.payments, true);
-    const accountId = reader.catalog("account", catalogs.accounts);
     const cashFlowDirection = reader.enum("cash_flow_direction", ["inflow", "outflow", "neutral"] as const, kind === "transfer");
+    const accountId = reader.catalog("account", catalogs.accounts, true);
+    const destinationAccountId = reader.catalog("destination_account", catalogs.accounts, kind === "transfer" && cashFlowDirection === "neutral");
     const planned = reader.boolean("planned", true);
     const rowNotes = notes(reader);
-    if (reader.errors.length || !date || !description || !kind || amount === undefined || !currency || !categoryId || !paymentMethodId || planned === undefined) {
+    if (reader.errors.length || !date || !description || !kind || amount === undefined || !currency || !categoryId || !paymentMethodId || !accountId || planned === undefined) {
       builder.reject(reader);
       continue;
     }
-    const fingerprint = recordFingerprint([date, description, kind, amount, currency, categoryId, paymentMethodId, accountId, cashFlowDirection]);
+    const fingerprint = recordFingerprint([date, description, kind, amount, currency, categoryId, paymentMethodId, accountId, destinationAccountId, cashFlowDirection]);
     const matches = data.transactions.filter((item) => recordFingerprint([
-      item.date, item.description, item.kind, item.amount, item.currency, item.categoryId, item.paymentMethodId, item.accountId, item.cashFlowDirection,
+      item.date, item.description, item.kind, item.amount, item.currency, item.categoryId, item.paymentMethodId, item.accountId, item.destinationAccountId, item.cashFlowDirection,
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
@@ -391,7 +392,7 @@ function parseTransactions(parsed: ParsedWorkbook, data: FinanceData, builder: I
     const value: Transaction = {
       ...choice.current,
       id: choice.current?.id ?? crypto.randomUUID(), date, description, kind, amount, currency, categoryId, paymentMethodId,
-      accountId, cashFlowDirection, planned, shared: false, notes: rowNotes,
+      accountId, destinationAccountId, cashFlowDirection, planned, shared: false, notes: rowNotes,
       createdAt: choice.current?.createdAt ?? timestamp, updatedAt: timestamp,
     };
     builder.add(rowNumber, "record_type", choice.action, { type: choice.action === "update" ? "updateTransaction" : "addTransaction", value }, amount);
@@ -459,6 +460,7 @@ function parseProperties(parsed: ParsedWorkbook, data: FinanceData, builder: Imp
     const monetaryKind = recordType === "income" ? "income" : recordType === "valuation" ? undefined : "expense";
     const categoryId = monetaryKind ? reader.catalog("category", categoryItems(data, monetaryKind), true) : undefined;
     const paymentMethodId = monetaryKind ? reader.catalog("payment_method", catalogs.payments, true) : undefined;
+    const accountId = monetaryKind ? reader.catalog("account", catalogs.accounts, true) : undefined;
     const taxTypeId = recordType === "tax" ? reader.catalog("tax_type", catalogs.taxes, true) : undefined;
     const taxInstallmentNumber = recordType === "tax" ? reader.number("installment_number", false, { integer: true, positive: true, max: 24 }) : undefined;
     const detail = recordType === "utility"
@@ -505,7 +507,7 @@ function parseProperties(parsed: ParsedWorkbook, data: FinanceData, builder: Imp
       category: recordType === "valuation" ? "Valuation" : data.categories.find((item) => item.id === categoryId)?.nameIt ?? description,
       categoryId, description, amount, quantity, unit, detailKind,
       taxTypeId, taxInstallmentNumber, electricityKwhF1, electricityKwhF2, electricityKwhF3,
-      electricityKwhF23, paymentMethodId, transactionId: choice.current?.transactionId,
+      electricityKwhF23, paymentMethodId, accountId, transactionId: choice.current?.transactionId,
       isCommonExpense, notes: rowNotes,
     };
     if (reader.errors.length) { builder.reject(reader); continue; }
@@ -554,9 +556,7 @@ function readInvestment(
   if (periodic.periodicAmount) {
     periodic.periodicCategoryId = reader.catalog("periodic_category", categoryItems(data, "expense"), true);
     periodic.periodicPaymentMethodId = reader.catalog("periodic_payment_method", catalogs.payments, true);
-    periodic.periodicAccountId = data.accounts.filter((item) => item.active).length === 1
-      ? data.accounts.find((item) => item.active)?.id
-      : undefined;
+    periodic.periodicAccountId = reader.catalog("periodic_account", catalogs.accounts, true);
   }
   if (reader.errors.length || !name || !currency || !openedAt || active === undefined) return undefined;
   return {
@@ -599,17 +599,15 @@ function parseInvestmentEntries(
       ? reader.catalog("category", categoryItems(data, recordType === "contribution" ? "expense" : "income"), true)
       : undefined;
     const paymentMethodId = recordType !== "valuation" ? reader.catalog("payment_method", catalogs.payments, true) : undefined;
+    const accountId = recordType !== "valuation" ? reader.catalog("account", catalogs.accounts, true) : undefined;
     const rowNotes = notes(reader);
     if (reader.errors.length || !investmentId || !date || !description || amount === undefined) { builder.reject(reader); continue; }
-    const fingerprint = recordFingerprint([investmentId, date, recordType, description, amount, categoryId, paymentMethodId]);
+    const fingerprint = recordFingerprint([investmentId, date, recordType, description, amount, categoryId, paymentMethodId, accountId]);
     const matches = data.investmentEntries.filter((item) => recordFingerprint([
-      item.investmentId, item.date, item.kind, item.description, item.amount, item.categoryId, item.paymentMethodId,
+      item.investmentId, item.date, item.kind, item.description, item.amount, item.categoryId, item.paymentMethodId, item.accountId,
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
-    const accountId = data.accounts.filter((item) => item.active).length === 1
-      ? data.accounts.find((item) => item.active)?.id
-      : choice.current?.accountId;
     const value: InvestmentEntry = {
       id: choice.current?.id ?? crypto.randomUUID(), investmentId, date, kind: recordType,
       amount, description, categoryId, paymentMethodId, accountId: recordType === "valuation" ? undefined : accountId,
@@ -710,6 +708,7 @@ function parseSharedExpenses(parsed: ParsedWorkbook, data: FinanceData, builder:
     const settled = reader.boolean("settled", true);
     const categoryId = reader.catalog("category", categoryItems(data, "expense"), true);
     const paymentMethodId = reader.catalog("payment_method", catalogs.payments, true);
+    const accountId = reader.catalog("account", catalogs.accounts, true);
     const rowNotes = notes(reader);
     if (amount !== undefined && ownerShare !== undefined && partnerShare !== undefined && Math.abs(ownerShare + partnerShare - amount) > 0.01) {
       reader.errors.push({ row: rowNumber, column: "partner_share", code: "INVALID_NUMBER" });
@@ -717,15 +716,15 @@ function parseSharedExpenses(parsed: ParsedWorkbook, data: FinanceData, builder:
     if (reader.errors.length || !date || !description || amount === undefined || ownerShare === undefined || partnerShare === undefined || !paidBy || settled === undefined || !categoryId || !paymentMethodId) {
       builder.reject(reader); continue;
     }
-    const fingerprint = recordFingerprint([date, description, amount, ownerShare, partnerShare, paidBy, categoryId, paymentMethodId]);
+    const fingerprint = recordFingerprint([date, description, amount, ownerShare, partnerShare, paidBy, categoryId, paymentMethodId, accountId]);
     const matches = data.sharedExpenses.filter((item) => recordFingerprint([
-      item.date, item.description, item.amount, item.ownerShare, item.partnerShare, item.paidBy, item.categoryId, item.paymentMethodId,
+      item.date, item.description, item.amount, item.ownerShare, item.partnerShare, item.paidBy, item.categoryId, item.paymentMethodId, item.accountId,
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
     const value: SharedExpense = {
       id: choice.current?.id ?? crypto.randomUUID(), date, description, amount, ownerShare, partnerShare, paidBy, settled,
-      categoryId, paymentMethodId, transactionId: choice.current?.transactionId, notes: rowNotes,
+      categoryId, paymentMethodId, accountId, transactionId: choice.current?.transactionId, notes: rowNotes,
     };
     if (reader.errors.length) { builder.reject(reader); continue; }
     builder.add(rowNumber, "record_type", choice.action, {
@@ -747,6 +746,7 @@ function parseRecurring(parsed: ParsedWorkbook, data: FinanceData, builder: Impo
     const frequency = reader.enum("frequency", ["weekly", "monthly", "quarterly", "yearly"] as const, true);
     const categoryId = reader.catalog("category", categoryItems(data, direction), true);
     const paymentMethodId = reader.catalog("payment_method", catalogs.payments, true);
+    const accountId = reader.catalog("account", catalogs.accounts, true);
     const nextDueDate = reader.date("next_due_date", true);
     const endDate = reader.date("end_date");
     const remainingInstallments = reader.number("remaining_installments", false, { integer: true, max: 10_000 });
@@ -758,18 +758,13 @@ function parseRecurring(parsed: ParsedWorkbook, data: FinanceData, builder: Impo
     if (reader.errors.length || !name || !kind || !direction || amount === undefined || !frequency || !categoryId || !paymentMethodId || !nextDueDate || active === undefined) {
       builder.reject(reader); continue;
     }
-    const fingerprint = recordFingerprint([name, kind, direction, amount, frequency, categoryId, paymentMethodId, nextDueDate, propertyId, investmentId, vehicleId]);
+    const fingerprint = recordFingerprint([name, kind, direction, amount, frequency, categoryId, paymentMethodId, accountId, nextDueDate, propertyId, investmentId, vehicleId]);
     const matches = data.recurringItems.filter((item) => recordFingerprint([
-      item.name, item.kind, item.direction ?? "expense", item.amount, item.frequency, item.categoryId, item.paymentMethodId,
+      item.name, item.kind, item.direction ?? "expense", item.amount, item.frequency, item.categoryId, item.paymentMethodId, item.accountId,
       item.nextDueDate, item.propertyId, item.investmentId, item.vehicleId,
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
-    const accountId = kind === "investment" && data.accounts.filter((item) => item.active).length === 1
-      ? data.accounts.find((item) => item.active)?.id
-      : kind === "investment"
-        ? choice.current?.accountId
-        : undefined;
     const value: RecurringItem = {
       id: choice.current?.id ?? crypto.randomUUID(), name, kind, direction, amount, frequency, categoryId, paymentMethodId, accountId,
       nextDueDate, endDate, remainingInstallments, active, closedAt: active ? undefined : (choice.current?.closedAt ?? nextDueDate),
@@ -833,6 +828,7 @@ function parseVehicles(parsed: ParsedWorkbook, data: FinanceData, builder: Impor
     const amount = reader.number("amount", true, { positive: recordType !== "valuation" });
     const categoryId = recordType !== "valuation" ? reader.catalog("category", categoryItems(data, "expense"), true) : undefined;
     const paymentMethodId = recordType !== "valuation" ? reader.catalog("payment_method", catalogs.payments, true) : undefined;
+    const accountId = recordType !== "valuation" ? reader.catalog("account", catalogs.accounts, true) : undefined;
     const fuelLiters = reader.number("fuel_liters", false, { positive: true, max: 1_000_000 });
     const odometerKm = reader.number("odometer_km", false, { max: 100_000_000 });
     const distanceKm = reader.number("distance_km", false, { max: 10_000_000 });
@@ -842,16 +838,16 @@ function parseVehicles(parsed: ParsedWorkbook, data: FinanceData, builder: Impor
     const rowNotes = notes(reader);
     if (recordType === "fuel" && fuelLiters === undefined) reader.errors.push({ row: rowNumber, column: "fuel_liters", code: "REQUIRED_VALUE" });
     if (reader.errors.length || !vehicleId || !date || !description || amount === undefined) { builder.reject(reader); continue; }
-    const fingerprint = recordFingerprint([vehicleId, date, recordType, description, amount, categoryId, paymentMethodId]);
+    const fingerprint = recordFingerprint([vehicleId, date, recordType, description, amount, categoryId, paymentMethodId, accountId]);
     const matches = data.vehicleEntries.filter((item) => recordFingerprint([
-      item.vehicleId, item.date, item.kind, item.description, item.amount, item.categoryId, item.paymentMethodId,
+      item.vehicleId, item.date, item.kind, item.description, item.amount, item.categoryId, item.paymentMethodId, item.accountId,
     ]) === fingerprint);
     const choice = recordAction(rowNumber, fingerprint, matches, seen, builder);
     if (!choice || choice.action === "skip") continue;
     const value: VehicleEntry = {
       id: choice.current?.id ?? crypto.randomUUID(), vehicleId, date, kind: recordType, description, amount,
       odometerKm, distanceKm, fuelLiters, fuelUnitPrice, fuelType: entryFuelType,
-      vendor, categoryId, paymentMethodId, transactionId: choice.current?.transactionId, notes: rowNotes,
+      vendor, categoryId, paymentMethodId, accountId, transactionId: choice.current?.transactionId, notes: rowNotes,
     };
     if (reader.errors.length) { builder.reject(reader); continue; }
     builder.add(rowNumber, "record_type", choice.action, {

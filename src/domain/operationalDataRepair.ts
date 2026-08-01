@@ -1,4 +1,5 @@
 import { financeDataSchema, type Account, type FinanceData, type Transaction } from "./models";
+import { accountsForPaymentMethod } from "./accounts";
 
 export interface OperationalDataRepair {
   data: FinanceData;
@@ -54,7 +55,8 @@ export function repairOperationalData(
 
   for (const transaction of data.transactions) {
     if (transaction.accountId || !transactionHasCashEffect(transaction)) continue;
-    const candidates = data.accounts.filter((account) => accountAcceptsTransaction(account, transaction));
+    const candidates = accountsForPaymentMethod(data, transaction.paymentMethodId, transaction.date)
+      .filter((account) => accountAcceptsTransaction(account, transaction) && account.currency === transaction.currency);
     if (candidates.length === 1) {
       transaction.accountId = candidates[0]!.id;
       const linkedInvestmentEntry = data.investmentEntries.find((entry) =>

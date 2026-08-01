@@ -88,13 +88,50 @@ function migrateInvestmentCashAccounts(raw: RawRecord): void {
   raw.recurringItems = recurringItems;
 }
 
+function migrateLinkedRecordAccounts(raw: RawRecord): void {
+  const transactions = list(raw.transactions);
+  const transactionById = new Map(transactions
+    .filter((transaction) => typeof transaction.id === "string")
+    .map((transaction) => [transaction.id as string, transaction]));
+  const migrateCollection = (key: "propertyEntries" | "sharedExpenses" | "vehicleEntries", reverseKey: "propertyEntryId" | "sharedExpenseId" | "vehicleEntryId") => {
+    const rows = list(raw[key]);
+    const transactionsByEntryId = new Map<string, RawRecord[]>();
+    for (const transaction of transactions) {
+      const entryId = transaction[reverseKey];
+      if (typeof entryId !== "string") continue;
+      const matches = transactionsByEntryId.get(entryId) ?? [];
+      matches.push(transaction);
+      transactionsByEntryId.set(entryId, matches);
+    }
+    for (const row of rows) {
+      const explicit = typeof row.transactionId === "string" ? transactionById.get(row.transactionId) : undefined;
+      const reverseMatches = typeof row.id === "string" ? transactionsByEntryId.get(row.id) ?? [] : [];
+      const transaction = explicit ?? (reverseMatches.length === 1 ? reverseMatches[0] : undefined);
+      const accountId = typeof row.accountId === "string"
+        ? row.accountId
+        : typeof transaction?.accountId === "string"
+          ? transaction.accountId
+          : undefined;
+      if (accountId) {
+        row.accountId = accountId;
+        if (transaction && typeof transaction.accountId !== "string") transaction.accountId = accountId;
+      }
+    }
+    raw[key] = rows;
+  };
+  migrateCollection("propertyEntries", "propertyEntryId");
+  migrateCollection("sharedExpenses", "sharedExpenseId");
+  migrateCollection("vehicleEntries", "vehicleEntryId");
+  raw.transactions = transactions;
+}
+
 export function migrateFinanceData(rawValue: unknown): FinanceData {
   if (!rawValue || typeof rawValue !== "object") throw new Error("INVALID_WORKBOOK_SCHEMA");
   const raw = structuredClone(rawValue) as RawRecord;
   const meta = raw.meta as RawRecord | undefined;
   const version = Number(meta?.schemaVersion);
-  if (version === 6) return financeDataSchema.parse(raw);
-  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
+  if (version === 7) return financeDataSchema.parse(raw);
+  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
 
   if (version === 1) {
     const categories = list(raw.categories);
@@ -163,6 +200,7 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
     ...item,
   }));
   migrateInvestmentCashAccounts(raw);
-  meta.schemaVersion = 6;
+  migrateLinkedRecordAccounts(raw);
+  meta.schemaVersion = 7;
   return financeDataSchema.parse(raw);
 }

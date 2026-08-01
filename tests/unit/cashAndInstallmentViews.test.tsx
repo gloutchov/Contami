@@ -11,7 +11,7 @@ const renderIt = (component: React.ReactNode) =>
   render(<I18nProvider language="it">{component}</I18nProvider>);
 
 describe("cash and installment views", () => {
-  it("includes opening cash in transaction balances and warns about unassigned rows", () => {
+  it("separates account and cash-register balances and warns about unassigned rows", () => {
     const data = createEmptyFinanceData(2026);
     const accountId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
@@ -36,11 +36,14 @@ describe("cash and installment views", () => {
 
     renderIt(<TransactionsView data={data} onSave={vi.fn()} />);
 
-    const balanceCard = screen.getByText("Saldo filtrato").closest("article")!;
-    expect(balanceCard).toHaveTextContent(/1200,00/);
-    expect(balanceCard).toHaveTextContent(/Saldo iniziale incluso:.*1000,00/);
+    const accountBalanceCard = screen.getByText("Saldo Conto (filtrato)").closest("article")!;
+    expect(accountBalanceCard).toHaveTextContent(/1250,00/);
+    expect(accountBalanceCard).toHaveTextContent(/Saldo iniziale incluso:.*1000,00/);
+    const cashRegisterBalanceCard = screen.getByText("Saldo Cassa (filtrato)").closest("article")!;
+    expect(cashRegisterBalanceCard).toHaveTextContent(/0,00/);
+    expect(cashRegisterBalanceCard).toHaveTextContent(/Saldo iniziale incluso:.*0,00/);
     expect(screen.getByRole("status")).toHaveTextContent("1 Transazioni");
-    expect(screen.getByText("Saldo:", { exact: false }).parentElement).toHaveTextContent(/1200,00/);
+    expect(screen.getByText("Liquidità:", { exact: false }).parentElement).toHaveTextContent(/1250,00/);
   });
 
   it("exposes the remaining installment plans in an accessible tooltip", () => {

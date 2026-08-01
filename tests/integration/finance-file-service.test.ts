@@ -7,7 +7,13 @@ import { SettingsService } from "../../src/infrastructure/settings/SettingsServi
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { NumbersMirrorService } from "../../src/infrastructure/spreadsheet/NumbersMirrorService";
 import { FinanceFileService } from "../../src/main/services/FinanceFileService";
-import { createEmptyFinanceData } from "../../src/domain/finance";
+import { createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
+
+function createEmptyFinanceData(year: number) {
+  const data = createBaseFinanceData(year);
+  data.accounts.push({ id: "00000000-0000-4000-8000-0000000000a1", name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: `${year}-01-01`, notes: "" });
+  return data;
+}
 
 vi.mock("electron", () => ({
   dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn() },
@@ -162,7 +168,7 @@ describe("FinanceFileService startup recovery", () => {
     const workbookPath = path.join(directory, "finance.xlsx");
     const settings = new SettingsService(directory);
     const repository = new ExcelWorkbookRepository();
-    const data = createEmptyFinanceData(2026);
+    const data = createBaseFinanceData(2026);
     const investmentId = crypto.randomUUID();
     const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
     const paymentMethodId = data.paymentMethods[0].id;
@@ -264,7 +270,7 @@ describe("FinanceFileService startup recovery", () => {
     const workbookPath = path.join(directory, "finance.xlsx");
     const settings = new SettingsService(directory);
     const repository = new ExcelWorkbookRepository();
-    const data = createEmptyFinanceData(2026);
+    const data = createBaseFinanceData(2026);
     await repository.save(workbookPath, data);
     await settings.update({ workbookFormat: "excel", workbookPath });
     const service = new FinanceFileService(

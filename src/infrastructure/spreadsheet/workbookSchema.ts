@@ -46,7 +46,7 @@ export const WORKBOOK_TABLES_V5: WorkbookTableDefinition[] = WORKBOOK_TABLES_V4.
     }
   : definition);
 
-export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V5.map((definition) => {
+export const WORKBOOK_TABLES_V6: WorkbookTableDefinition[] = WORKBOOK_TABLES_V5.map((definition) => {
   if (definition.key === "investments") {
     return {
       ...definition,
@@ -56,6 +56,34 @@ export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V5.map
     };
   }
   if (definition.key === "investmentEntries" || definition.key === "recurringItems") {
+    return {
+      ...definition,
+      columns: definition.columns.flatMap((column) => column === "paymentMethodId"
+        ? [column, "accountId"]
+        : [column]),
+    };
+  }
+  return definition;
+});
+
+export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V6.map((definition) => {
+  if (definition.key === "accounts") {
+    return {
+      ...definition,
+      columns: definition.columns.flatMap((column) => column === "kind"
+        ? [column, "defaultFundingAccountId"]
+        : [column]),
+    };
+  }
+  if (definition.key === "transactions") {
+    return {
+      ...definition,
+      columns: definition.columns.flatMap((column) => column === "accountId"
+        ? [column, "destinationAccountId"]
+        : [column]),
+    };
+  }
+  if (definition.key === "propertyEntries" || definition.key === "sharedExpenses" || definition.key === "vehicleEntries") {
     return {
       ...definition,
       columns: definition.columns.flatMap((column) => column === "paymentMethodId"
@@ -95,4 +123,4 @@ export const WORKBOOK_TABLES_V1: WorkbookTableDefinition[] = [
   { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth"] },
 ];
 
-export const WORKBOOK_SCHEMA_VERSION = 6;
+export const WORKBOOK_SCHEMA_VERSION = 7;

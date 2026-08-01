@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, Building2, CalendarClock, Landmark, PiggyBank, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Banknote, Building2, CalendarClock, Landmark, PiggyBank, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { FinanceSnapshot } from "../../shared/contracts";
 import { KpiCard } from "../components/KpiCard";
@@ -23,6 +23,7 @@ export function OverviewView({ snapshot, onCreate, onOpen }: { snapshot: Finance
     <section className="kpi-grid">
       <KpiCard label={t("netWorth")} value={formatCurrency(metrics.netWorth, language)} icon={PiggyBank} tone="mint" />
       <KpiCard label={t("liquidity")} value={formatCurrency(metrics.liquidBalance, language)} icon={WalletCards} tone="blue" />
+      <KpiCard label={t("cashRegisterBalance")} value={formatCurrency(metrics.cashRegisterBalance, language)} icon={Banknote} tone="gold" />
       <KpiCard label={t("propertyValue")} value={formatCurrency(metrics.propertyValue, language)} icon={Building2} tone="gold" detail={`${t("income")}: ${formatCurrency(metrics.propertyIncome, language)} · ${t("expenses")}: ${formatCurrency(metrics.propertyExpenses, language)}`} />
       <KpiCard label={t("investmentValue")} value={formatCurrency(metrics.investmentValue, language)} icon={Landmark} tone="mint" />
       <KpiCard label={t("pensionValue")} value={formatCurrency(metrics.pensionValue, language)} icon={ShieldCheck} tone="gold" />

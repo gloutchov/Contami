@@ -4,7 +4,7 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyFinanceCommands, createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommands, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import { createRolloverFinanceData } from "../../src/domain/rollover";
 import {
   IMPORT_TEMPLATE_CONTRACTS,
@@ -12,6 +12,12 @@ import {
   IMPORT_TEMPLATE_META_SHEET,
   type ImportTemplateType,
 } from "../../src/domain/importTemplates";
+
+function createEmptyFinanceData(year: number) {
+  const data = createBaseFinanceData(year);
+  data.accounts.push({ id: "00000000-0000-4000-8000-0000000000a1", name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: `${year}-01-01`, notes: "" });
+  return data;
+}
 import type { FinanceData } from "../../src/domain/models";
 import { ExcelImportTemplateGenerator } from "../../src/infrastructure/spreadsheet/ExcelImportTemplateGenerator";
 import { ExcelImportTemplateParser } from "../../src/infrastructure/spreadsheet/ExcelImportTemplateParser";
@@ -27,11 +33,12 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
   const expense = data.categories.find((item) => item.kind === "expense")!;
   const income = data.categories.find((item) => item.kind === "income")!;
   const payment = data.paymentMethods[0]!;
+  const account = data.accounts[0]!;
   const investmentType = data.investmentTypes.find((item) => item.code !== "pension")!;
   const common = { active: "true | vero", notes: "Synthetic import" };
   if (type === "transactions") return [{
     date: "2026-01-05", description: "Synthetic income", kind: "income | entrata", amount: 125,
-    currency: "EUR", category: ref(income.id), payment_method: ref(payment.id), planned: "false | falso", notes: "Synthetic import",
+    currency: "EUR", category: ref(income.id), payment_method: ref(payment.id), account: ref(account.id), planned: "false | falso", notes: "Synthetic import",
   }];
   if (type === "residence" || type === "rental_properties") return [
     {
@@ -41,7 +48,7 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
     {
       record_type: type === "residence" ? "expense | uscita" : "income | entrata", property_key: "home-1",
       date: "2026-02-01", description: "Synthetic property record", amount: 700,
-      category: ref(type === "residence" ? expense.id : income.id), payment_method: ref(payment.id),
+      category: ref(type === "residence" ? expense.id : income.id), payment_method: ref(payment.id), account: ref(account.id),
       shared: "false | falso", is_common_expense: "false | falso", notes: "Synthetic import",
     },
   ];
@@ -52,7 +59,7 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
     },
     {
       record_type: "contribution | versamento", investment_key: "investment-1", date: "2026-03-01",
-      description: "Synthetic contribution", amount: 500, category: ref(expense.id), payment_method: ref(payment.id), notes: "Synthetic import",
+      description: "Synthetic contribution", amount: 500, category: ref(expense.id), payment_method: ref(payment.id), account: ref(account.id), notes: "Synthetic import",
     },
   ];
   if (type === "pension") return [
@@ -67,7 +74,7 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
     {
       record_type: "contribution | versamento", pension_key: "pension-1", compartment_key: "compartment-1",
       date: "2026-03-01", description: "Synthetic pension contribution", amount: 300,
-      category: ref(expense.id), payment_method: ref(payment.id), notes: "Synthetic import",
+      category: ref(expense.id), payment_method: ref(payment.id), account: ref(account.id), notes: "Synthetic import",
     },
     {
       record_type: "valuation | valutazione", pension_key: "pension-1", compartment_key: "compartment-1",
@@ -76,11 +83,11 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
   ];
   if (type === "shared_expenses") return [{
     date: "2026-05-01", description: "Synthetic shared", amount: 80, owner_share: 40, partner_share: 40,
-    paid_by: "owner | titolare", settled: "false | falso", category: ref(expense.id), payment_method: ref(payment.id), notes: "Synthetic import",
+    paid_by: "owner | titolare", settled: "false | falso", category: ref(expense.id), payment_method: ref(payment.id), account: ref(account.id), notes: "Synthetic import",
   }];
   if (type === "recurring_items") return [{
     name: "Synthetic subscription", kind: "subscription | abbonamento", direction: "expense | uscita",
-    amount: 15, frequency: "monthly | mensile", category: ref(expense.id), payment_method: ref(payment.id),
+    amount: 15, frequency: "monthly | mensile", category: ref(expense.id), payment_method: ref(payment.id), account: ref(account.id),
     next_due_date: "2026-06-01", active: "true | vero", notes: "Synthetic import",
   }];
   return [
@@ -91,7 +98,7 @@ function syntheticRows(type: ImportTemplateType, data: FinanceData): Array<Recor
     {
       record_type: "fuel | carburante", vehicle_key: "vehicle-1", date: "2026-07-01",
       description: "Synthetic fuel", amount: 60, fuel_liters: 30, category: ref(expense.id),
-      payment_method: ref(payment.id), notes: "Synthetic import",
+      payment_method: ref(payment.id), account: ref(account.id), notes: "Synthetic import",
     },
   ];
 }

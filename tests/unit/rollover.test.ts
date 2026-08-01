@@ -105,6 +105,7 @@ describe("createRolloverFinanceData", () => {
 
   it("carries only the unpaid installments into the next year", () => {
     let current = createEmptyFinanceData(2026);
+    current.accounts.push({ id: crypto.randomUUID(), name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "" });
     const recurringId = crypto.randomUUID();
     current = applyFinanceCommand(current, { type: "addRecurringItem", value: {
       id: recurringId, name: "Synthetic cross-year plan", kind: "installment", direction: "expense",
@@ -128,6 +129,7 @@ describe("createRolloverFinanceData", () => {
 
   it("rolls a recurring pension contribution forward with one linked movement per transaction", () => {
     let current = createEmptyFinanceData(2026);
+    current.accounts.push({ id: crypto.randomUUID(), name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "" });
     const pensionId = crypto.randomUUID();
     const compartmentId = crypto.randomUUID();
     const pensionTypeId = current.investmentTypes.find((item) => item.code === "pension")!.id;

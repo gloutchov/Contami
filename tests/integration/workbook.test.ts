@@ -19,11 +19,17 @@ describe("ExcelWorkbookRepository", () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-2026.xlsx");
     const data = createEmptyFinanceData(2026);
+    const bankId = crypto.randomUUID();
+    const cashId = crypto.randomUUID();
+    data.accounts.push(
+      { id: bankId, name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "" },
+      { id: cashId, name: "Synthetic cash", kind: "cash", defaultFundingAccountId: bankId, currency: "EUR", openingBalance: 25, active: true, openedAt: "2026-01-01", notes: "" },
+    );
     const timestamp = new Date().toISOString();
     data.transactions.push({
       id: crypto.randomUUID(), date: "2026-05-10", description: "Test entry",
-      categoryId: data.categories[0].id, paymentMethodId: data.paymentMethods[0].id,
-      kind: "transfer", cashFlowDirection: "outflow", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
+      categoryId: data.categories[0].id, paymentMethodId: data.paymentMethods[0].id, accountId: bankId, destinationAccountId: cashId,
+      kind: "transfer", cashFlowDirection: "neutral", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
     });
     const propertyId = crypto.randomUUID();
     data.properties.push({ id: propertyId, name: "Synthetic home", kind: "apartment", usage: "residence", areaSqm: 80, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
@@ -35,7 +41,7 @@ describe("ExcelWorkbookRepository", () => {
       id: crypto.randomUUID(), propertyId, date: "2026-06-16", kind: "expense", category: "IMU",
       categoryId: data.categories[3].id, description: "Synthetic property tax", amount: 350,
       taxTypeId: data.taxTypes.find((item) => item.name === "IMU")!.id, taxInstallmentNumber: 2,
-      paymentMethodId: data.paymentMethods[0].id, notes: "",
+      paymentMethodId: data.paymentMethods[0].id, accountId: bankId, notes: "",
     });
     const repository = new ExcelWorkbookRepository();
     await repository.save(filePath, data);
@@ -48,6 +54,9 @@ describe("ExcelWorkbookRepository", () => {
     expect(workbook.getWorksheet("Tax Types")?.getRow(1).values).toContain("installments");
     expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("taxTypeId");
     expect(workbook.getWorksheet("Property History")?.getRow(1).values).toContain("phoneInternetCost");
+    expect(workbook.getWorksheet("Accounts")?.getRow(1).values).toContain("defaultFundingAccountId");
+    expect(workbook.getWorksheet("Transactions")?.getRow(1).values).toContain("destinationAccountId");
+    expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("accountId");
   });
 
   it("repairs manually duplicated UUIDs in place and keeps a recoverable backup", async () => {
@@ -305,7 +314,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.propertyEntries[0]).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 2, amount: 350 });
   });
 
@@ -346,7 +355,7 @@ describe("ExcelWorkbookRepository", () => {
     await workbook.xlsx.writeFile(filePath);
 
     const migrated = await repository.load(filePath);
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({ phoneInternetCost: 0, condominiumCost: 0 });
   });
 });

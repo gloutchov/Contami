@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const IMPORT_TEMPLATE_VERSION = 1;
+export const IMPORT_TEMPLATE_VERSION = 2;
 export const IMPORT_TEMPLATE_DATA_SHEET = "Dati - Data";
 export const IMPORT_TEMPLATE_META_SHEET = "_Meta";
 export const IMPORT_TEMPLATE_LISTS_SHEET = "_Lists";
@@ -134,6 +134,12 @@ const paymentMethod = (requiredFor: string[]) => field(
   "Choose a payment method from the catalog.",
   "catalog", { requiredFor, list: "payment_methods" },
 );
+const account = (requiredFor: string[]) => field(
+  "account", "Conto o Cassa", "Account or cash register",
+  "Scegli il conto o la Cassa coerente con il metodo di pagamento.",
+  "Choose the account or cash register that matches the payment method.",
+  "catalog", { requiredFor, list: "accounts" },
+);
 const amount = (requiredFor?: string[]) => field(
   "amount", "Importo", "Amount",
   "Numero positivo; usa il separatore decimale previsto dal programma di foglio di calcolo.",
@@ -169,6 +175,7 @@ const propertyFields = (rental: boolean): ImportTemplateField[] => [
   amount(["valuation", "income", "expense", "utility", "tax"]),
   category(["income", "expense", "utility", "tax"]),
   paymentMethod(["income", "expense", "utility", "tax"]),
+  account(["income", "expense", "utility", "tax"]),
   field("utility_type", "Tipo utenza", "Utility type", "Obbligatorio per una riga utenza.", "Required for a utility row.", "enum", { requiredFor: ["utility"], list: "utility_type" }),
   field("quantity", "Quantità/consumo", "Quantity/consumption", "Consumo non negativo.", "Non-negative consumption.", "decimal"),
   field("unit", "Unità", "Unit", "Ad esempio kWh o m³.", "For example kWh or m³.", "text"),
@@ -190,7 +197,7 @@ const propertyFields = (rental: boolean): ImportTemplateField[] => [
 const contracts: ImportTemplateContract[] = [
   {
     type: "residence",
-    fileName: "ContaMi-template-residence-v1.xlsx",
+    fileName: "ContaMi-template-residence-v2.xlsx",
     titleIt: "Immobile di residenza",
     titleEn: "Residence property",
     purposeIt: "Anagrafica della residenza e registrazioni collegate: valutazioni, entrate, uscite, utenze e tasse.",
@@ -199,7 +206,7 @@ const contracts: ImportTemplateContract[] = [
   },
   {
     type: "rental_properties",
-    fileName: "ContaMi-template-rental-properties-v1.xlsx",
+    fileName: "ContaMi-template-rental-properties-v2.xlsx",
     titleIt: "Immobili in affitto",
     titleEn: "Rental properties",
     purposeIt: "Anagrafiche degli immobili locati e registrazioni collegate, inclusi canoni, costi, utenze e tasse.",
@@ -208,7 +215,7 @@ const contracts: ImportTemplateContract[] = [
   },
   {
     type: "transactions",
-    fileName: "ContaMi-template-transactions-v1.xlsx",
+    fileName: "ContaMi-template-transactions-v2.xlsx",
     titleIt: "Transazioni",
     titleEn: "Transactions",
     purposeIt: "Entrate, uscite e trasferimenti non già creati da altri template collegati.",
@@ -221,7 +228,8 @@ const contracts: ImportTemplateContract[] = [
       field("currency", "Valuta", "Currency", "Codice ISO di tre lettere, ad esempio EUR.", "Three-letter ISO code, for example EUR.", "text", { required: true }),
       category(["all"]),
       paymentMethod(["all"]),
-      field("account", "Conto", "Account", "Conto interessato; facoltativo se non ancora configurato.", "Affected account; optional when not configured yet.", "catalog", { list: "accounts" }),
+      account(["all"]),
+      field("destination_account", "Conto o Cassa di destinazione", "Destination account or cash register", "Obbligatorio per un trasferimento interno neutro.", "Required for a neutral internal transfer.", "catalog", { list: "accounts" }),
       field("cash_flow_direction", "Direzione di cassa", "Cash-flow direction", "Obbligatoria per i trasferimenti: entrata, uscita o neutra.", "Required for transfers: inflow, outflow, or neutral.", "enum", { requiredFor: ["transfer"], list: "cash_flow_direction" }),
       field("planned", "Pianificata", "Planned", "Indica una transazione non ancora confermata.", "Marks a transaction that is not yet confirmed.", "enum", { required: true, list: "boolean" }),
       notes,
@@ -229,7 +237,7 @@ const contracts: ImportTemplateContract[] = [
   },
   {
     type: "investments",
-    fileName: "ContaMi-template-investments-v1.xlsx",
+    fileName: "ContaMi-template-investments-v2.xlsx",
     titleIt: "Investimenti",
     titleEn: "Investments",
     purposeIt: "Posizioni non pensionistiche, versamenti, liquidazioni e valutazioni.",
@@ -249,17 +257,19 @@ const contracts: ImportTemplateContract[] = [
       field("periodic_next_due_date", "Prossima scadenza", "Next due date", "Prossima scadenza del piano periodico.", "Next periodic-plan due date.", "date"),
       field("periodic_category", "Categoria periodica", "Periodic category", "Categoria per le transazioni del piano.", "Category for plan transactions.", "catalog", { list: "expense_categories" }),
       field("periodic_payment_method", "Metodo periodico", "Periodic payment method", "Metodo di pagamento del piano.", "Plan payment method.", "catalog", { list: "payment_methods" }),
+      field("periodic_account", "Conto o Cassa periodica", "Periodic account or cash register", "Conto o Cassa del piano periodico.", "Account or cash register used by the periodic plan.", "catalog", { list: "accounts" }),
       entryDate(["contribution", "withdrawal", "valuation"]),
       field("description", "Descrizione movimento", "Movement description", "Descrizione di versamento, liquidazione o valutazione.", "Contribution, withdrawal, or valuation description.", "text", { requiredFor: ["contribution", "withdrawal", "valuation"] }),
       amount(["contribution", "withdrawal", "valuation"]),
       category(["contribution", "withdrawal"]),
       paymentMethod(["contribution", "withdrawal"]),
+      account(["contribution", "withdrawal"]),
       notes,
     ],
   },
   {
     type: "pension",
-    fileName: "ContaMi-template-pension-v1.xlsx",
+    fileName: "ContaMi-template-pension-v2.xlsx",
     titleIt: "Fondo pensione",
     titleEn: "Pension fund",
     purposeIt: "Pensioni-raccoglitore, comparti associati e relativi movimenti e valutazioni.",
@@ -279,17 +289,19 @@ const contracts: ImportTemplateContract[] = [
       field("periodic_next_due_date", "Prossima scadenza", "Next due date", "Prossima data del piano.", "Next plan date.", "date"),
       field("periodic_category", "Categoria periodica", "Periodic category", "Categoria del versamento periodico.", "Periodic contribution category.", "catalog", { list: "expense_categories" }),
       field("periodic_payment_method", "Metodo periodico", "Periodic payment method", "Metodo di pagamento del piano.", "Plan payment method.", "catalog", { list: "payment_methods" }),
+      field("periodic_account", "Conto o Cassa periodica", "Periodic account or cash register", "Conto o Cassa del piano periodico.", "Account or cash register used by the periodic plan.", "catalog", { list: "accounts" }),
       entryDate(["contribution", "withdrawal", "valuation"]),
       field("description", "Descrizione movimento", "Movement description", "Descrizione del movimento o della valutazione.", "Movement or valuation description.", "text", { requiredFor: ["contribution", "withdrawal", "valuation"] }),
       amount(["contribution", "withdrawal", "valuation"]),
       category(["contribution", "withdrawal"]),
       paymentMethod(["contribution", "withdrawal"]),
+      account(["contribution", "withdrawal"]),
       notes,
     ],
   },
   {
     type: "shared_expenses",
-    fileName: "ContaMi-template-shared-expenses-v1.xlsx",
+    fileName: "ContaMi-template-shared-expenses-v2.xlsx",
     titleIt: "Spese condivise",
     titleEn: "Shared expenses",
     purposeIt: "Spese ripartite tra titolare e partner con transazione collegata.",
@@ -304,12 +316,13 @@ const contracts: ImportTemplateContract[] = [
       field("settled", "Rimborsata", "Settled", "Stato del rimborso.", "Reimbursement status.", "enum", { required: true, list: "boolean" }),
       category(["all"], "expense_categories"),
       paymentMethod(["all"]),
+      account(["all"]),
       notes,
     ],
   },
   {
     type: "recurring_items",
-    fileName: "ContaMi-template-recurring-items-v1.xlsx",
+    fileName: "ContaMi-template-recurring-items-v2.xlsx",
     titleIt: "Spese ricorrenti",
     titleEn: "Recurring items",
     purposeIt: "Abbonamenti, servizi, rate, affitti e altri impegni periodici.",
@@ -322,6 +335,7 @@ const contracts: ImportTemplateContract[] = [
       field("frequency", "Frequenza", "Frequency", "Frequenza dell’impegno.", "Commitment frequency.", "enum", { required: true, list: "frequency" }),
       category(["all"]),
       paymentMethod(["all"]),
+      account(["all"]),
       field("next_due_date", "Prossima scadenza", "Next due date", "Prima scadenza futura da pianificare.", "First future due date to schedule.", "date", { required: true }),
       field("end_date", "Data fine", "End date", "Data finale facoltativa.", "Optional final date.", "date"),
       field("remaining_installments", "Rate residue", "Remaining instalments", "Intero non negativo, massimo 10.000.", "Non-negative integer, maximum 10,000.", "integer"),
@@ -334,7 +348,7 @@ const contracts: ImportTemplateContract[] = [
   },
   {
     type: "vehicles",
-    fileName: "ContaMi-template-vehicles-v1.xlsx",
+    fileName: "ContaMi-template-vehicles-v2.xlsx",
     titleIt: "Automobile",
     titleEn: "Vehicles",
     purposeIt: "Anagrafica delle automobili e registrazioni di costi, consumi e valutazioni.",
@@ -362,6 +376,7 @@ const contracts: ImportTemplateContract[] = [
       field("vendor", "Fornitore", "Vendor", "Distributore, officina o altro fornitore.", "Fuel station, workshop, or other vendor.", "text"),
       category(["fuel", "installment", "tax", "insurance", "tires", "maintenance", "repair", "other"], "expense_categories"),
       paymentMethod(["fuel", "installment", "tax", "insurance", "tires", "maintenance", "repair", "other"]),
+      account(["fuel", "installment", "tax", "insurance", "tires", "maintenance", "repair", "other"]),
       notes,
     ],
   },

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { FinanceCommand } from "../../domain/commands";
 import type { FinanceData, Vehicle, VehicleEntry } from "../../domain/models";
 import { Field, Modal } from "../components/Modal";
+import { PaymentAccountField } from "../components/PaymentAccountField";
 import { useI18n } from "../i18n/I18nContext";
 import { todayIso } from "../utils/format";
 import { saveAndClose } from "../utils/save";
@@ -59,8 +60,9 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
   const [vendor, setVendor] = useState(value?.vendor ?? "");
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? data.categories.find((item) => item.active && (item.nameIt.toLocaleLowerCase().includes("auto") || item.nameEn.toLocaleLowerCase().includes("car")))?.id ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
+  const [accountId, setAccountId] = useState(value?.accountId ?? "");
   const [notes, setNotes] = useState(value?.notes ?? "");
-  const valid = Boolean(vehicleId && description.trim() && Number(amount || 0) >= 0 && (kind === "valuation" || (categoryId && paymentMethodId)) && (kind !== "fuel" || Number(fuelLiters) > 0));
+  const valid = Boolean(vehicleId && description.trim() && Number(amount || 0) >= 0 && (kind === "valuation" || (categoryId && paymentMethodId && accountId)) && (kind !== "fuel" || Number(fuelLiters) > 0));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const entry: VehicleEntry = {
@@ -69,7 +71,8 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
       fuelLiters: kind === "fuel" && fuelLiters ? Number(fuelLiters) : undefined,
       fuelUnitPrice: kind === "fuel" && fuelUnitPrice ? Number(fuelUnitPrice) : undefined,
       fuelType: kind === "fuel" && fuelType ? fuelType : undefined, vendor: vendor || undefined,
-      categoryId: kind === "valuation" ? undefined : categoryId, paymentMethodId: kind === "valuation" ? undefined : paymentMethodId, transactionId: value?.transactionId, notes,
+      categoryId: kind === "valuation" ? undefined : categoryId, paymentMethodId: kind === "valuation" ? undefined : paymentMethodId,
+      accountId: kind === "valuation" ? undefined : accountId, transactionId: value?.transactionId, notes,
     };
     await saveAndClose(onSave, { type: value ? "updateVehicleEntry" : "addVehicleEntry", value: entry }, onClose);
   };
@@ -79,7 +82,7 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
     <Field label={t("type")}><select value={kind} onChange={(event) => setKind(event.target.value as VehicleEntry["kind"])}>{entryKinds.map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field>
     <Field label={t("amount")}><input type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
     <Field label={t("description")} wide><input required maxLength={240} value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
-    {kind !== "valuation" && <><Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">—</option>{data.categories.filter((item) => item.active && (item.kind === "expense" || item.kind === "both")).map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></>}
+    {kind !== "valuation" && <><Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">—</option>{data.categories.filter((item) => item.active && (item.kind === "expense" || item.kind === "both")).map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} /></>}
     <Field label={t("odometerKm")}><input type="number" min="0" step="1" value={odometerKm} onChange={(event) => setOdometerKm(event.target.value)} /></Field>
     <Field label={t("distanceKm")}><input type="number" min="0" step="1" value={distanceKm} onChange={(event) => setDistanceKm(event.target.value)} /></Field>
     {kind === "fuel" && <><Field label={t("fuelLiters")}><input required type="number" min="0.001" step="0.001" value={fuelLiters} onChange={(event) => setFuelLiters(event.target.value)} /></Field><Field label={t("fuelUnitPrice")}><input type="number" min="0" step="0.001" value={fuelUnitPrice} onChange={(event) => setFuelUnitPrice(event.target.value)} /></Field><Field label={t("fuelType")}><input maxLength={80} value={fuelType} onChange={(event) => setFuelType(event.target.value)} /></Field></>}

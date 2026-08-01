@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { FinanceCommand } from "../../domain/commands";
 import type { FinanceData, Property, PropertyEntry, RecurringItem } from "../../domain/models";
 import { Field, Modal } from "../components/Modal";
+import { PaymentAccountField } from "../components/PaymentAccountField";
 import { useI18n } from "../i18n/I18nContext";
 import { todayIso } from "../utils/format";
 import { calculatePropertyValuation } from "../utils/propertyHistory";
@@ -64,6 +65,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
   const [quantity, setQuantity] = useState(value?.quantity !== undefined ? String(value.quantity) : "");
   const [unit, setUnit] = useState(value?.unit ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? "");
+  const [accountId, setAccountId] = useState(value?.accountId ?? "");
   const [isCommonExpense, setIsCommonExpense] = useState(value?.isCommonExpense ?? false);
   const [createRentRecurring, setCreateRentRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<RecurringItem["frequency"]>("monthly");
@@ -79,7 +81,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
   const categories = useMemo(() => data.categories.filter((item) => item.active && (item.kind === kind || item.kind === "both")), [data.categories, kind]);
   const validRecurringRent = !createRentRecurring || Boolean(canCreateRentRecurring && recurringNextDueDate && Number(amount) > 0);
   const valid = Boolean(propertyId && description.trim() && Number(amount || 0) >= 0
-    && (!monetary || (paymentMethodId && categoryId))
+    && (!monetary || (paymentMethodId && categoryId && accountId))
     && (kind !== "consumption" || Number(quantity) > 0)
     && (kind !== "valuation" || (valuationMode === "total" ? Number(amount) > 0 : Boolean(selectedProperty?.areaSqm && Number(valuePerSqm) > 0)))
     && validRecurringRent);
@@ -91,7 +93,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
       categoryId: monetary ? categoryId : undefined, description, amount: kind === "valuation" ? computedValuation : Number(amount || 0),
       quantity: quantity ? Number(quantity) : undefined, unit: unit || undefined,
       valuePerSqm: kind === "valuation" && valuationMode === "sqm" ? Number(valuePerSqm) : undefined,
-      paymentMethodId: monetary ? paymentMethodId : undefined, transactionId: value?.transactionId,
+      paymentMethodId: monetary ? paymentMethodId : undefined, accountId: monetary ? accountId : undefined, transactionId: value?.transactionId,
       isCommonExpense: kind === "expense" && isCommonExpense, notes,
     };
     if (canCreateRentRecurring && createRentRecurring) {
@@ -108,6 +110,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
             frequency: recurringFrequency,
             categoryId,
             paymentMethodId,
+            accountId,
             propertyId,
             nextDueDate: recurringNextDueDate,
             endDate: recurringEndDate || undefined,
@@ -130,6 +133,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
     {kind === "valuation" && <Field label={t("valuationMethod")}><select value={valuationMode} onChange={(event) => setValuationMode(event.target.value as "total" | "sqm")}><option value="total">{t("valuationByTotal")}</option><option value="sqm">{t("valuationBySqm")}</option></select></Field>}
     {kind === "valuation" && valuationMode === "sqm" ? <><Field label={t("valuePerSqm")} hint={selectedProperty?.areaSqm ? `${t("areaSqm")}: ${selectedProperty.areaSqm} m²` : t("areaRequiredForValuation")}><input required type="number" min="0.01" step="0.01" value={valuePerSqm} onChange={(event) => setValuePerSqm(event.target.value)} /></Field><Field label={t("computedTotal")}><output>{computedValuation.toFixed(2)}</output></Field></> : <Field label={kind === "valuation" ? t("totalPropertyValue") : t("amount")}><input type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>}
     {monetary && <Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
+    {monetary && <PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} />}
     {canCreateRentRecurring && <><Field label={t("recurring")}><span className="check-field"><input type="checkbox" aria-label={t("createRentRecurring")} checked={createRentRecurring} onChange={(event) => { setCreateRentRecurring(event.target.checked); if (event.target.checked) setRecurringNextDueDate(date); }} />{t("createRentRecurring")}</span><small>{t("createRentRecurringHelp")}</small></Field>{createRentRecurring && <><Field label={t("frequency")}><select value={recurringFrequency} onChange={(event) => setRecurringFrequency(event.target.value as RecurringItem["frequency"])}>{(["weekly", "monthly", "quarterly", "yearly"] as const).map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field><Field label={t("nextDue")}><input required type="date" value={recurringNextDueDate} onChange={(event) => setRecurringNextDueDate(event.target.value)} /></Field><Field label={t("endDate")}><input type="date" value={recurringEndDate} onChange={(event) => setRecurringEndDate(event.target.value)} /></Field></>}</>}
     {kind === "expense" && <Field label={t("commonExpense")}><span className="check-field"><input type="checkbox" checked={isCommonExpense} onChange={(event) => setIsCommonExpense(event.target.checked)} />{t("commonExpenseHelp")}</span></Field>}
     {kind === "consumption" && <><Field label={t("quantity")}><input required type="number" min="0" step="0.01" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></Field><Field label={t("unit")}><input value={unit} maxLength={24} onChange={(event) => setUnit(event.target.value)} /></Field></>}

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyFinanceCommand, computeDashboard, createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, computeDashboard, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import { portfolioValues } from "../../src/domain/investments";
+
+function createEmptyFinanceData(year: number) {
+  const data = createBaseFinanceData(year);
+  data.accounts.push({ id: "00000000-0000-4000-8000-0000000000a1", name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: `${year}-01-01`, notes: "" });
+  return data;
+}
 
 describe("linked finance records", () => {
   it("keeps a property transaction and a shared expense synchronized", () => {

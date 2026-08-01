@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { FinanceCommand } from "../../domain/commands";
 import type { FinanceData, PropertyEntry } from "../../domain/models";
 import { Field, Modal } from "../components/Modal";
+import { PaymentAccountField } from "../components/PaymentAccountField";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 import { todayIso } from "../utils/format";
@@ -42,6 +43,7 @@ export function PropertyExpenseForm({ data, mode, value, initialPropertyId, onCl
   const [amount, setAmount] = useState(value ? String(value.amount) : "");
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? data.categories.find((item) => item.active && item.kind !== "income")?.id ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
+  const [accountId, setAccountId] = useState(value?.accountId ?? "");
   const [quantity, setQuantity] = useState(value?.quantity !== undefined ? String(value.quantity) : "");
   const [f1, setF1] = useState(value?.electricityKwhF1 !== undefined ? String(value.electricityKwhF1) : "");
   const [f2, setF2] = useState(value?.electricityKwhF2 !== undefined ? String(value.electricityKwhF2) : "");
@@ -68,7 +70,7 @@ export function PropertyExpenseForm({ data, mode, value, initialPropertyId, onCl
   const installmentValid = mode !== "tax" || !selectedTaxType || selectedTaxType.installments === 1
     || (Number(taxInstallmentNumber) >= 1 && Number(taxInstallmentNumber) <= selectedTaxType.installments);
   const valid = Boolean(
-    propertyId && description.trim() && Number(amount) > 0 && categoryId && paymentMethodId
+    propertyId && description.trim() && Number(amount) > 0 && categoryId && paymentMethodId && accountId
     && (mode === "utility" || selectedTaxType) && installmentValid && (!shared || sharesMatch),
   );
   const splitHalf = (next: string) => {
@@ -113,6 +115,7 @@ export function PropertyExpenseForm({ data, mode, value, initialPropertyId, onCl
       electricityKwhF3: isElectricity && f3 ? Number(f3) : undefined,
       electricityKwhF23: isElectricity && f23 ? Number(f23) : undefined,
       paymentMethodId,
+      accountId,
       transactionId: value?.transactionId,
       isCommonExpense: mode === "tax" && commonExpense,
       notes,
@@ -146,6 +149,7 @@ export function PropertyExpenseForm({ data, mode, value, initialPropertyId, onCl
     <Field label={t("amount")}><input required type="number" min="0.01" step="0.01" value={amount} onChange={(event) => splitHalf(event.target.value)} /></Field>
     <Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field>
     <Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+    <PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} />
     {isElectricity && <><Field label={t("electricityF1")}><input type="number" min="0" step="0.01" value={f1} onChange={(event) => setF1(event.target.value)} /></Field><Field label={t("electricityF2")}><input type="number" min="0" step="0.01" value={f2} onChange={(event) => setF2(event.target.value)} /></Field><Field label={t("electricityF3")}><input type="number" min="0" step="0.01" value={f3} onChange={(event) => setF3(event.target.value)} /></Field><Field label={t("electricityF23")} hint={t("electricityF23Help")}><input type="number" min="0" step="0.01" value={f23} onChange={(event) => setF23(event.target.value)} /></Field><Field label={t("consumptionTotal")}><output>{electricityTotal.toFixed(2)} kWh</output></Field></>}
     {isMeasuredUtility && <Field label={detailKind === "utility_gas" ? t("gasCubicMeters") : t("waterCubicMeters")}><input type="number" min="0" step="0.01" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></Field>}
     {mode === "tax" && <Field label={t("commonExpense")} wide><span className="check-field"><input type="checkbox" checked={commonExpense} onChange={(event) => setCommonExpense(event.target.checked)} />{t("commonExpenseHelp")}</span></Field>}

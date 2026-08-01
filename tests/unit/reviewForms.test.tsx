@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FinanceCommand } from "../../src/domain/commands";
-import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import { InvestmentForm } from "../../src/renderer/forms/InvestmentForms";
 import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
@@ -11,6 +11,12 @@ import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
 import { TransactionForm } from "../../src/renderer/forms/TransactionForm";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
 import { PropertiesView } from "../../src/renderer/views/PropertiesView";
+
+function createEmptyFinanceData(year: number) {
+  const data = createBaseFinanceData(year);
+  data.accounts.push({ id: "00000000-0000-4000-8000-0000000000a1", name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: `${year}-01-01`, notes: "" });
+  return data;
+}
 
 const renderIt = (component: ReactNode) => render(<I18nProvider language="it">{component}</I18nProvider>);
 afterEach(cleanup);
@@ -40,7 +46,7 @@ function dataWithUnrelatedSharedExpense() {
 
 describe("v0.8 review forms", () => {
   it("requires an account for a cash-affecting transaction", async () => {
-    const data = createEmptyFinanceData(2026);
+    const data = createBaseFinanceData(2026);
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderIt(<TransactionForm data={data} onClose={() => undefined} onSave={onSave} />);
@@ -56,11 +62,7 @@ describe("v0.8 review forms", () => {
 
   it("creates a new investment together with its initial contribution", async () => {
     const data = createEmptyFinanceData(2026);
-    const accountId = crypto.randomUUID();
-    data.accounts.push({
-      id: accountId, name: "Conto sintetico", kind: "bank", currency: "EUR",
-      openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "",
-    });
+    const accountId = data.accounts[0].id;
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderIt(<InvestmentForm data={data} onClose={() => undefined} onSave={onSave} />);
