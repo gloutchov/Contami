@@ -9,7 +9,7 @@ import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -138,6 +138,7 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
     Investments: ["Anagrafica di investimenti e pensioni integrative, con pensioni raccoglitore e comparti collegati.", "Investment and private-pension registry, including pension collectors and linked compartments."],
     "Investment Entries": ["Versamenti, liquidazioni e valutazioni di investimenti e comparti pensione.", "Contributions, liquidations, and valuations for investments and pension compartments."],
     "Recurring Items": ["Abbonamenti, servizi, rate e versamenti periodici.", "Subscriptions, services, installments and recurring contributions."],
+    "Recurring Rate Changes": ["Cronologia degli importi ricorrenti con decorrenza mensile.", "Recurring amount history with monthly effective dates."],
     "Shared Expenses": ["Spese condivise e relativo saldo.", "Shared expenses and related balance."],
     Vehicles: ["Anagrafica delle automobili attuali e precedenti.", "Registry of current and previous vehicles."],
     "Vehicle Entries": ["Rifornimenti, rate, bollo, assicurazione, pneumatici, manutenzione e riparazioni.", "Fuel, installments, road tax, insurance, tyres, maintenance and repairs."],
@@ -170,6 +171,7 @@ export class ExcelWorkbookRepository {
     repairedTransactionAccounts: number;
     unresolvedTransactionAccounts: number;
     closedInstallmentPlans: number;
+    migratedSchema: boolean;
   }> {
     assertWorkbookPath(filePath);
     const info = await stat(filePath);
@@ -211,9 +213,11 @@ export class ExcelWorkbookRepository {
                 ? WORKBOOK_TABLES_V6
                 : schemaVersion === 7
                   ? WORKBOOK_TABLES_V7
-                  : schemaVersion === WORKBOOK_SCHEMA_VERSION
-                    ? WORKBOOK_TABLES
-                    : undefined;
+                  : schemaVersion === 8
+                    ? WORKBOOK_TABLES_V8
+                    : schemaVersion === WORKBOOK_SCHEMA_VERSION
+                      ? WORKBOOK_TABLES
+                      : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     const physicalRows = new Map<WorkbookTableDefinition["key"], number[]>();
     for (const definition of definitions) {
@@ -266,6 +270,7 @@ export class ExcelWorkbookRepository {
       repairedTransactionAccounts: operationalRepair.repairedTransactionAccounts,
       unresolvedTransactionAccounts: operationalRepair.unresolvedTransactionAccounts,
       closedInstallmentPlans: operationalRepair.closedInstallmentPlans,
+      migratedSchema: schemaVersion !== WORKBOOK_SCHEMA_VERSION,
     };
   }
 

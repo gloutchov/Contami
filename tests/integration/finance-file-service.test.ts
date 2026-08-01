@@ -7,7 +7,7 @@ import { SettingsService } from "../../src/infrastructure/settings/SettingsServi
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { NumbersMirrorService } from "../../src/infrastructure/spreadsheet/NumbersMirrorService";
 import { FinanceFileService } from "../../src/main/services/FinanceFileService";
-import { createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 
 function createEmptyFinanceData(year: number) {
   const data = createBaseFinanceData(year);
@@ -262,6 +262,56 @@ describe("FinanceFileService startup recovery", () => {
     const unchanged = await repository.load(workbookPath);
     expect(unchanged.transactions).toHaveLength(1);
     expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+  }, 30_000);
+
+  it("saves a rate change atomically and rejects a later external conflict without touching the workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-rate-change-atomic-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic recurring service", kind: "service", direction: "expense", amount: 50,
+      frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0]!.id, accountId: data.accounts[0]!.id,
+      nextDueDate: "2026-09-15", active: true, notes: "",
+    } });
+    await repository.save(workbookPath, data);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+    await service.snapshot();
+    const firstChange = {
+      id: crypto.randomUUID(), recurringId, amount: 65, effectiveFrom: "2026-10-01",
+    };
+
+    await service.execute({ type: "addRecurringRateChange", value: firstChange });
+
+    const saved = await repository.load(workbookPath);
+    expect(saved.recurringRateChanges).toEqual([firstChange]);
+    expect(saved.transactions.find((item) => item.dueDate === "2026-09-15")?.amount).toBe(50);
+    expect(saved.transactions.filter((item) => item.dueDate! >= "2026-10-01").every((item) => item.amount === 65)).toBe(true);
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+
+    const externallyChanged = structuredClone(saved);
+    externallyChanged.accounts[0]!.notes = "Synthetic external change";
+    await repository.save(workbookPath, externallyChanged);
+    const backupsBeforeConflict = await readdir(path.join(directory, ".contami-backups"));
+
+    await expect(service.execute({ type: "addRecurringRateChange", value: {
+      id: crypto.randomUUID(), recurringId, amount: 75, effectiveFrom: "2026-11-01",
+    } })).rejects.toThrow("WORKBOOK_CHANGED_EXTERNALLY");
+
+    const unchanged = await repository.load(workbookPath);
+    expect(unchanged.accounts[0]!.notes).toBe("Synthetic external change");
+    expect(unchanged.recurringRateChanges).toEqual([firstChange]);
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(backupsBeforeConflict.length);
   }, 30_000);
 
   it("rejects an import confirmation when another process changed the workbook after preview", async () => {

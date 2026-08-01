@@ -42,6 +42,8 @@ function errorKey(error: unknown): TranslationKey {
     || text.includes("INVALID_INTERNAL_TRANSFER")
     || text.includes("INVALID_CASH_REGISTER_FUNDING_ACCOUNT")) return "invalidAccountSelection";
   if (text.includes("DUPLICATE_TAX_NAME")) return "duplicateTaxName";
+  if (text.includes("RECURRING_BASE_AMOUNT_LOCKED")) return "recurringBaseLocked";
+  if (text.includes("RATE_CHANGE_") || text.includes("DUPLICATE_RATE_CHANGE_MONTH") || text.includes("INVALID_RATE_CHANGE")) return "invalidRateChange";
   if (text.includes("IMPORT_PREVIEW_EXPIRED")) return "importPreviewExpired";
   if (text.includes("IMPORT_NO_VALID_ROWS")) return "importNoValidRows";
   if (text.includes("IMPORT_") || text.includes("INVALID_IMPORT")) return "importInvalidFile";
@@ -57,6 +59,7 @@ function warningKey(code: string | undefined): TranslationKey | undefined {
   if (code === "TRANSACTION_ACCOUNTS_REPAIRED") return "transactionAccountsRepaired";
   if (code === "TRANSACTIONS_WITHOUT_ACCOUNT") return "transactionsWithoutAccount";
   if (code === "FINISHED_INSTALLMENTS_CLOSED") return "finishedInstallmentsClosed";
+  if (code === "WORKBOOK_SCHEMA_UPGRADED") return "workbookSchemaUpgraded";
   return undefined;
 }
 
@@ -183,5 +186,5 @@ function Notice({ messageKey, values, onClose }: { messageKey: TranslationKey; v
 
 function NoticeText({ messageKey, values }: { messageKey: TranslationKey; values?: Record<string, string | number> }) {
   const { t } = useI18n();
-  return <div className={messageKey === "genericError" || messageKey === "entityInUse" || messageKey === "duplicateTaxName" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" || messageKey === "workbookMissing" || messageKey === "importInvalidFile" || messageKey === "importPreviewExpired" || messageKey === "importNoValidRows" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
+  return <div className={messageKey === "genericError" || messageKey === "entityInUse" || messageKey === "duplicateTaxName" || messageKey === "workbookRequired" || messageKey === "workbookChangedExternally" || messageKey === "workbookMissing" || messageKey === "importInvalidFile" || messageKey === "importPreviewExpired" || messageKey === "importNoValidRows" || messageKey === "invalidRateChange" || messageKey === "recurringBaseLocked" ? "notice error-notice" : "notice"} role="status">{t(messageKey, values)}</div>;
 }

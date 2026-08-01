@@ -9,6 +9,7 @@ import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
 import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
 import { TransactionForm } from "../../src/renderer/forms/TransactionForm";
+import { RecurringForm } from "../../src/renderer/forms/RecurringForm";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
 import { PropertiesView } from "../../src/renderer/views/PropertiesView";
 
@@ -45,6 +46,46 @@ function dataWithUnrelatedSharedExpense() {
 }
 
 describe("v0.8 review forms", () => {
+  it("previews and confirms a recurring rate change from the keyboard in Italian and English", async () => {
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Servizio sintetico", kind: "service", direction: "expense", amount: 50,
+      frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id,
+      nextDueDate: "2026-08-15", active: true, notes: "",
+    } });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const user = userEvent.setup();
+    const view = renderIt(<RecurringForm data={data} value={data.recurringItems[0]} onClose={() => undefined} onSave={onSave} />);
+
+    expect(screen.getByRole("spinbutton", { name: /Tariffa base/ })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Cambia tariffa" }));
+    await user.clear(screen.getByLabelText("Nuovo importo"));
+    await user.type(screen.getByLabelText("Nuovo importo"), "65");
+    fireEvent.change(screen.getByLabelText("Mese di decorrenza"), { target: { value: "2026-10" } });
+    expect(screen.getByText("Scadenze pianificate da aggiornare: 3.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Mese di decorrenza"), "{Enter}");
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("3 scadenze pianificate"));
+    expect(onSave).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    await user.type(screen.getByLabelText("Mese di decorrenza"), "{Enter}");
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "addRecurringRateChange",
+      value: { recurringId, amount: 65, effectiveFrom: "2026-10-01" },
+    });
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining("3 scadenze pianificate"));
+
+    view.unmount();
+    render(<I18nProvider language="en"><RecurringForm data={data} value={data.recurringItems[0]} onClose={() => undefined} onSave={onSave} /></I18nProvider>);
+    expect(screen.getByRole("button", { name: "Change rate" })).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
   it("requires an account for a cash-affecting transaction", async () => {
     const data = createBaseFinanceData(2026);
     const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);

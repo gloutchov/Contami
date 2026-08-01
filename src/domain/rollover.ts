@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { accountBalance } from "./accounts";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
 import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
-import { recurrenceAnchorDay, syncRecurringTransactions, upsertTransactionWithLinks } from "./linkedRecords";
+import { recurrenceAnchorDay, syncRecurringLink, syncRecurringTransactions, upsertTransactionWithLinks } from "./linkedRecords";
 import type { FinanceData, InvestmentEntry, PropertyEntry, RecurringItem } from "./models";
 
 function latestEntry<T extends PropertyEntry | InvestmentEntry>(entries: T[], id: string, foreignKey: "propertyId" | "investmentId"): T | undefined {
@@ -56,6 +56,8 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
       nextDueDate: advanceDueDate(item.nextDueDate, item.frequency, nextYear, recurrenceAnchors.get(item.id)!),
     }));
   const nextRecurringIds = new Set(next.recurringItems.map((item) => item.id));
+  next.recurringRateChanges = structuredClone(current.recurringRateChanges
+    .filter((item) => nextRecurringIds.has(item.recurringId)));
   const nextPropertyIds = new Set(next.properties.map((item) => item.id));
   const yearStart = `${nextYear}-01-01`;
   current.transactions
@@ -75,7 +77,10 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
       const recurring = next.recurringItems.find((item) => item.id === transaction.recurringId)!;
       recurring.nextDueDate = [recurring.nextDueDate, transaction.dueDate ?? transaction.date].sort()[0]!;
     });
-  next.recurringItems.forEach((item) => syncRecurringTransactions(next, item, recurrenceAnchors.get(item.id)));
+  next.recurringItems.forEach((item) => {
+    syncRecurringTransactions(next, item, recurrenceAnchors.get(item.id));
+    syncRecurringLink(next, item);
+  });
   next.sharedExpenses = structuredClone(current.sharedExpenses.filter((item) => !item.settled));
   next.annualSummaries = [...structuredClone(current.annualSummaries), createAnnualSummary(current)];
   next.propertyAnnualSummaries = [...structuredClone(current.propertyAnnualSummaries), ...createPropertyAnnualSummaries(current)];

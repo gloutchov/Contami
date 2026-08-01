@@ -31,6 +31,15 @@ describe("ExcelWorkbookRepository", () => {
       categoryId: data.categories[0].id, paymentMethodId: data.paymentMethods[0].id, accountId: bankId, destinationAccountId: cashId,
       kind: "transfer", cashFlowDirection: "neutral", amount: 123.45, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
     });
+    const recurringId = crypto.randomUUID();
+    data.recurringItems.push({
+      id: recurringId, name: "Synthetic service", kind: "service", direction: "expense", amount: 50,
+      frequency: "monthly", categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id,
+      accountId: bankId, nextDueDate: "2026-09-01", active: true, notes: "",
+    });
+    data.recurringRateChanges.push({
+      id: crypto.randomUUID(), recurringId, amount: 60, effectiveFrom: "2026-10-01",
+    });
     const propertyId = crypto.randomUUID();
     data.properties.push({ id: propertyId, name: "Synthetic home", kind: "apartment", usage: "residence", areaSqm: 80, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
     data.propertyEntries.push({
@@ -59,6 +68,44 @@ describe("ExcelWorkbookRepository", () => {
     expect(workbook.getWorksheet("Transactions")?.getRow(1).values).toContain("dueDate");
     expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("accountId");
     expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("dueDate");
+    expect(workbook.getWorksheet("Recurring Rate Changes")?.getRow(2).getCell(3).value).toBe(60);
+  });
+
+  it("migrates version 8 to an empty rate history without changing existing amounts", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-v8-rates-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-v8.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    data.accounts.push({ id: accountId, name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "" });
+    data.recurringItems.push({
+      id: recurringId, name: "Synthetic legacy service", kind: "service", direction: "expense", amount: 75,
+      frequency: "monthly", categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id,
+      accountId, nextDueDate: "2026-08-15", active: true, notes: "",
+    });
+    data.transactions.push({
+      id: transactionId, date: "2026-08-15", dueDate: "2026-08-15", description: "Synthetic legacy service",
+      categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, accountId,
+      kind: "expense", amount: 75, currency: "EUR", recurringId, planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    workbook.getWorksheet("_Meta")!.getCell("B2").value = 8;
+    workbook.removeWorksheet(workbook.getWorksheet("Recurring Rate Changes")!.id);
+    await workbook.xlsx.writeFile(filePath);
+
+    const migrated = await repository.loadWithUuidRepair(filePath);
+
+    expect(migrated.migratedSchema).toBe(true);
+    expect(migrated.data.meta.schemaVersion).toBe(9);
+    expect(migrated.data.recurringRateChanges).toEqual([]);
+    expect(migrated.data.recurringItems[0]).toMatchObject({ id: recurringId, amount: 75 });
+    expect(migrated.data.transactions.find((item) => item.id === transactionId)).toMatchObject({ amount: 75, planned: true });
+    expect((await readdir(path.join(directory, ".contami-backups"))).length).toBeGreaterThan(0);
   });
 
   it("migrates version 7 planned rent dates without assigning an ambiguous confirmed receipt", async () => {
@@ -102,7 +149,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
 
-    expect(migrated.meta.schemaVersion).toBe(8);
+    expect(migrated.meta.schemaVersion).toBe(9);
     expect(migrated.transactions.find((item) => item.id === plannedTransactionId)?.dueDate).toBe("2026-08-15");
     expect(migrated.propertyEntries.find((item) => item.id === plannedEntryId)?.dueDate).toBe("2026-08-15");
     expect(migrated.transactions.find((item) => item.id === confirmedTransactionId)?.dueDate).toBeUndefined();
@@ -364,7 +411,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
-    expect(migrated.meta.schemaVersion).toBe(8);
+    expect(migrated.meta.schemaVersion).toBe(9);
     expect(migrated.propertyEntries[0]).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 2, amount: 350 });
   });
 
@@ -405,7 +452,7 @@ describe("ExcelWorkbookRepository", () => {
     await workbook.xlsx.writeFile(filePath);
 
     const migrated = await repository.load(filePath);
-    expect(migrated.meta.schemaVersion).toBe(8);
+    expect(migrated.meta.schemaVersion).toBe(9);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({ phoneInternetCost: 0, condominiumCost: 0 });
   });
 });
