@@ -48,9 +48,13 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   next.properties = structuredClone(current.properties.filter((item) => item.active));
   next.investments = structuredClone(current.investments.filter((item) => item.active));
   next.vehicles = structuredClone(current.vehicles.filter((item) => item.active));
+  const nextVehicleIds = new Set(next.vehicles.map((item) => item.id));
   const recurrenceAnchors = new Map(current.recurringItems.map((item) => [item.id, recurrenceAnchorDay(current, item)]));
   next.recurringItems = current.recurringItems
-    .filter((item) => item.active && item.remainingInstallments !== 0 && (!item.endDate || item.endDate >= `${nextYear}-01-01`))
+    .filter((item) => item.active
+      && item.remainingInstallments !== 0
+      && (!item.endDate || item.endDate >= `${nextYear}-01-01`)
+      && (!item.vehicleId || nextVehicleIds.has(item.vehicleId)))
     .map((item) => ({
       ...structuredClone(item),
       nextDueDate: advanceDueDate(item.nextDueDate, item.frequency, nextYear, recurrenceAnchors.get(item.id)!),

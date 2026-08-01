@@ -3,6 +3,74 @@ import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/fi
 import { createRolloverFinanceData } from "../../src/domain/rollover";
 
 describe("createRolloverFinanceData", () => {
+  it("carries an active vehicle installment with its remaining count and rate history", () => {
+    let current = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const vehicleId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    current.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 5_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    current = applyFinanceCommand(current, {
+      type: "addVehicleWithInstallment",
+      value: {
+        vehicle: { id: vehicleId, name: "Synthetic vehicle", manufacturer: "", model: "", fuelType: "electric", active: true, notes: "" },
+        installment: {
+          id: recurringId, name: "Synthetic vehicle", kind: "installment", direction: "expense",
+          amount: 280, frequency: "monthly", categoryId: current.categories[4].id,
+          paymentMethodId: current.paymentMethods[0].id, accountId, vehicleId,
+          nextDueDate: "2026-12-15", remainingInstallments: 4, active: true, notes: "",
+        },
+      },
+    });
+    current = applyFinanceCommand(current, {
+      type: "addRecurringRateChange",
+      value: { id: crypto.randomUUID(), recurringId, amount: 300, effectiveFrom: "2027-02-01" },
+    });
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.vehicles).toHaveLength(1);
+    expect(next.recurringItems).toHaveLength(1);
+    expect(next.recurringItems[0]).toMatchObject({ vehicleId, remainingInstallments: 4, nextDueDate: "2027-01-15" });
+    expect(next.recurringRateChanges).toHaveLength(1);
+    expect(next.transactions).toHaveLength(4);
+    expect(next.vehicleEntries).toHaveLength(4);
+    expect(next.vehicleEntries.every((item) => item.kind === "installment" && item.vehicleId === vehicleId)).toBe(true);
+    expect(next.transactions.map((item) => item.amount)).toEqual([280, 300, 300, 300]);
+  });
+
+  it("does not carry a vehicle recurrence when its vehicle is inactive or missing", () => {
+    const current = createEmptyFinanceData(2026);
+    const closedVehicleId = crypto.randomUUID();
+    const missingVehicleId = crypto.randomUUID();
+    current.vehicles.push({
+      id: closedVehicleId, name: "Closed synthetic vehicle", manufacturer: "", model: "",
+      fuelType: "petrol", active: false, disposalDate: "2026-10-01", notes: "",
+    });
+    for (const vehicleId of [closedVehicleId, missingVehicleId]) {
+      const recurringId = crypto.randomUUID();
+      current.recurringItems.push({
+        id: recurringId, name: "Orphan candidate", kind: "installment", direction: "expense",
+        amount: 100, frequency: "monthly", categoryId: current.categories[4].id,
+        paymentMethodId: current.paymentMethods[0].id, vehicleId,
+        nextDueDate: "2026-12-01", remainingInstallments: 3, active: true, notes: "",
+      });
+      current.recurringRateChanges.push({
+        id: crypto.randomUUID(), recurringId, amount: 110, effectiveFrom: "2027-01-01",
+      });
+    }
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.vehicles).toHaveLength(0);
+    expect(next.recurringItems).toHaveLength(0);
+    expect(next.recurringRateChanges).toHaveLength(0);
+    expect(next.transactions).toHaveLength(0);
+    expect(next.vehicleEntries).toHaveLength(0);
+  });
+
   it("carries forward only confirmed account movements", () => {
     const current = createEmptyFinanceData(2026);
     const accountId = crypto.randomUUID();

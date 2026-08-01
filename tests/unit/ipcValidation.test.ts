@@ -31,6 +31,27 @@ describe("IPC argument validation", () => {
       entity: "category",
       id: data.categories[0].id,
     }]).success).toBe(true);
+    const vehicleId = crypto.randomUUID();
+    const installment = {
+      id: crypto.randomUUID(), name: "Synthetic vehicle", kind: "installment", direction: "expense",
+      amount: 250, frequency: "monthly", categoryId: data.categories[4].id,
+      paymentMethodId: data.paymentMethods[0].id, accountId: crypto.randomUUID(), vehicleId,
+      nextDueDate: "2026-09-01", remainingInstallments: 3, active: true, notes: "",
+    } as const;
+    expect(financeExecuteIpcArgumentsSchema.safeParse([{
+      type: "addVehicleWithInstallment",
+      value: {
+        vehicle: { id: vehicleId, name: "Synthetic vehicle", manufacturer: "", model: "", fuelType: "electric", active: true, notes: "" },
+        installment,
+      },
+    }]).success).toBe(true);
+    expect(financeExecuteIpcArgumentsSchema.safeParse([{
+      type: "addVehicleWithInstallment",
+      value: {
+        vehicle: { id: vehicleId, name: "Synthetic vehicle", manufacturer: "", model: "", fuelType: "electric", active: true, notes: "" },
+        installment: { ...installment, vehicleId: crypto.randomUUID() },
+      },
+    }]).success).toBe(false);
     expect(financeExecuteIpcArgumentsSchema.safeParse([{ type: "deleteEntity", entity: "category", id: "not-a-uuid" }]).success).toBe(false);
   });
 

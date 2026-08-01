@@ -173,6 +173,54 @@ describe("ExcelImportTemplateParser", () => {
     }
   }, 60_000);
 
+  it("imports one conservative vehicle installment and rejects a second active plan", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-import-vehicle-installment-"));
+    directories.push(directory);
+    const data = createEmptyFinanceData(2026);
+    const vehicleId = crypto.randomUUID();
+    data.vehicles.push({
+      id: vehicleId, name: "Synthetic vehicle", manufacturer: "", model: "",
+      fuelType: "electric", active: true, notes: "",
+    });
+    const expense = data.categories.find((item) => item.kind === "expense")!;
+    const payment = data.paymentMethods[0]!;
+    const account = data.accounts[0]!;
+    const row = {
+      name: "Imported label",
+      kind: "installment | pagamento rateale",
+      direction: "expense | uscita",
+      amount: 275,
+      frequency: "monthly | mensile",
+      category: ref(expense.id),
+      payment_method: ref(payment.id),
+      account: ref(account.id),
+      next_due_date: "2026-10-10",
+      remaining_installments: 2,
+      active: "true | vero",
+      vehicle: `Synthetic vehicle [${vehicleId}]`,
+      notes: "Synthetic import",
+    };
+    const parser = new ExcelImportTemplateParser();
+    const filePath = await completedTemplate(directory, "recurring_items", data, [row]);
+    const prepared = await parser.parse(filePath, data, "skip");
+
+    const next = applyFinanceCommands(data, prepared.commands);
+
+    expect(next.recurringItems).toHaveLength(1);
+    expect(next.recurringItems[0]).toMatchObject({
+      name: "Synthetic vehicle",
+      vehicleId,
+      kind: "installment",
+      remainingInstallments: 2,
+    });
+    expect(next.transactions).toHaveLength(2);
+    expect(next.vehicleEntries).toHaveLength(2);
+    expect(next.vehicleEntries.every((item) => item.kind === "installment")).toBe(true);
+
+    const duplicatePath = await completedTemplate(directory, "recurring_items", next, [{ ...row, name: "Second imported plan" }]);
+    await expect(parser.parse(duplicatePath, next, "create")).rejects.toThrow("IMPORT_PLAN_INVALID");
+  });
+
   it("reports row and column errors without adding invalid rows", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-import-errors-"));
     directories.push(directory);

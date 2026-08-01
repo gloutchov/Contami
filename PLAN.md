@@ -46,7 +46,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M20 — Casse, trasferimenti interni e indicatori di perdita | `milestone/20-cash-registers` | `1.6.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M21 — Competenza e incasso delle rate di affitto | `milestone/21-rent-payment-allocation` | `1.7.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Completata e rilasciata; collaudo del proprietario superato |
-| M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Prossima milestone pianificata |
+| M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Completata; gate verde e collaudo del proprietario superato |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.10.0` | Pianificata dopo M16 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.11.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.12.0` | Pianificata dopo M10 |
@@ -646,6 +646,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Test richiesti:** unit test del comando atomico mezzo/ricorrenza, unicità del piano, classificazione `installment` e transizioni chiusura/riapertura/cancellazione; integrazione e round-trip workbook; regressione importazione, cambio tariffa M19, rate residue e rollover senza orfani; Playwright di creazione, modifica e riapertura del finanziamento in IT/EN e chiaro/scuro.
 
 **Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario, SECURITY_MODEL se cambia il comando persistito e note di rilascio.
+
+**Esito locale 2026-08-01:** aggiunta nel modulo Automobile la sezione facoltativa per il finanziamento con importo, frequenza, prossima scadenza, rate residue o data di fine, categoria, metodo e Conto/Cassa. Il nuovo comando atomico salva mezzo e piano in un’unica trasformazione, sincronizza il nome, mantiene un solo piano attivo per `vehicleId` e riusa la cronologia tariffaria M19 senza modificare tariffa base o rate confermate. Ogni scadenza genera una sola coppia Transazione↔registrazione Automobile classificata `installment`; chiusura e riapertura agiscono su entrambi, la cancellazione definitiva è bloccata in presenza di storico e la disattivazione del finanziamento conserva le operazioni confermate. Importazione e rollover non mantengono piani riferiti a mezzi assenti o esclusi. Lo schema workbook resta v9 perché i collegamenti persistenti necessari erano già disponibili. Versione applicativa portata a `1.9.0`; aggiornati UI IT/EN, manuali, README, quick start, MAP, modello di sicurezza e specifica import. Gate locale verde: lint, typecheck, 161 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e 5 test Playwright a 1080 px, inclusi creazione, modifica, chiusura/riapertura in IT/scuro ed EN/chiaro senza errori console o overflow. Collaudo del proprietario superato; restano i gate di pubblicazione (commit, CI, merge, tag e release).
 
 ## Patch grafici, menu release e integrità UUID
 
