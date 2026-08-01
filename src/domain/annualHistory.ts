@@ -12,7 +12,9 @@ const total = (values: number[]) => values.reduce((sum, value) => sum + value, 0
 export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnualSummary[] {
   const year = data.meta.activeYear;
   return data.properties.map((property) => {
-    const entries = data.propertyEntries.filter((entry) => entry.propertyId === property.id && entry.date.startsWith(String(year)));
+    const entries = data.propertyEntries.filter((entry) => entry.propertyId === property.id
+      && entry.date.startsWith(String(year))
+      && !data.transactions.find((transaction) => transaction.id === entry.transactionId)?.planned);
     const latestValuation = entries.filter((entry) => entry.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0];
     const consumption = (kind: "electricity" | "gas" | "water") => total(entries
       .filter((entry) => entry.kind === "consumption" || entry.detailKind?.startsWith("utility_"))

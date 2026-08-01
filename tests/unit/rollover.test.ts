@@ -127,6 +127,38 @@ describe("createRolloverFinanceData", () => {
       .toEqual(["2027-01-15", "2027-02-15", "2027-03-15"]);
   });
 
+  it("carries overdue rent periods into the next year without shifting them", () => {
+    let current = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const propertyId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    current.accounts.push({
+      id: accountId, name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0,
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    current = applyFinanceCommand(current, { type: "addProperty", value: {
+      id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental",
+      ownershipShare: 1, purchasePrice: 100_000, active: true, notes: "",
+    } });
+    current = applyFinanceCommand(current, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 800,
+      frequency: "monthly", categoryId: current.categories.find((item) => item.nameIt === "Affitti")!.id,
+      paymentMethodId: current.paymentMethods[0].id, accountId, propertyId, nextDueDate: "2026-11-30", active: true, notes: "",
+    } });
+
+    const next = createRolloverFinanceData(current, 2027);
+    const rentTransactions = next.transactions.filter((item) => item.recurringId === recurringId);
+
+    expect(rentTransactions.filter((item) => item.dueDate === "2026-11-30" || item.dueDate === "2026-12-30"))
+      .toHaveLength(2);
+    expect(rentTransactions.filter((item) => item.dueDate === "2027-01-30" || item.dueDate === "2027-02-28" || item.dueDate === "2027-03-30"))
+      .toHaveLength(3);
+    expect(new Set(rentTransactions.map((item) => item.dueDate)).size).toBe(rentTransactions.length);
+    expect(next.recurringItems.find((item) => item.id === recurringId)?.nextDueDate).toBe("2026-11-30");
+    expect(next.propertyEntries.filter((item) => item.propertyId === propertyId && item.dueDate && item.dueDate < "2027-01-01"))
+      .toHaveLength(2);
+  });
+
   it("rolls a recurring pension contribution forward with one linked movement per transaction", () => {
     let current = createEmptyFinanceData(2026);
     current.accounts.push({ id: crypto.randomUUID(), name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "" });

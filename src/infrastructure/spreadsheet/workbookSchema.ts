@@ -66,7 +66,7 @@ export const WORKBOOK_TABLES_V6: WorkbookTableDefinition[] = WORKBOOK_TABLES_V5.
   return definition;
 });
 
-export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V6.map((definition) => {
+export const WORKBOOK_TABLES_V7: WorkbookTableDefinition[] = WORKBOOK_TABLES_V6.map((definition) => {
   if (definition.key === "accounts") {
     return {
       ...definition,
@@ -89,6 +89,17 @@ export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V6.map
       columns: definition.columns.flatMap((column) => column === "paymentMethodId"
         ? [column, "accountId"]
         : [column]),
+    };
+  }
+  return definition;
+});
+
+export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V7.map((definition) => {
+  if (definition.key === "transactions" || definition.key === "propertyEntries") {
+    return {
+      ...definition,
+      columns: definition.columns.flatMap((column) => column === "date" ? [column, "dueDate"] : [column]),
+      dateColumns: [...(definition.dateColumns ?? []), "dueDate"],
     };
   }
   return definition;
@@ -123,4 +134,4 @@ export const WORKBOOK_TABLES_V1: WorkbookTableDefinition[] = [
   { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth"] },
 ];
 
-export const WORKBOOK_SCHEMA_VERSION = 7;
+export const WORKBOOK_SCHEMA_VERSION = 8;

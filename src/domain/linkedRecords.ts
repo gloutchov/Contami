@@ -28,6 +28,7 @@ function transactionForProperty(entry: PropertyEntry, existing?: Transaction): T
   return {
     id: existing?.id ?? entry.transactionId ?? randomUUID(),
     date: entry.date,
+    dueDate: entry.dueDate ?? existing?.dueDate,
     description: entry.description,
     categoryId: entry.categoryId!,
     paymentMethodId: entry.paymentMethodId!,
@@ -53,6 +54,7 @@ function transactionForShared(entry: SharedExpense, existing?: Transaction): Tra
   return {
     id: existing?.id ?? entry.transactionId ?? randomUUID(),
     date: entry.date,
+    dueDate: existing?.dueDate,
     description: entry.description,
     categoryId: entry.categoryId,
     paymentMethodId: entry.paymentMethodId,
@@ -81,7 +83,7 @@ function transactionForShared(entry: SharedExpense, existing?: Transaction): Tra
 function transactionForVehicle(entry: VehicleEntry, existing?: Transaction): Transaction {
   const timestamp = nowIso();
   return {
-    id: existing?.id ?? entry.transactionId ?? randomUUID(), date: entry.date, description: entry.description,
+    id: existing?.id ?? entry.transactionId ?? randomUUID(), date: entry.date, dueDate: existing?.dueDate, description: entry.description,
     categoryId: entry.categoryId!, paymentMethodId: entry.paymentMethodId!, accountId: entry.accountId ?? existing?.accountId,
     kind: "expense", amount: entry.amount, currency: existing?.currency ?? "EUR", recurringId: existing?.recurringId,
     vehicleId: entry.vehicleId, vehicleEntryId: entry.id, shared: existing?.shared ?? false, planned: existing?.planned,
@@ -104,7 +106,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
     const existing = data.propertyEntries.find((item) => item.id === transaction.propertyEntryId || item.transactionId === transaction.id);
     const entry: PropertyEntry = {
       ...existing,
-      id: existing?.id ?? randomUUID(), propertyId: transaction.propertyId, date: transaction.date,
+      id: existing?.id ?? randomUUID(), propertyId: transaction.propertyId, date: transaction.date, dueDate: transaction.dueDate,
       kind: transaction.kind, category: categoryName(data, transaction.categoryId), categoryId: transaction.categoryId,
       description: transaction.description, amount: transaction.amount, paymentMethodId: transaction.paymentMethodId,
       accountId: transaction.accountId,
@@ -170,7 +172,8 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
     transaction.sharedExpenseId = entry.id;
   }
   replaceOrAdd(data.transactions, transaction);
-  confirmRecurringInstallment(data, previous, transaction);
+  confirmRecurringOccurrence(data, previous, transaction);
+  reconcileConfirmedRecurringEdit(data, previous, transaction);
 }
 
 export function upsertPropertyEntryWithLinks(data: FinanceData, value: PropertyEntry): void {
@@ -268,7 +271,7 @@ function periodicRecurring(investment: Investment, existing?: RecurringItem): Re
 export function syncInvestmentPlan(data: FinanceData, investment: Investment): void {
   const existing = data.recurringItems.find((item) => item.investmentId === investment.id && item.kind === "investment");
   const recurring = periodicRecurring(investment, existing);
-  if (recurring) { replaceOrAdd(data.recurringItems, recurring); syncRecurringTransactions(data, recurring); }
+  if (recurring) { replaceOrAdd(data.recurringItems, recurring); syncRecurringTransactions(data, recurring, dayOfMonth(recurring.nextDueDate)); }
   else if (existing) deleteLinkedEntity(data, "recurringItem", existing.id);
 }
 
@@ -294,74 +297,157 @@ export function syncRecurringLink(data: FinanceData, recurring: RecurringItem): 
   }
 }
 
-function addFrequency(date: Date, frequency: RecurringItem["frequency"]): void {
+function addFrequency(date: Date, frequency: RecurringItem["frequency"], anchorDay = date.getUTCDate()): void {
   if (frequency === "weekly") date.setUTCDate(date.getUTCDate() + 7);
-  else if (frequency === "monthly") date.setUTCMonth(date.getUTCMonth() + 1);
-  else if (frequency === "quarterly") date.setUTCMonth(date.getUTCMonth() + 3);
-  else date.setUTCFullYear(date.getUTCFullYear() + 1);
+  else {
+    const monthStep = frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
+    const targetMonth = date.getUTCMonth() + monthStep;
+    const targetYear = date.getUTCFullYear() + Math.floor(targetMonth / 12);
+    const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+    const lastDay = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate();
+    date.setUTCFullYear(targetYear, normalizedMonth, Math.min(anchorDay, lastDay));
+  }
 }
 
-function nextOccurrence(date: string, frequency: RecurringItem["frequency"]): string {
-  const next = new Date(`${date}T12:00:00Z`);
-  addFrequency(next, frequency);
-  return next.toISOString().slice(0, 10);
+function dayOfMonth(date: string): number {
+  return Number(date.slice(8, 10));
 }
 
-function confirmRecurringInstallment(data: FinanceData, previous: Transaction | undefined, transaction: Transaction): void {
+export function recurrenceAnchorDay(data: FinanceData, recurring: RecurringItem): number {
+  if (recurring.frequency === "weekly") return dayOfMonth(recurring.nextDueDate);
+  return Math.max(dayOfMonth(recurring.nextDueDate), ...data.transactions
+    .filter((item) => item.recurringId === recurring.id)
+    .map((item) => dayOfMonth(occurrenceDate(item))));
+}
+
+function occurrenceDate(transaction: Transaction): string {
+  return transaction.dueDate ?? transaction.date;
+}
+
+function confirmRecurringOccurrence(data: FinanceData, previous: Transaction | undefined, transaction: Transaction): void {
   if (!previous?.planned || transaction.planned || !transaction.recurringId) return;
   const recurring = data.recurringItems.find((item) => item.id === transaction.recurringId);
-  if (recurring?.kind !== "installment" || recurring.remainingInstallments === undefined) return;
+  if (!recurring) return;
 
-  recurring.remainingInstallments = Math.max(0, recurring.remainingInstallments - 1);
+  if (recurring.kind === "installment" && recurring.remainingInstallments !== undefined) {
+    recurring.remainingInstallments = Math.max(0, recurring.remainingInstallments - 1);
+  }
+  const anchorDay = recurrenceAnchorDay(data, recurring);
   const nextPlanned = data.transactions
     .filter((item) => item.recurringId === recurring.id && item.planned)
-    .sort((left, right) => left.date.localeCompare(right.date))[0];
-  recurring.nextDueDate = nextPlanned?.date ?? nextOccurrence(transaction.date, recurring.frequency);
+    .sort((left, right) => occurrenceDate(left).localeCompare(occurrenceDate(right)))[0];
+  recurring.nextDueDate = nextPlanned
+    ? occurrenceDate(nextPlanned)
+    : nextOccurrenceWithAnchor(occurrenceDate(transaction), recurring.frequency, anchorDay);
 
-  if (recurring.remainingInstallments === 0 || (recurring.endDate && recurring.nextDueDate > recurring.endDate)) {
-    recurring.remainingInstallments = 0;
+  if ((recurring.kind === "installment" && recurring.remainingInstallments === 0)
+    || (recurring.endDate && recurring.nextDueDate > recurring.endDate)) {
+    if (recurring.kind === "installment") recurring.remainingInstallments = 0;
     recurring.active = false;
     recurring.closedAt = transaction.date;
   }
-  syncRecurringTransactions(data, recurring);
+  syncRecurringLink(data, recurring);
+  syncRecurringTransactions(data, recurring, anchorDay);
 }
 
-export function syncRecurringTransactions(data: FinanceData, recurring: RecurringItem): void {
+function reconcileConfirmedRecurringEdit(data: FinanceData, previous: Transaction | undefined, transaction: Transaction): void {
+  if (!previous || previous.planned || transaction.planned || !transaction.recurringId
+    || previous.recurringId !== transaction.recurringId
+    || occurrenceDate(previous) === occurrenceDate(transaction)) return;
+  const recurring = data.recurringItems.find((item) => item.id === transaction.recurringId);
+  if (!recurring) return;
+  const anchorDay = recurrenceAnchorDay(data, recurring);
+  recurring.nextDueDate = [recurring.nextDueDate, occurrenceDate(previous), occurrenceDate(transaction)].sort()[0]!;
+  syncRecurringTransactions(data, recurring, anchorDay);
+  syncRecurringLink(data, recurring);
+}
+
+function nextOccurrenceWithAnchor(date: string, frequency: RecurringItem["frequency"], anchorDay: number): string {
+  const next = new Date(`${date}T12:00:00Z`);
+  addFrequency(next, frequency, anchorDay);
+  return next.toISOString().slice(0, 10);
+}
+
+export function syncRecurringTransactions(data: FinanceData, recurring: RecurringItem, anchorDayOverride?: number): void {
   const planned = data.transactions.filter((item) => item.recurringId === recurring.id && item.planned);
-  for (const transaction of planned) deleteLinkedEntity(data, "transaction", transaction.id);
-  if (!recurring.active) return;
+  if (!recurring.active) {
+    for (const transaction of planned) deleteLinkedEntity(data, "transaction", transaction.id);
+    return;
+  }
   const cursor = new Date(`${recurring.nextDueDate}T12:00:00Z`);
+  const anchorDay = anchorDayOverride ?? recurrenceAnchorDay(data, recurring);
   const yearEnd = new Date(`${data.meta.activeYear}-12-31T12:00:00Z`);
   const endDate = recurring.endDate ? new Date(`${recurring.endDate}T12:00:00Z`) : yearEnd;
   const scheduleEnd = endDate < yearEnd ? endDate : yearEnd;
   const installmentLimit = recurring.kind === "installment" ? recurring.remainingInstallments : undefined;
-  let generated = 0;
+  const expectedDates = new Set<string>();
+  let unpaidOccurrences = 0;
   let iterations = 0;
-  while (cursor <= scheduleEnd && iterations < 370 && (installmentLimit === undefined || generated < installmentLimit)) {
+  while (cursor <= scheduleEnd && iterations < 370 && (installmentLimit === undefined || unpaidOccurrences < installmentLimit)) {
     const date = cursor.toISOString().slice(0, 10);
     if (date.startsWith(String(data.meta.activeYear))) {
+      expectedDates.add(date);
       const direction = recurring.direction ?? "expense";
       const transactionKind = recurring.kind === "investment" ? "transfer" : direction;
       const cashFlowDirection = recurring.kind === "investment" ? (direction === "income" ? "inflow" : "outflow") : undefined;
-      const existing = data.transactions.find((item) => item.recurringId === recurring.id && item.date === date && !item.planned)
+      const matchingPlanned = data.transactions.filter((item) => item.recurringId === recurring.id && occurrenceDate(item) === date && item.planned);
+      const existing = data.transactions.find((item) => item.recurringId === recurring.id && occurrenceDate(item) === date && !item.planned)
+        ?? matchingPlanned[0]
         ?? data.transactions.find((item) => !item.recurringId && item.date === date && item.kind === transactionKind && item.cashFlowDirection === cashFlowDirection && Math.abs(item.amount - recurring.amount) < 0.01 && item.description.toLocaleLowerCase().includes(recurring.name.toLocaleLowerCase()));
-      if (existing) existing.recurringId = recurring.id;
+      if (existing && !existing.planned) {
+        existing.recurringId = recurring.id;
+        existing.dueDate ??= date;
+        const propertyEntry = data.propertyEntries.find((item) => item.id === existing.propertyEntryId || item.transactionId === existing.id);
+        if (propertyEntry) propertyEntry.dueDate = existing.dueDate;
+        for (const duplicate of matchingPlanned) deleteLinkedEntity(data, "transaction", duplicate.id);
+      } else if (existing) {
+        upsertTransactionWithLinks(data, {
+          ...existing,
+          date,
+          dueDate: date,
+          description: recurring.name,
+          categoryId: recurring.categoryId,
+          paymentMethodId: recurring.paymentMethodId,
+          accountId: recurring.accountId ?? existing.accountId,
+          kind: transactionKind,
+          cashFlowDirection,
+          amount: recurring.amount,
+          recurringId: recurring.id,
+          propertyId: recurring.propertyId,
+          investmentId: recurring.investmentId,
+          vehicleId: recurring.vehicleId,
+          notes: recurring.notes,
+          updatedAt: nowIso(),
+        });
+        unpaidOccurrences += 1;
+        for (const duplicate of matchingPlanned.slice(1)) deleteLinkedEntity(data, "transaction", duplicate.id);
+      }
       else {
         const timestamp = nowIso();
         upsertTransactionWithLinks(data, {
-          id: randomUUID(), date, description: recurring.name, categoryId: recurring.categoryId,
+          id: randomUUID(), date, dueDate: date, description: recurring.name, categoryId: recurring.categoryId,
           paymentMethodId: recurring.paymentMethodId, accountId: recurring.accountId,
           kind: transactionKind, cashFlowDirection, amount: recurring.amount, currency: "EUR",
           recurringId: recurring.id, propertyId: recurring.propertyId, investmentId: recurring.investmentId, vehicleId: recurring.vehicleId,
           planned: true, shared: false, sharedPaidBy: "owner", sharedSettled: false,
           notes: recurring.notes, createdAt: timestamp, updatedAt: timestamp,
         });
-        generated += 1;
+        unpaidOccurrences += 1;
       }
     }
     iterations += 1;
-    addFrequency(cursor, recurring.frequency);
+    addFrequency(cursor, recurring.frequency, anchorDay);
   }
+  const stalePlanned = data.transactions.filter((item) => item.recurringId === recurring.id
+    && item.planned
+    && occurrenceDate(item) >= recurring.nextDueDate
+    && occurrenceDate(item).startsWith(String(data.meta.activeYear))
+    && !expectedDates.has(occurrenceDate(item)));
+  for (const transaction of stalePlanned) deleteLinkedEntity(data, "transaction", transaction.id);
+  const nextPlanned = data.transactions
+    .filter((item) => item.recurringId === recurring.id && item.planned)
+    .sort((left, right) => occurrenceDate(left).localeCompare(occurrenceDate(right)))[0];
+  if (nextPlanned) recurring.nextDueDate = occurrenceDate(nextPlanned);
 }
 
 export function deleteLinkedEntity(data: FinanceData, entity: string, id: string): void {

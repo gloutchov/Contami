@@ -9,7 +9,9 @@ export function calculatePropertyValuation(property: Property | undefined, mode:
 export function propertyHistory(data: FinanceData, propertyId: string) {
   const current = createPropertyAnnualSummaries(data).find((item) => item.propertyId === propertyId);
   const byYear = new Map(data.propertyAnnualSummaries.filter((item) => item.propertyId === propertyId).map((item) => [item.year, item]));
-  const hasCurrentEntries = data.propertyEntries.some((item) => item.propertyId === propertyId && item.date.startsWith(String(data.meta.activeYear)));
+  const hasCurrentEntries = data.propertyEntries.some((item) => item.propertyId === propertyId
+    && item.date.startsWith(String(data.meta.activeYear))
+    && !data.transactions.find((transaction) => transaction.id === item.transactionId)?.planned);
   if (current && hasCurrentEntries) byYear.set(current.year, current);
   return [...byYear.values()].sort((a, b) => a.year - b.year);
 }
@@ -32,13 +34,15 @@ export function propertyValueTimeline(data: FinanceData, propertyId: string) {
 }
 
 export function propertyCashFlowTimeline(data: FinanceData, propertyId: string) {
-  const detailedYears = new Set(data.propertyEntries.filter((item) => item.propertyId === propertyId && (item.kind === "income" || item.kind === "expense")).map((item) => item.date.slice(0, 4)));
+  const confirmedEntries = data.propertyEntries.filter((item) => item.propertyId === propertyId
+    && (item.kind === "income" || item.kind === "expense")
+    && !data.transactions.find((transaction) => transaction.id === item.transactionId)?.planned);
+  const detailedYears = new Set(confirmedEntries.map((item) => item.date.slice(0, 4)));
   const byDate = new Map<string, { income: number; expenses: number }>();
   data.propertyAnnualSummaries
     .filter((item) => item.propertyId === propertyId && !detailedYears.has(String(item.year)))
     .forEach((item) => byDate.set(`${item.year}-12-31`, { income: item.income, expenses: item.expenses }));
-  data.propertyEntries
-    .filter((item) => item.propertyId === propertyId && (item.kind === "income" || item.kind === "expense"))
+  confirmedEntries
     .forEach((item) => {
       const point = byDate.get(item.date) ?? { income: 0, expenses: 0 };
       point[item.kind === "income" ? "income" : "expenses"] += item.amount;

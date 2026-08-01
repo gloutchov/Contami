@@ -40,12 +40,34 @@ function demoData(): FinanceData {
     { propertyId, year: data.meta.activeYear - 1, income: 0, expenses: 1_920, closingValue: 270_000, electricityKwh: 1_210, gasCubicMeters: 860, waterCubicMeters: 98, electricityCost: 495, gasCost: 570, waterCost: 138, phoneInternetCost: 216, condominiumCost: 560 },
   );
   const rentalId = crypto.randomUUID();
+  const rentRecurringId = crypto.randomUUID();
   data.properties.push({ id: rentalId, name: "Rental apartment", kind: "apartment", usage: "rental", address: "Via Demo 8, Milano", areaSqm: 68, ownershipShare: 0.5, cadastralValue: 88_000, expectedMonthlyRent: 750, rentDueDay: 5, purchasePrice: 180_000, active: true, notes: "" });
+  const rentPayments = [
+    { dueDate: `${data.meta.activeYear}-05-05`, date: `${data.meta.activeYear}-05-05`, planned: false },
+    { dueDate: `${data.meta.activeYear}-06-05`, date: `${data.meta.activeYear}-07-04`, planned: false },
+    { dueDate: `${data.meta.activeYear}-07-05`, date: `${data.meta.activeYear}-07-05`, planned: true },
+    { dueDate: `${data.meta.activeYear}-08-05`, date: `${data.meta.activeYear}-08-05`, planned: true },
+    { dueDate: `${data.meta.activeYear}-09-05`, date: `${data.meta.activeYear}-09-05`, planned: true },
+    { dueDate: `${data.meta.activeYear}-10-05`, date: `${data.meta.activeYear}-10-05`, planned: true },
+    { dueDate: `${data.meta.activeYear}-11-05`, date: `${data.meta.activeYear}-11-05`, planned: true },
+    { dueDate: `${data.meta.activeYear}-12-05`, date: `${data.meta.activeYear}-12-05`, planned: true },
+  ].map((item) => ({ ...item, transactionId: crypto.randomUUID(), entryId: crypto.randomUUID() }));
   data.propertyEntries.push(
     { id: crypto.randomUUID(), propertyId: rentalId, date: `${data.meta.activeYear}-01-01`, kind: "valuation", category: "Market value", description: "Annual valuation", amount: 210_000, notes: "" },
-    { id: crypto.randomUUID(), propertyId: rentalId, date: `${data.meta.activeYear}-06-05`, kind: "income", category: "Rent", categoryId: category("Rent income"), description: "June rent", amount: 750, paymentMethodId: payment, notes: "" },
+    ...rentPayments.map((item) => ({ id: item.entryId, propertyId: rentalId, date: item.date, dueDate: item.dueDate, kind: "income" as const, category: "Rent", categoryId: category("Rent income"), description: "Synthetic rent", amount: 750, paymentMethodId: payment, accountId, transactionId: item.transactionId, notes: "" })),
     { id: crypto.randomUUID(), propertyId: rentalId, date: `${data.meta.activeYear}-06-18`, kind: "expense", category: "Home", categoryId: category("Home"), description: "Routine maintenance", amount: 180, paymentMethodId: payment, notes: "" },
   );
+  data.transactions.push(...rentPayments.map((item) => ({
+    id: item.transactionId, date: item.date, dueDate: item.dueDate, description: "Synthetic rent",
+    categoryId: category("Rent income"), paymentMethodId: payment, accountId, kind: "income" as const,
+    amount: 750, currency: "EUR", recurringId: rentRecurringId, propertyId: rentalId,
+    propertyEntryId: item.entryId, planned: item.planned, notes: "", createdAt: now, updatedAt: now,
+  })));
+  data.recurringItems.push({
+    id: rentRecurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 750,
+    frequency: "monthly", categoryId: category("Rent income"), paymentMethodId: payment, accountId,
+    propertyId: rentalId, nextDueDate: `${data.meta.activeYear}-07-05`, active: true, notes: "",
+  });
   data.propertyAnnualSummaries.push(
     { propertyId: rentalId, year: data.meta.activeYear - 2, income: 8_400, expenses: 1_250, closingValue: 195_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0, phoneInternetCost: 0, condominiumCost: 0 },
     { propertyId: rentalId, year: data.meta.activeYear - 1, income: 8_700, expenses: 980, closingValue: 202_000, electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0, electricityCost: 0, gasCost: 0, waterCost: 0, phoneInternetCost: 0, condominiumCost: 0 },

@@ -1,4 +1,5 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createEmptyFinanceData } from "../../src/domain/finance";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
@@ -73,5 +74,48 @@ describe("cash and installment views", () => {
     expect(tooltip).toHaveTextContent("2 residue");
     expect(tooltip).toHaveTextContent("Acquisto sintetico");
     expect(tooltip).toHaveTextContent("1 residue");
+  });
+
+  it("asks for the actual receipt date while preserving a rent installment's due date", async () => {
+    const data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const propertyId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const categoryId = data.categories.find((item) => item.nameIt === "Affitti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data.accounts.push({
+      id: accountId, name: "Synthetic bank", kind: "bank", currency: "EUR",
+      openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.properties.push({
+      id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental",
+      ownershipShare: 1, purchasePrice: 0, active: true, notes: "",
+    });
+    data.recurringItems.push({
+      id: recurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 800,
+      frequency: "monthly", categoryId, paymentMethodId, accountId, propertyId,
+      nextDueDate: "2026-06-15", active: true, notes: "",
+    });
+    data.transactions.push({
+      id: crypto.randomUUID(), date: "2026-06-15", dueDate: "2026-06-15", description: "Synthetic rent",
+      categoryId, paymentMethodId, accountId, kind: "income", amount: 800, currency: "EUR",
+      recurringId, propertyId, planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<TransactionsView data={data} onSave={onSave} />);
+
+    await user.click(screen.getByRole("button", { name: "Conferma" }));
+    expect(screen.getByRole("heading", { name: "Conferma movimento previsto" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Scadenza / competenza")).toHaveValue("2026-06-15");
+    fireEvent.change(screen.getByLabelText("Data effettiva di incasso"), { target: { value: "2026-07-04" } });
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "updateTransaction",
+      value: { date: "2026-07-04", dueDate: "2026-06-15", planned: false },
+    });
   });
 });

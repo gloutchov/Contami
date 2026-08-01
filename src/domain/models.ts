@@ -55,6 +55,7 @@ export const accountSchema = z.object({
 export const transactionSchema = z.object({
   id,
   date: isoDate,
+  dueDate: isoDate.optional(),
   description: text,
   categoryId: id,
   paymentMethodId: id,
@@ -103,6 +104,7 @@ export const propertyEntrySchema = z.object({
   id,
   propertyId: id,
   date: isoDate,
+  dueDate: isoDate.optional(),
   kind: z.enum(["income", "expense", "valuation", "consumption"]),
   category: text,
   categoryId: id.optional(),
@@ -309,7 +311,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(7),
+    schemaVersion: z.literal(8),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,

@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import { afterEach, describe, expect, it } from "vitest";
 import { createEmptyFinanceData } from "../../src/domain/finance";
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
-import { WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4 } from "../../src/infrastructure/spreadsheet/workbookSchema";
+import { WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V7 } from "../../src/infrastructure/spreadsheet/workbookSchema";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
@@ -56,7 +56,57 @@ describe("ExcelWorkbookRepository", () => {
     expect(workbook.getWorksheet("Property History")?.getRow(1).values).toContain("phoneInternetCost");
     expect(workbook.getWorksheet("Accounts")?.getRow(1).values).toContain("defaultFundingAccountId");
     expect(workbook.getWorksheet("Transactions")?.getRow(1).values).toContain("destinationAccountId");
+    expect(workbook.getWorksheet("Transactions")?.getRow(1).values).toContain("dueDate");
     expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("accountId");
+    expect(workbook.getWorksheet("Property Entries")?.getRow(1).values).toContain("dueDate");
+  });
+
+  it("migrates version 7 planned rent dates without assigning an ambiguous confirmed receipt", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-v7-rent-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-v7.xlsx");
+    const data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const confirmedTransactionId = crypto.randomUUID();
+    const confirmedEntryId = crypto.randomUUID();
+    const plannedTransactionId = crypto.randomUUID();
+    const plannedEntryId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const categoryId = data.categories.find((item) => item.nameIt === "Affitti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data.properties.push({ id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental", ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
+    data.recurringItems.push({ id: recurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 800, frequency: "monthly", categoryId, paymentMethodId, propertyId, nextDueDate: "2026-08-15", active: true, notes: "" });
+    data.transactions.push(
+      { id: confirmedTransactionId, date: "2026-07-04", description: "Synthetic rent", categoryId, paymentMethodId, kind: "income", amount: 800, currency: "EUR", recurringId, propertyId, propertyEntryId: confirmedEntryId, planned: false, notes: "", createdAt: timestamp, updatedAt: timestamp },
+      { id: plannedTransactionId, date: "2026-08-15", description: "Synthetic rent", categoryId, paymentMethodId, kind: "income", amount: 800, currency: "EUR", recurringId, propertyId, propertyEntryId: plannedEntryId, planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp },
+    );
+    data.propertyEntries.push(
+      { id: confirmedEntryId, propertyId, date: "2026-07-04", kind: "income", category: "Affitti", categoryId, description: "Synthetic rent", amount: 800, paymentMethodId, transactionId: confirmedTransactionId, notes: "" },
+      { id: plannedEntryId, propertyId, date: "2026-08-15", kind: "income", category: "Affitti", categoryId, description: "Synthetic rent", amount: 800, paymentMethodId, transactionId: plannedTransactionId, notes: "" },
+    );
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    workbook.getWorksheet("_Meta")!.getCell("B2").value = 7;
+    for (const key of ["transactions", "propertyEntries"] as const) {
+      const definition = WORKBOOK_TABLES_V7.find((item) => item.key === key)!;
+      const current = workbook.getWorksheet(definition.sheet)!;
+      workbook.removeWorksheet(current.id);
+      const legacy = workbook.addWorksheet(definition.sheet);
+      legacy.addRow(definition.columns);
+      legacy.addRows(data[key].map((item) => definition.columns.map((column) => (item as unknown as Record<string, unknown>)[column] ?? null)));
+    }
+    await workbook.xlsx.writeFile(filePath);
+
+    const migrated = await repository.load(filePath);
+
+    expect(migrated.meta.schemaVersion).toBe(8);
+    expect(migrated.transactions.find((item) => item.id === plannedTransactionId)?.dueDate).toBe("2026-08-15");
+    expect(migrated.propertyEntries.find((item) => item.id === plannedEntryId)?.dueDate).toBe("2026-08-15");
+    expect(migrated.transactions.find((item) => item.id === confirmedTransactionId)?.dueDate).toBeUndefined();
+    expect(migrated.propertyEntries.find((item) => item.id === confirmedEntryId)?.dueDate).toBeUndefined();
   });
 
   it("repairs manually duplicated UUIDs in place and keeps a recoverable backup", async () => {
@@ -314,7 +364,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.propertyEntries[0]).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 2, amount: 350 });
   });
 
@@ -355,7 +405,7 @@ describe("ExcelWorkbookRepository", () => {
     await workbook.xlsx.writeFile(filePath);
 
     const migrated = await repository.load(filePath);
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({ phoneInternetCost: 0, condominiumCost: 0 });
   });
 });
