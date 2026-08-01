@@ -68,6 +68,25 @@ const investmentWithInitialContributionSchema = z.object({
     context.addIssue({ code: "custom", message: "The initial contribution must be positive and linked to the new investment", path: ["initialContribution"] });
   }
 });
+const vehicleWithInstallmentSchema = z.object({
+  vehicle: vehicleSchema,
+  installment: recurringItemSchema.optional(),
+}).superRefine((value, context) => {
+  if (!value.installment) return;
+  if (value.installment.vehicleId !== value.vehicle.id
+    || value.installment.kind !== "installment"
+    || value.installment.direction !== "expense"
+    || value.installment.propertyId
+    || value.installment.investmentId) {
+    context.addIssue({ code: "custom", message: "The installment must be an expense linked only to the bundled vehicle", path: ["installment"] });
+  }
+  if (value.installment.remainingInstallments === undefined && !value.installment.endDate) {
+    context.addIssue({ code: "custom", message: "A vehicle installment needs remaining installments or an end date", path: ["installment", "remainingInstallments"] });
+  }
+  if (value.installment.endDate && value.installment.endDate < value.installment.nextDueDate) {
+    context.addIssue({ code: "custom", message: "The installment end date cannot precede its next due date", path: ["installment", "endDate"] });
+  }
+});
 
 export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("addTransaction"), value: transactionSchema }),
@@ -95,6 +114,8 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("updateSharedExpense"), value: sharedExpenseSchema }),
   z.object({ type: z.literal("addVehicle"), value: vehicleSchema }),
   z.object({ type: z.literal("updateVehicle"), value: vehicleSchema }),
+  z.object({ type: z.literal("addVehicleWithInstallment"), value: vehicleWithInstallmentSchema }),
+  z.object({ type: z.literal("updateVehicleWithInstallment"), value: vehicleWithInstallmentSchema }),
   z.object({ type: z.literal("addVehicleEntry"), value: vehicleEntrySchema }),
   z.object({ type: z.literal("updateVehicleEntry"), value: vehicleEntrySchema }),
   z.object({ type: z.literal("addCategory"), value: categorySchema }),

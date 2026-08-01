@@ -22,6 +22,14 @@ import {
   recurringRateChangesFor,
   sortRecurringRateChanges,
 } from "./recurringRates";
+import {
+  normalizeVehicleInstallment,
+  validateVehicleInstallment,
+  vehicleHasRecordedHistory,
+  vehicleInstallmentHasConfirmedHistory,
+  vehicleInstallmentPlan,
+  vehicleInstallmentPlans,
+} from "./vehicleInstallments";
 
 const nowIso = () => new Date().toISOString();
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -124,6 +132,85 @@ function ensureDistinctRateMonth(data: FinanceData, recurringId: string, effecti
     && item.effectiveFrom === effectiveFrom)) throw new Error("DUPLICATE_RATE_CHANGE_MONTH");
 }
 
+function prepareVehicleInstallment(data: FinanceData, value: FinanceData["recurringItems"][number]): FinanceData["recurringItems"][number] {
+  if (!value.vehicleId
+    || value.kind !== "installment"
+    || value.direction !== "expense"
+    || value.propertyId
+    || value.investmentId) throw new Error("INVALID_VEHICLE_INSTALLMENT");
+  let recurring = normalizeVehicleInstallment(data, value);
+  const vehicle = data.vehicles.find((item) => item.id === recurring.vehicleId)!;
+  recurring = {
+    ...recurring,
+    active: vehicle.active && recurring.remainingInstallments !== 0,
+    closedAt: vehicle.active && recurring.remainingInstallments !== 0
+      ? undefined
+      : (recurring.closedAt ?? vehicle.disposalDate ?? todayIso()),
+  };
+  recurring.accountId = resolvePaymentAccountId(data, recurring.paymentMethodId, recurring.accountId, recurring.nextDueDate);
+  return recurring;
+}
+
+function syncVehicleInstallmentLifecycle(data: FinanceData, vehicleId: string, reopen: boolean): void {
+  const vehicle = data.vehicles.find((item) => item.id === vehicleId);
+  if (!vehicle) throw new Error("VEHICLE_NOT_FOUND");
+  const selected = vehicleInstallmentPlan(data, vehicleId);
+  for (const current of vehicleInstallmentPlans(data, vehicleId)) {
+    const recurring = normalizeVehicleInstallment(data, current);
+    if (!vehicle.active) {
+      recurring.active = false;
+      recurring.closedAt ??= vehicle.disposalDate ?? todayIso();
+    } else if (reopen && current.id === selected?.id && current.remainingInstallments !== 0
+      && (!current.endDate || current.endDate >= todayIso())) {
+      recurring.active = true;
+      recurring.closedAt = undefined;
+    }
+    replace(data.recurringItems, recurring);
+    syncRecurringTransactions(data, recurring);
+  }
+}
+
+function cancelVehicleInstallment(data: FinanceData, vehicleId: string): void {
+  const recurring = vehicleInstallmentPlan(data, vehicleId);
+  if (!recurring) return;
+  if (!vehicleInstallmentHasConfirmedHistory(data, recurring.id)) {
+    deleteLinkedEntity(data, "recurringItem", recurring.id);
+    return;
+  }
+  recurring.active = false;
+  recurring.closedAt = todayIso();
+  recurring.remainingInstallments = 0;
+  syncRecurringTransactions(data, recurring);
+}
+
+function saveVehicleWithInstallment(
+  data: FinanceData,
+  value: Extract<FinanceCommand, { type: "addVehicleWithInstallment" | "updateVehicleWithInstallment" }>["value"],
+  update: boolean,
+): void {
+  if (update) replace(data.vehicles, value.vehicle);
+  else {
+    ensureUnique(data.vehicles, value.vehicle.id);
+    data.vehicles.push(value.vehicle);
+  }
+  if (!value.installment) {
+    if (update) cancelVehicleInstallment(data, value.vehicle.id);
+    return;
+  }
+  const recurring = prepareVehicleInstallment(data, value.installment);
+  const previous = data.recurringItems.find((item) => item.id === recurring.id);
+  if (previous && previous.vehicleId !== value.vehicle.id) throw new Error("INVALID_VEHICLE_INSTALLMENT");
+  if (previous && Math.abs(previous.amount - recurring.amount) > 0.005
+    && recurringBaseAmountIsLocked(data, previous.id)) throw new Error("RECURRING_BASE_AMOUNT_LOCKED");
+  validateVehicleInstallment(data, recurring, previous?.id);
+  if (previous) replace(data.recurringItems, recurring);
+  else {
+    ensureUnique(data.recurringItems, recurring.id);
+    data.recurringItems.push(recurring);
+  }
+  syncRecurringTransactions(data, recurring, Number(recurring.nextDueDate.slice(8, 10)));
+}
+
 function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand): void {
   switch (command.type) {
     case "addTransaction": ensureUnique(next.transactions, command.value.id); validateTransactionAccounts(next, command.value); upsertTransactionWithLinks(next, command.value); break;
@@ -199,14 +286,26 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency);
       upsertInvestmentEntryWithLinks(next, command.value); break;
     case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency); upsertInvestmentEntryWithLinks(next, command.value); break;
-    case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
+    case "addRecurringItem": {
+      ensureUnique(next.recurringItems, command.value.id);
+      const recurring = command.value.vehicleId ? prepareVehicleInstallment(next, command.value) : command.value;
+      if (recurring.vehicleId) validateVehicleInstallment(next, recurring);
+      recurring.accountId = resolvePaymentAccountId(next, recurring.paymentMethodId, recurring.accountId, recurring.nextDueDate);
+      next.recurringItems.push(recurring);
+      syncRecurringLink(next, recurring);
+      syncRecurringTransactions(next, recurring, Number(recurring.nextDueDate.slice(8, 10)));
+      break;
+    }
     case "updateRecurringItem": {
       const previous = next.recurringItems.find((item) => item.id === command.value.id);
       if (!previous) throw new Error("ENTITY_NOT_FOUND");
-      if (Math.abs(previous.amount - command.value.amount) > 0.005
+      if (previous.vehicleId && previous.vehicleId !== command.value.vehicleId) throw new Error("INVALID_VEHICLE_INSTALLMENT");
+      const recurring = command.value.vehicleId ? prepareVehicleInstallment(next, command.value) : command.value;
+      if (recurring.vehicleId) validateVehicleInstallment(next, recurring, recurring.id);
+      if (Math.abs(previous.amount - recurring.amount) > 0.005
         && recurringBaseAmountIsLocked(next, command.value.id)) throw new Error("RECURRING_BASE_AMOUNT_LOCKED");
-      command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate);
-      replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
+      recurring.accountId = resolvePaymentAccountId(next, recurring.paymentMethodId, recurring.accountId, recurring.nextDueDate);
+      replace(next.recurringItems, recurring); syncRecurringLink(next, recurring); syncRecurringTransactions(next, recurring, Number(recurring.nextDueDate.slice(8, 10))); break;
     }
     case "addRecurringRateChange": {
       ensureUnique(next.recurringRateChanges, command.value.id);
@@ -245,7 +344,15 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
     case "addSharedExpense": ensureUnique(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "updateSharedExpense": ensureExists(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "addVehicle": ensureUnique(next.vehicles, command.value.id); next.vehicles.push(command.value); break;
-    case "updateVehicle": replace(next.vehicles, command.value); break;
+    case "updateVehicle": {
+      const previous = next.vehicles.find((item) => item.id === command.value.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      replace(next.vehicles, command.value);
+      syncVehicleInstallmentLifecycle(next, command.value.id, !previous.active && command.value.active);
+      break;
+    }
+    case "addVehicleWithInstallment": saveVehicleWithInstallment(next, command.value, false); break;
+    case "updateVehicleWithInstallment": saveVehicleWithInstallment(next, command.value, true); break;
     case "addVehicleEntry":
       ensureUnique(next.vehicleEntries, command.value.id);
       if (!next.vehicles.some((item) => item.id === command.value.vehicleId)) throw new Error("VEHICLE_NOT_FOUND");
@@ -277,6 +384,11 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
         const type = next.investmentTypes.find((item) => item.id === command.id);
         if (type?.code === "pension") throw new Error("RESERVED_INVESTMENT_TYPE");
       }
+      if (command.entity === "vehicle" && vehicleHasRecordedHistory(next, command.id)) throw new Error("ENTITY_IN_USE");
+      if (command.entity === "recurringItem"
+        && next.recurringItems.some((item) => item.id === command.id && item.vehicleId && item.kind === "installment")) {
+        throw new Error("VEHICLE_INSTALLMENT_MANAGED");
+      }
       deleteLinkedEntity(next, command.entity, command.id); break;
     case "setActive": {
       if (command.entity === "taxType") {
@@ -286,6 +398,7 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       } else if (command.entity === "recurringItem") {
         const item = next.recurringItems.find((candidate) => candidate.id === command.id);
         if (!item) throw new Error("ENTITY_NOT_FOUND");
+        if (item.vehicleId && item.kind === "installment") throw new Error("VEHICLE_INSTALLMENT_MANAGED");
         item.active = command.active;
         item.closedAt = command.active ? undefined : (command.closedAt ?? todayIso());
         syncRecurringTransactions(next, item);
@@ -316,6 +429,7 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
         if (!item) throw new Error("ENTITY_NOT_FOUND");
         item.active = command.active;
         item.disposalDate = command.active ? undefined : (command.closedAt ?? todayIso());
+        syncVehicleInstallmentLifecycle(next, item.id, command.active);
       } else {
         const collection = command.entity === "account" ? next.accounts : next.properties;
         const item = collection.find((candidate) => candidate.id === command.id);

@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
 import type { FinanceCommand } from "../../domain/commands";
-import type { FinanceData, Vehicle, VehicleEntry } from "../../domain/models";
+import type { FinanceData, RecurringItem, Vehicle, VehicleEntry } from "../../domain/models";
+import { vehicleInstallmentPlan } from "../../domain/vehicleInstallments";
 import { Field, Modal } from "../components/Modal";
 import { PaymentAccountField } from "../components/PaymentAccountField";
+import { RecurringRateChangesEditor } from "../components/RecurringRateChangesEditor";
 import { useI18n } from "../i18n/I18nContext";
 import { todayIso } from "../utils/format";
 import { saveAndClose } from "../utils/save";
@@ -10,8 +12,11 @@ import { saveAndClose } from "../utils/save";
 const fuelTypes: Vehicle["fuelType"][] = ["petrol", "diesel", "lpg", "methane", "hybrid", "electric", "other"];
 const entryKinds: VehicleEntry["kind"][] = ["fuel", "installment", "tax", "insurance", "tires", "maintenance", "repair", "valuation", "other"];
 
-export function VehicleForm({ value, onClose, onSave }: { value?: Vehicle; onClose: () => void; onSave: (command: FinanceCommand) => Promise<void> }) {
-  const { t } = useI18n();
+export function VehicleForm({ data, value, onClose, onSave }: { data: FinanceData; value?: Vehicle; onClose: () => void; onSave: (command: FinanceCommand) => Promise<void> }) {
+  const { t, language } = useI18n();
+  const existingInstallment = value ? vehicleInstallmentPlan(data, value.id) : undefined;
+  const [vehicleId] = useState(value?.id ?? crypto.randomUUID());
+  const [installmentId] = useState(existingInstallment?.id ?? crypto.randomUUID());
   const [name, setName] = useState(value?.name ?? "");
   const [manufacturer, setManufacturer] = useState(value?.manufacturer ?? "");
   const [model, setModel] = useState(value?.model ?? "");
@@ -21,16 +26,61 @@ export function VehicleForm({ value, onClose, onSave }: { value?: Vehicle; onClo
   const [purchasePrice, setPurchasePrice] = useState(value?.purchasePrice !== undefined ? String(value.purchasePrice) : "");
   const [salePrice, setSalePrice] = useState(value?.salePrice !== undefined ? String(value.salePrice) : "");
   const [notes, setNotes] = useState(value?.notes ?? "");
-  const valid = Boolean(name.trim());
+  const [financing, setFinancing] = useState(Boolean(existingInstallment
+    && existingInstallment.remainingInstallments !== 0
+    && (!existingInstallment.endDate || existingInstallment.endDate >= todayIso())));
+  const [installmentAmount, setInstallmentAmount] = useState(existingInstallment ? String(existingInstallment.amount) : "");
+  const [installmentFrequency, setInstallmentFrequency] = useState<RecurringItem["frequency"]>(existingInstallment?.frequency ?? "monthly");
+  const [installmentNextDueDate, setInstallmentNextDueDate] = useState(existingInstallment?.nextDueDate ?? purchaseDate ?? todayIso());
+  const [installmentEndDate, setInstallmentEndDate] = useState(existingInstallment?.endDate ?? "");
+  const [remainingInstallments, setRemainingInstallments] = useState(existingInstallment?.remainingInstallments !== undefined ? String(existingInstallment.remainingInstallments) : "");
+  const [installmentCategoryId, setInstallmentCategoryId] = useState(existingInstallment?.categoryId
+    ?? data.categories.find((item) => item.active && item.kind !== "income" && (item.nameIt.toLocaleLowerCase().includes("trasport") || item.nameEn.toLocaleLowerCase().includes("transport")))?.id
+    ?? data.categories.find((item) => item.active && item.kind !== "income")?.id
+    ?? "");
+  const [installmentPaymentMethodId, setInstallmentPaymentMethodId] = useState(existingInstallment?.paymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
+  const [installmentAccountId, setInstallmentAccountId] = useState(existingInstallment?.accountId ?? "");
+  const remainingCount = remainingInstallments === "" ? undefined : Number(remainingInstallments);
+  const financingValid = !financing || Boolean(Number(installmentAmount) > 0
+    && installmentNextDueDate
+    && installmentCategoryId
+    && installmentPaymentMethodId
+    && installmentAccountId
+    && (remainingCount !== undefined || installmentEndDate)
+    && (remainingCount === undefined || (Number.isInteger(remainingCount) && remainingCount > 0 && remainingCount <= 10_000))
+    && (!installmentEndDate || installmentEndDate >= installmentNextDueDate));
+  const valid = Boolean(name.trim() && financingValid);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const vehicle: Vehicle = {
-      ...value, id: value?.id ?? crypto.randomUUID(), name: name.trim(), manufacturer: manufacturer.trim(), model: model.trim(), fuelType,
+      ...value, id: vehicleId, name: name.trim(), manufacturer: manufacturer.trim(), model: model.trim(), fuelType,
       purchaseDate: purchaseDate || undefined, disposalDate: disposalDate || undefined,
       purchasePrice: purchasePrice ? Number(purchasePrice) : undefined, salePrice: salePrice ? Number(salePrice) : undefined,
       active: value?.active ?? true, notes,
     };
-    await saveAndClose(onSave, { type: value ? "updateVehicle" : "addVehicle", value: vehicle }, onClose);
+    const installment: RecurringItem | undefined = financing ? {
+      ...existingInstallment,
+      id: installmentId,
+      name: vehicle.name,
+      kind: "installment",
+      direction: "expense",
+      amount: Number(installmentAmount),
+      frequency: installmentFrequency,
+      categoryId: installmentCategoryId,
+      paymentMethodId: installmentPaymentMethodId,
+      accountId: installmentAccountId,
+      vehicleId: vehicle.id,
+      nextDueDate: installmentNextDueDate,
+      endDate: installmentEndDate || undefined,
+      remainingInstallments: remainingCount,
+      active: vehicle.active,
+      closedAt: vehicle.active ? undefined : existingInstallment?.closedAt,
+      notes: existingInstallment?.notes ?? "",
+    } : undefined;
+    await saveAndClose(onSave, {
+      type: value ? "updateVehicleWithInstallment" : "addVehicleWithInstallment",
+      value: { vehicle, installment },
+    }, onClose);
   };
   return <Modal title={value ? t("editVehicle") : t("newVehicle")} onClose={onClose} onSubmit={submit} submitDisabled={!valid}>
     <Field label={t("name")} wide><input required maxLength={240} autoFocus value={name} onChange={(event) => setName(event.target.value)} /></Field>
@@ -41,6 +91,20 @@ export function VehicleForm({ value, onClose, onSave }: { value?: Vehicle; onClo
     <Field label={t("purchasePrice")}><input type="number" min="0" step="0.01" value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)} /></Field>
     <Field label={t("disposalDate")}><input type="date" value={disposalDate} onChange={(event) => setDisposalDate(event.target.value)} /></Field>
     <Field label={t("salePrice")}><input type="number" min="0" step="0.01" value={salePrice} onChange={(event) => setSalePrice(event.target.value)} /></Field>
+    <section className="vehicle-financing-section" aria-labelledby={`vehicle-financing-${vehicleId}`}>
+      <div className="vehicle-financing-heading"><div><h3 id={`vehicle-financing-${vehicleId}`}>{t("vehicleFinancing")}</h3><p>{t("vehicleFinancingHelp")}</p></div><label className="check-field"><input type="checkbox" checked={financing} onChange={(event) => setFinancing(event.target.checked)} />{t("vehicleFinancingEnabled")}</label></div>
+      {financing && <div className="vehicle-financing-grid">
+        <Field label={existingInstallment ? t("baseRate") : t("installmentAmount")} hint={existingInstallment ? t("vehicleRateChangeHelp") : undefined}><input required disabled={Boolean(existingInstallment)} type="number" min="0.01" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} /></Field>
+        <Field label={t("frequency")}><select value={installmentFrequency} onChange={(event) => setInstallmentFrequency(event.target.value as RecurringItem["frequency"])}>{(["weekly", "monthly", "quarterly", "yearly"] as const).map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field>
+        <Field label={t("nextDue")}><input required type="date" value={installmentNextDueDate} onChange={(event) => setInstallmentNextDueDate(event.target.value)} /></Field>
+        <Field label={t("installmentsLeft")} hint={t("vehicleInstallmentLimitHelp")}><input type="number" min="1" max="10000" step="1" value={remainingInstallments} onChange={(event) => setRemainingInstallments(event.target.value)} /></Field>
+        <Field label={t("endDate")} hint={t("vehicleInstallmentEndHelp")}><input type="date" min={installmentNextDueDate} value={installmentEndDate} onChange={(event) => setInstallmentEndDate(event.target.value)} /></Field>
+        <Field label={t("category")}><select required value={installmentCategoryId} onChange={(event) => setInstallmentCategoryId(event.target.value)}><option value="">—</option>{data.categories.filter((item) => item.active && item.kind !== "income").map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field>
+        <Field label={t("paymentMethod")}><select required value={installmentPaymentMethodId} onChange={(event) => setInstallmentPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        <PaymentAccountField data={data} paymentMethodId={installmentPaymentMethodId} date={installmentNextDueDate} value={installmentAccountId} onChange={setInstallmentAccountId} />
+        {existingInstallment && <RecurringRateChangesEditor data={data} recurring={existingInstallment} onSave={onSave} />}
+      </div>}
+    </section>
     <Field label={t("notes")} wide><textarea maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;
 }

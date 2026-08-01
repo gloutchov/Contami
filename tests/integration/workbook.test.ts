@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { afterEach, describe, expect, it } from "vitest";
-import { createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V7 } from "../../src/infrastructure/spreadsheet/workbookSchema";
 
@@ -15,6 +15,52 @@ function withoutId(value: object): Record<string, unknown> {
 }
 
 describe("ExcelWorkbookRepository", () => {
+  it("round-trips an atomic vehicle installment and its bidirectional planned records", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-vehicle-installment-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-vehicle-installment.xlsx");
+    let data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const vehicleId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    data.accounts.push({
+      id: accountId, name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 8_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data = applyFinanceCommand(data, {
+      type: "addVehicleWithInstallment",
+      value: {
+        vehicle: { id: vehicleId, name: "Synthetic vehicle", manufacturer: "Example", model: "Roundtrip", fuelType: "electric", active: true, notes: "" },
+        installment: {
+          id: recurringId, name: "Synthetic vehicle", kind: "installment", direction: "expense",
+          amount: 410, frequency: "monthly", categoryId: data.categories[4].id,
+          paymentMethodId: data.paymentMethods[0].id, accountId, vehicleId,
+          nextDueDate: "2026-10-10", remainingInstallments: 3, active: true, notes: "",
+        },
+      },
+    });
+    data = applyFinanceCommand(data, {
+      type: "addRecurringRateChange",
+      value: { id: crypto.randomUUID(), recurringId, amount: 430, effectiveFrom: "2026-11-01" },
+    });
+    const repository = new ExcelWorkbookRepository();
+
+    await repository.save(filePath, data);
+    const loaded = await repository.load(filePath);
+
+    expect(loaded).toEqual(data);
+    expect(loaded.recurringItems).toHaveLength(1);
+    expect(loaded.recurringRateChanges).toHaveLength(1);
+    expect(loaded.transactions).toHaveLength(3);
+    expect(loaded.vehicleEntries).toHaveLength(3);
+    loaded.transactions.forEach((transaction) => {
+      expect(transaction).toMatchObject({ recurringId, vehicleId, planned: true });
+      expect(loaded.vehicleEntries.find((item) => item.id === transaction.vehicleEntryId)).toMatchObject({
+        transactionId: transaction.id,
+        kind: "installment",
+      });
+    });
+  });
+
   it("round-trips typed finance data and writes human-readable sheets", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-2026.xlsx");

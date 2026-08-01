@@ -117,6 +117,10 @@ Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e pe
 
 Usa **Nuova automobile** per registrare nome, marca, modello, alimentazione, date e prezzi di acquisto/vendita. Le vetture dismesse restano disponibili per i confronti storici.
 
+Nel medesimo modulo puoi attivare **Gestisci il finanziamento** e indicare importo rata, frequenza, prossima scadenza, rate residue oppure data di fine, categoria, metodo di pagamento e Conto/Cassa. Automobile e piano vengono salvati insieme: ContaMì crea una sola Ricorrenza collegata e una coppia Transazione↔registrazione Automobile di tipo **Pagamento rateale** per ogni scadenza. Le modifiche ripetute non duplicano il piano. Per cambiare l’importo futuro usa **Cambia tariffa** nella stessa sezione; la tariffa base e le rate confermate restano immutate.
+
+**Chiudi** e **Riapri** agiscono insieme sull’automobile e sul suo piano, rimuovendo o rigenerando soltanto le scadenze pianificate. Un’automobile con registrazioni confermate non può essere cancellata definitivamente: chiudila per conservarne lo storico. Disattivare il finanziamento elimina un piano mai usato oppure lo chiude conservando le rate già confermate.
+
 Con **Nuova spesa / rilevazione** puoi inserire rifornimenti, rate, bollo, assicurazione, pneumatici, manutenzione ordinaria, riparazioni/manutenzione straordinaria, valutazioni e altre spese. Ogni costo richiede data, descrizione, categoria e metodo di pagamento ed è riportato nelle Transazioni. Per i rifornimenti puoi indicare chilometraggio, distanza, litri e prezzo al litro.
 
 La dashboard mostra costi dell’anno, carburante e percorrenza. Ogni scheda vettura mostra invece i costi complessivi dell’intero periodo di possesso; aprendo una vettura trovi il dettaglio per categoria, i filtri combinabili per descrizione e mese con totale filtrato e il confronto annuale. Il grafico di confronto dispone i nomi delle vetture sull’asse orizzontale e il costo per chilometro su quello verticale, combinando le registrazioni della vettura corrente con i consuntivi delle precedenti.
@@ -148,9 +152,9 @@ Nel workbook pensioni e comparti restano nella tabella `Investments`, identifica
 
 ## 10. Ricorrenze e rate
 
-**Nuova ricorrenza** gestisce abbonamenti, servizi, pagamenti rateali, affitti in entrata e versamenti periodici. Specifica direzione, importo, frequenza (inclusa mensile o una tantum annuale), categoria, metodo, conto o Cassa coerenti, prossima scadenza, eventuale data di fine e rate residue. Per un investimento periodico puoi collegare la ricorrenza a un investimento o comparto pensione esistente; un affitto può essere collegato all’immobile; una rata può essere associata a un’automobile.
+**Nuova ricorrenza** gestisce abbonamenti, servizi, pagamenti rateali autonomi, affitti in entrata e versamenti periodici. Specifica direzione, importo, frequenza (inclusa mensile o una tantum annuale), categoria, metodo, conto o Cassa coerenti, prossima scadenza, eventuale data di fine e rate residue. Per un investimento periodico puoi collegare la ricorrenza a un investimento o comparto pensione esistente; un affitto può essere collegato all’immobile. I finanziamenti delle automobili si creano invece dal modulo **Nuova/Modifica automobile**.
 
-La dashboard mostra equivalente mensile, numero di elementi attivi e rate residue note. Passa il mouse sul riquadro **Rate residue**, oppure portagli il focus con la tastiera, per vedere nome del piano, numero di rate ancora dovute e prossima scadenza. Puoi filtrare per nome, tipo e mese: i totali e il dettaglio del riquadro seguono i filtri. Sono disponibili modifica, cancellazione, chiusura e riapertura.
+La dashboard mostra equivalente mensile, numero di elementi attivi e rate residue note. Passa il mouse sul riquadro **Rate residue**, oppure portagli il focus con la tastiera, per vedere nome del piano, numero di rate ancora dovute e prossima scadenza. Puoi filtrare per nome, tipo e mese: i totali e il dettaglio del riquadro seguono i filtri. Sono disponibili modifica, cancellazione, chiusura e riapertura; per un piano gestito da Automobile, stato e cancellazione restano controllati dalla relativa scheda del mezzo, mentre modifica delle scadenze e **Cambia tariffa** restano disponibili.
 
 Per cambiare un importo senza riscrivere lo storico, apri **Modifica ricorrenza** e scegli **Cambia tariffa**. Indica il nuovo importo e il mese di decorrenza: ContaMì normalizza la data al primo giorno del mese e mostra quante scadenze pianificate verranno aggiornate prima della conferma. Puoi inserire più variazioni, modificarle o annullarle finché non fanno parte di operazioni confermate. Per esempio, una tariffa base sintetica di 50 € con variazione a 65 € da ottobre conserva 50 € fino a settembre e porta a 65 € soltanto le scadenze non confermate da ottobre in avanti. L’importo base, le operazioni confermate, gli UUID e i collegamenti restano invariati; per i piani rateali non cambiano rate residue, prossima scadenza o data di fine. La cronologia viene riapplicata in modo deterministico dopo chiusura/riapertura, rigenerazione e passaggio d’anno.
 
@@ -214,7 +218,7 @@ Il nuovo workbook contiene:
 - categorie, metodi, tipi di investimento e catalogo tasse, incluse le tasse archiviate necessarie allo storico;
 - conti e Casse attivi con saldo di chiusura come nuovo saldo iniziale e associazioni di alimentazione ancora valide;
 - immobili, automobili e investimenti attivi con le ultime valutazioni previste;
-- ricorrenze ancora attive e non scadute, con prossima data utile;
+- ricorrenze ancora attive e non scadute, con prossima data utile; un finanziamento Automobile viene copiato soltanto insieme al mezzo attivo;
 - cronologia tariffaria delle ricorrenze conservate, incluse variazioni con decorrenza nell’anno nuovo;
 - sole spese condivise non saldate;
 - consuntivo aggregato dell’anno precedente e consuntivi storici già presenti, inclusi liquidità, valore immobili, valore investimenti/pensioni e impegni mensili;

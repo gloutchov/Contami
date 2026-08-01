@@ -46,6 +46,7 @@ ContaMì/
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
 │   │   ├── recurringRates.ts           # tariffa per decorrenza, anteprima e protezione dello storico
+│   │   ├── vehicleInstallments.ts      # unicità, ciclo di vita e protezione dello storico dei finanziamenti auto
 │   │   ├── migrations.ts               # migrazione workbook v1–v8 → v9 senza riscrivere importi
 │   │   ├── models.ts                   # schema Zod v9 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
@@ -111,7 +112,8 @@ ContaMì/
 ├── tests/
 │   ├── e2e/
 │   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
-│   │   └── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
+│   │   ├── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
+│   │   └── vehicle-installments.spec.ts # creazione, modifica e riapertura finanziamento Automobile
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
@@ -139,6 +141,7 @@ ContaMì/
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
 │       ├── migrations.test.ts            # compatibilità schema v1–v8 → v9
 │       ├── recurringRates.test.ts        # decorrenze, storico, collegamenti e rollover tariffario
+│       ├── vehicleInstallments.test.ts   # comando atomico, unicità, classificazione e ciclo di vita rate auto
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati

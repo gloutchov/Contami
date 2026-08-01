@@ -119,7 +119,11 @@ File: `ContaMi-template-recurring-items-v2.xlsx`
 
 `kind`: `subscription`, `service`, `installment`, `investment`, `rent`, `other`. I collegamenti facoltativi usano soltanto cataloghi già presenti nel workbook.
 
+Quando `vehicle` è valorizzato, `kind` deve essere `installment`, `direction` deve essere `expense` e occorre indicare almeno `remaining_installments` o `end_date`. Il nome viene sincronizzato con quello dell’automobile e l’importazione è rifiutata se esiste già un altro piano attivo collegato allo stesso mezzo.
+
 `kind`: `subscription`, `service`, `installment`, `investment`, `rent`, `other`. Optional links use catalogs already present in the workbook.
+
+When `vehicle` is set, `kind` must be `installment`, `direction` must be `expense`, and either `remaining_installments` or `end_date` is required. The name is synchronized with the Vehicle, and import is rejected when another active plan already links to the same vehicle.
 
 ## 8. Automobile / Vehicles
 

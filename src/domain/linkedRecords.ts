@@ -95,7 +95,18 @@ function transactionForVehicle(entry: VehicleEntry, existing?: Transaction): Tra
 
 export function upsertTransactionWithLinks(data: FinanceData, value: Transaction): void {
   const previous = data.transactions.find((item) => item.id === value.id);
-  const transaction = { ...value, updatedAt: nowIso() };
+  const vehicleInstallment = value.recurringId
+    ? data.recurringItems.find((item) => item.id === value.recurringId && item.kind === "installment" && item.vehicleId)
+    : undefined;
+  const transaction = {
+    ...value,
+    ...(vehicleInstallment ? {
+      kind: "expense" as const,
+      cashFlowDirection: undefined,
+      vehicleId: vehicleInstallment.vehicleId,
+    } : {}),
+    updatedAt: nowIso(),
+  };
   replaceOrAdd(data.transactions, transaction);
 
   const previousPropertyEntryId = previous?.propertyEntryId;
@@ -140,7 +151,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
     const existing = data.vehicleEntries.find((item) => item.id === transaction.vehicleEntryId || item.transactionId === transaction.id);
     const entry: VehicleEntry = {
       id: existing?.id ?? randomUUID(), vehicleId: transaction.vehicleId, date: transaction.date,
-      kind: existing?.kind ?? "other", description: transaction.description, amount: transaction.amount,
+      kind: vehicleInstallment ? "installment" : (existing?.kind ?? "other"), description: transaction.description, amount: transaction.amount,
       odometerKm: existing?.odometerKm, distanceKm: existing?.distanceKm, fuelLiters: existing?.fuelLiters,
       fuelUnitPrice: existing?.fuelUnitPrice, fuelType: existing?.fuelType, vendor: existing?.vendor,
       categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, accountId: transaction.accountId,
@@ -244,17 +255,21 @@ export function upsertSharedExpenseWithLinks(data: FinanceData, value: SharedExp
 
 export function upsertVehicleEntryWithLinks(data: FinanceData, value: VehicleEntry): void {
   const previous = data.vehicleEntries.find((item) => item.id === value.id);
-  replaceOrAdd(data.vehicleEntries, value);
-  if (value.kind !== "valuation" && value.amount > 0 && value.categoryId && value.paymentMethodId) {
-    const existing = data.transactions.find((item) => item.id === value.transactionId || item.vehicleEntryId === value.id);
-    const transaction = transactionForVehicle(value, existing);
-    value.transactionId = transaction.id;
-    replaceOrAdd(data.vehicleEntries, value);
+  const existing = data.transactions.find((item) => item.id === value.transactionId || item.vehicleEntryId === value.id);
+  const managedInstallment = existing?.recurringId
+    ? data.recurringItems.some((item) => item.id === existing.recurringId && item.kind === "installment" && item.vehicleId === value.vehicleId)
+    : false;
+  const entry = managedInstallment ? { ...value, kind: "installment" as const } : value;
+  replaceOrAdd(data.vehicleEntries, entry);
+  if (entry.kind !== "valuation" && entry.amount > 0 && entry.categoryId && entry.paymentMethodId) {
+    const transaction = transactionForVehicle(entry, existing);
+    entry.transactionId = transaction.id;
+    replaceOrAdd(data.vehicleEntries, entry);
     upsertTransactionWithLinks(data, transaction);
   } else if (previous?.transactionId) {
     data.transactions = data.transactions.filter((item) => item.id !== previous.transactionId);
-    value.transactionId = undefined;
-    replaceOrAdd(data.vehicleEntries, value);
+    entry.transactionId = undefined;
+    replaceOrAdd(data.vehicleEntries, entry);
   }
 }
 
@@ -423,6 +438,10 @@ export function syncRecurringTransactions(data: FinanceData, recurring: Recurrin
       if (existing && !existing.planned) {
         existing.recurringId = recurring.id;
         existing.dueDate ??= date;
+        if (recurring.kind === "installment" && recurring.vehicleId) {
+          existing.vehicleId = recurring.vehicleId;
+          upsertTransactionWithLinks(data, existing);
+        }
         const propertyEntry = data.propertyEntries.find((item) => item.id === existing.propertyEntryId || item.transactionId === existing.id);
         if (propertyEntry) propertyEntry.dueDate = existing.dueDate;
         for (const duplicate of matchingPlanned) deleteLinkedEntity(data, "transaction", duplicate.id);
@@ -446,6 +465,9 @@ export function syncRecurringTransactions(data: FinanceData, recurring: Recurrin
         };
         if (!plannedRecurringTransactionMatches(existing, expected)) {
           upsertTransactionWithLinks(data, { ...expected, updatedAt: nowIso() });
+        } else if (recurring.kind === "installment" && recurring.vehicleId) {
+          const vehicleEntry = data.vehicleEntries.find((item) => item.id === existing.vehicleEntryId || item.transactionId === existing.id);
+          if (vehicleEntry && vehicleEntry.kind !== "installment") vehicleEntry.kind = "installment";
         }
         unpaidOccurrences += 1;
         for (const duplicate of matchingPlanned.slice(1)) deleteLinkedEntity(data, "transaction", duplicate.id);
