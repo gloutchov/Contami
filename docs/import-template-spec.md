@@ -1,10 +1,10 @@
 # ContaMì — Contratti template di importazione / Import template contracts
 
-Versione formato / Format version: **1** · Applicazione / Application: **1.2.0**
+Versione formato / Format version: **2** · Applicazione / Application: **1.6.0**
 
-Questo documento specifica i file `.xlsx` generati e importati da **Impostazioni → Importazione dati**. Dalla versione 1.3.0 i contratti v1 sono importabili con anteprima e conferma atomica.
+Questo documento specifica i file `.xlsx` v2 generati e importati da **Impostazioni → Importazione dati**. La v2 rende espliciti conto o Cassa su ogni registrazione monetaria e la destinazione dei trasferimenti interni.
 
-This document specifies the `.xlsx` files generated and imported under **Settings → Data import**. Since version 1.3.0, v1 contracts can be imported with preview and atomic confirmation.
+This document specifies the v2 `.xlsx` files generated and imported under **Settings → Data import**. Version 2 makes the account or cash register explicit on every monetary record and adds the destination of internal transfers.
 
 ## Struttura comune / Common structure
 
@@ -29,19 +29,19 @@ When a workbook is open, active catalogs are copied into the template as a `work
 
 ## Token chiusi / Closed tokens
 
-I menu mostrano token bilingui stabili come `income | entrata`, `expense | uscita`, `true | vero` e `false | falso`. Il testo completo, incluso il separatore ` | `, appartiene al contratto v1.
+I menu mostrano token bilingui stabili come `income | entrata`, `expense | uscita`, `true | vero` e `false | falso`. Il testo completo, incluso il separatore ` | `, appartiene al contratto v2.
 
-Drop-downs show stable bilingual tokens such as `income | entrata`, `expense | uscita`, `true | vero`, and `false | falso`. The full text, including the ` | ` separator, is part of the v1 contract.
+Drop-downs show stable bilingual tokens such as `income | entrata`, `expense | uscita`, `true | vero`, and `false | falso`. The full text, including the ` | ` separator, is part of the v2 contract.
 
 ## 1. Immobile di residenza / Residence property
 
-File: `ContaMi-template-residence-v1.xlsx`
+File: `ContaMi-template-residence-v2.xlsx`
 
 `record_type`: `property`, `valuation`, `income`, `expense`, `utility`, `tax`.
 
 - Sempre obbligatorie / Always required: `record_type`, `property_key`.
 - Anagrafica / Registry: `name`, `property_kind`, `address`, `area_sqm`, `ownership_share`, `cadastral_value`, `purchase_date`, `purchase_price`, `active`, `closed_at`.
-- Registrazioni / Records: `date`, `description`, `amount`, `category`, `payment_method`.
+- Registrazioni / Records: `date`, `description`, `amount`, `category`, `payment_method`, `account`.
 - Utenze / Utilities: `utility_type`, `quantity`, `unit`, `electricity_kwh_f1`, `electricity_kwh_f2`, `electricity_kwh_f3`, `electricity_kwh_f23`.
 - Tasse e condivisione / Taxes and sharing: `tax_type`, `installment_number`, `is_common_expense`, `shared`, `owner_share`, `partner_share`, `paid_by`, `settled`.
 - Facoltativa / Optional: `notes`.
@@ -50,7 +50,7 @@ File: `ContaMi-template-residence-v1.xlsx`
 
 ## 2. Immobili in affitto / Rental properties
 
-File: `ContaMi-template-rental-properties-v1.xlsx`
+File: `ContaMi-template-rental-properties-v2.xlsx`
 
 Stesse colonne e `record_type` della residenza, più `expected_monthly_rent` e `rent_due_day`. Più immobili possono convivere nello stesso file usando `property_key` distinte.
 
@@ -58,25 +58,25 @@ Same columns and `record_type` values as the residence template, plus `expected_
 
 ## 3. Transazioni / Transactions
 
-File: `ContaMi-template-transactions-v1.xlsx`
+File: `ContaMi-template-transactions-v2.xlsx`
 
-- Obbligatorie / Required: `date`, `description`, `kind`, `amount`, `currency`, `category`, `payment_method`, `planned`.
-- Facoltative o condizionali / Optional or conditional: `account`, `cash_flow_direction`, `notes`.
+- Obbligatorie / Required: `date`, `description`, `kind`, `amount`, `currency`, `category`, `payment_method`, `account`, `planned`.
+- Facoltative o condizionali / Optional or conditional: `destination_account`, `cash_flow_direction`, `notes`.
 
-`kind`: `income`, `expense`, `transfer`. `cash_flow_direction` è obbligatoria per un trasferimento e vale `inflow`, `outflow` o `neutral`.
+`kind`: `income`, `expense`, `transfer`. `cash_flow_direction` è obbligatoria per un trasferimento e vale `inflow`, `outflow` o `neutral`; per un trasferimento interno `neutral`, `destination_account` è obbligatorio e deve essere diverso da `account`.
 
-`kind`: `income`, `expense`, `transfer`. `cash_flow_direction` is required for a transfer and is `inflow`, `outflow`, or `neutral`.
+`kind`: `income`, `expense`, `transfer`. `cash_flow_direction` is required for a transfer and is `inflow`, `outflow`, or `neutral`; an internal `neutral` transfer requires a `destination_account` different from `account`.
 
 ## 4. Investimenti / Investments
 
-File: `ContaMi-template-investments-v1.xlsx`
+File: `ContaMi-template-investments-v2.xlsx`
 
 `record_type`: `position`, `contribution`, `withdrawal`, `valuation`.
 
 - Sempre obbligatorie / Always required: `record_type`, `investment_key`.
 - Posizione / Position: `name`, `investment_type`, `provider`, `currency`, `opened_at`, `active`, `closed_at`.
-- Piano periodico / Recurring plan: `periodic_amount`, `periodic_frequency`, `periodic_next_due_date`, `periodic_category`, `periodic_payment_method`.
-- Movimenti / Movements: `date`, `description`, `amount`, `category`, `payment_method`.
+- Piano periodico / Recurring plan: `periodic_amount`, `periodic_frequency`, `periodic_next_due_date`, `periodic_category`, `periodic_payment_method`, `periodic_account`.
+- Movimenti / Movements: `date`, `description`, `amount`, `category`, `payment_method`, `account`.
 - Facoltativa / Optional: `notes`.
 
 `investment_key` lega movimenti e valutazioni alla posizione senza richiedere un UUID ContaMì preesistente.
@@ -85,14 +85,14 @@ File: `ContaMi-template-investments-v1.xlsx`
 
 ## 5. Fondo pensione / Pension fund
 
-File: `ContaMi-template-pension-v1.xlsx`
+File: `ContaMi-template-pension-v2.xlsx`
 
 `record_type`: `pension`, `compartment`, `contribution`, `withdrawal`, `valuation`.
 
 - Sempre obbligatorie / Always required: `record_type`, `pension_key`.
 - Gerarchia / Hierarchy: `compartment_key`, `name`, `provider`, `currency`, `opened_at`, `active`, `closed_at`.
-- Piano periodico / Recurring plan: `periodic_amount`, `periodic_frequency`, `periodic_next_due_date`, `periodic_category`, `periodic_payment_method`.
-- Movimenti / Movements: `date`, `description`, `amount`, `category`, `payment_method`.
+- Piano periodico / Recurring plan: `periodic_amount`, `periodic_frequency`, `periodic_next_due_date`, `periodic_category`, `periodic_payment_method`, `periodic_account`.
+- Movimenti / Movements: `date`, `description`, `amount`, `category`, `payment_method`, `account`.
 - Facoltativa / Optional: `notes`.
 
 `pension_key` identifica il raccoglitore; `compartment_key` identifica il comparto ed è ripetuta sui suoi movimenti.
@@ -101,9 +101,9 @@ File: `ContaMi-template-pension-v1.xlsx`
 
 ## 6. Spese condivise / Shared expenses
 
-File: `ContaMi-template-shared-expenses-v1.xlsx`
+File: `ContaMi-template-shared-expenses-v2.xlsx`
 
-- Obbligatorie / Required: `date`, `description`, `amount`, `owner_share`, `partner_share`, `paid_by`, `settled`, `category`, `payment_method`.
+- Obbligatorie / Required: `date`, `description`, `amount`, `owner_share`, `partner_share`, `paid_by`, `settled`, `category`, `payment_method`, `account`.
 - Facoltativa / Optional: `notes`.
 
 `owner_share + partner_share` deve coincidere con `amount` al centesimo. La futura importazione creerà una sola Transazione collegata.
@@ -112,9 +112,9 @@ File: `ContaMi-template-shared-expenses-v1.xlsx`
 
 ## 7. Spese ricorrenti / Recurring items
 
-File: `ContaMi-template-recurring-items-v1.xlsx`
+File: `ContaMi-template-recurring-items-v2.xlsx`
 
-- Obbligatorie / Required: `name`, `kind`, `direction`, `amount`, `frequency`, `category`, `payment_method`, `next_due_date`, `active`.
+- Obbligatorie / Required: `name`, `kind`, `direction`, `amount`, `frequency`, `category`, `payment_method`, `account`, `next_due_date`, `active`.
 - Facoltative / Optional: `end_date`, `remaining_installments`, `property`, `investment`, `vehicle`, `notes`.
 
 `kind`: `subscription`, `service`, `installment`, `investment`, `rent`, `other`. I collegamenti facoltativi usano soltanto cataloghi già presenti nel workbook.
@@ -123,13 +123,13 @@ File: `ContaMi-template-recurring-items-v1.xlsx`
 
 ## 8. Automobile / Vehicles
 
-File: `ContaMi-template-vehicles-v1.xlsx`
+File: `ContaMi-template-vehicles-v2.xlsx`
 
 `record_type`: `vehicle`, `fuel`, `installment`, `tax`, `insurance`, `tires`, `maintenance`, `repair`, `valuation`, `other`.
 
 - Sempre obbligatorie / Always required: `record_type`, `vehicle_key`.
 - Anagrafica / Registry: `name`, `manufacturer`, `model`, `fuel_type`, `purchase_date`, `disposal_date`, `purchase_price`, `sale_price`, `active`.
-- Registrazioni / Records: `date`, `description`, `amount`, `odometer_km`, `distance_km`, `fuel_liters`, `fuel_unit_price`, `entry_fuel_type`, `vendor`, `category`, `payment_method`.
+- Registrazioni / Records: `date`, `description`, `amount`, `odometer_km`, `distance_km`, `fuel_liters`, `fuel_unit_price`, `entry_fuel_type`, `vendor`, `category`, `payment_method`, `account`.
 - Facoltativa / Optional: `notes`.
 
 `vehicle_key` collega costi, rifornimenti e valutazioni all’automobile senza richiedere un UUID ContaMì.
@@ -140,4 +140,8 @@ File: `ContaMi-template-vehicles-v1.xlsx`
 
 I file sono `.xlsx` passivi e possono essere compilati in Excel, LibreOffice o Numbers per quanto ciascun programma conserva convalide, intervalli denominati e fogli `veryHidden`. Non rinominare il foglio visibile, le intestazioni o i fogli tecnici; non aggiungere macro, formule, collegamenti esterni o altri fogli.
 
+I template v1 restano documenti passivi ma non soddisfano il contratto v2: genera un nuovo template dall’app e trasferisci i dati, compilando i nuovi campi `account`, `periodic_account` e, quando necessario, `destination_account`.
+
 Files are passive `.xlsx` workbooks and can be filled in Excel, LibreOffice, or Numbers to the extent each program preserves validations, named ranges, and `veryHidden` sheets. Do not rename the visible sheet, headers, or technical sheets; do not add macros, formulas, external links, or extra sheets.
+
+Version 1 templates remain passive documents but do not satisfy the v2 contract: generate a fresh template in the app and move the data into it, filling the new `account`, `periodic_account`, and, where applicable, `destination_account` fields.

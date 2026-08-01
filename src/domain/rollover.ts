@@ -1,24 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { accountBalance } from "./accounts";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
 import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
 import { syncRecurringTransactions } from "./linkedRecords";
 import type { FinanceData, InvestmentEntry, PropertyEntry } from "./models";
-
-function balanceForAccount(data: FinanceData, accountId: string): number {
-  const account = data.accounts.find((item) => item.id === accountId);
-  if (!account) return 0;
-  return account.openingBalance + data.transactions.filter((item) =>
-    item.accountId === accountId
-    && !item.planned
-    && item.date >= account.openedAt
-    && (!account.closedAt || item.date <= account.closedAt)).reduce((sum, item) => {
-    if (item.kind === "income") return sum + item.amount;
-    if (item.kind === "expense") return sum - item.amount;
-    if (item.kind === "transfer" && item.cashFlowDirection === "inflow") return sum + item.amount;
-    if (item.kind === "transfer" && item.cashFlowDirection === "outflow") return sum - item.amount;
-    return sum;
-  }, 0);
-}
 
 function latestEntry<T extends PropertyEntry | InvestmentEntry>(entries: T[], id: string, foreignKey: "propertyId" | "investmentId"): T | undefined {
   return entries
@@ -46,8 +31,12 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   next.investmentTypes = structuredClone(current.investmentTypes);
   next.taxTypes = structuredClone(current.taxTypes);
   next.accounts = current.accounts.filter((item) => item.active).map((item) => ({
-    ...structuredClone(item), openingBalance: balanceForAccount(current, item.id), closedAt: undefined,
+    ...structuredClone(item), openingBalance: accountBalance(current, item.id), closedAt: undefined,
   }));
+  const activeAccountIds = new Set(next.accounts.map((item) => item.id));
+  next.accounts.forEach((item) => {
+    if (item.defaultFundingAccountId && !activeAccountIds.has(item.defaultFundingAccountId)) item.defaultFundingAccountId = undefined;
+  });
   next.properties = structuredClone(current.properties.filter((item) => item.active));
   next.investments = structuredClone(current.investments.filter((item) => item.active));
   next.vehicles = structuredClone(current.vehicles.filter((item) => item.active));

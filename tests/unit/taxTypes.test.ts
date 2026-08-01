@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
+import { applyFinanceCommand, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import type { PropertyEntry, TaxType } from "../../src/domain/models";
+
+function createEmptyFinanceData(year: number) {
+  const data = createBaseFinanceData(year);
+  data.accounts.push({ id: "00000000-0000-4000-8000-0000000000a1", name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 0, active: true, openedAt: `${year}-01-01`, notes: "" });
+  return data;
+}
 
 function addProperty(data: ReturnType<typeof createEmptyFinanceData>, usage: "residence" | "rental" = "residence"): string {
   const id = crypto.randomUUID();

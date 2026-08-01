@@ -50,7 +50,9 @@ const propertyRentRecurringBundleSchema = z.object({
   if (value.recurring.propertyId !== value.entry.propertyId) {
     context.addIssue({ code: "custom", message: "The recurring rent must reference the same property", path: ["recurring", "propertyId"] });
   }
-  if (value.recurring.categoryId !== value.entry.categoryId || value.recurring.paymentMethodId !== value.entry.paymentMethodId) {
+  if (value.recurring.categoryId !== value.entry.categoryId
+    || value.recurring.paymentMethodId !== value.entry.paymentMethodId
+    || value.recurring.accountId !== value.entry.accountId) {
     context.addIssue({ code: "custom", message: "The recurring rent must use the same category and payment method", path: ["recurring", "categoryId"] });
   }
   if (Math.abs(value.recurring.amount - value.entry.amount) > 0.01) {

@@ -43,6 +43,7 @@ export const accountSchema = z.object({
   id,
   name: text,
   kind: z.enum(["bank", "cash", "card", "digital_wallet", "other"]),
+  defaultFundingAccountId: id.optional(),
   currency: z.string().length(3).default("EUR"),
   openingBalance: signedMoney,
   active: z.boolean(),
@@ -58,6 +59,7 @@ export const transactionSchema = z.object({
   categoryId: id,
   paymentMethodId: id,
   accountId: id.optional(),
+  destinationAccountId: id.optional(),
   kind: z.enum(["income", "expense", "transfer"]),
   cashFlowDirection: z.enum(["inflow", "outflow", "neutral"]).optional(),
   amount: money.positive(),
@@ -117,6 +119,7 @@ export const propertyEntrySchema = z.object({
   electricityKwhF3: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   electricityKwhF23: z.number().finite().nonnegative().max(1_000_000_000).optional(),
   paymentMethodId: id.optional(),
+  accountId: id.optional(),
   transactionId: id.optional(),
   isCommonExpense: z.boolean().optional(),
   notes,
@@ -201,6 +204,7 @@ export const sharedExpenseSchema = z.object({
   description: text,
   categoryId: id,
   paymentMethodId: id,
+  accountId: id.optional(),
   amount: money.positive(),
   ownerShare: money,
   partnerShare: money,
@@ -257,6 +261,7 @@ export const vehicleEntrySchema = z.object({
   vendor: z.string().trim().max(160).optional(),
   categoryId: id.optional(),
   paymentMethodId: id.optional(),
+  accountId: id.optional(),
   transactionId: id.optional(),
   notes,
 });
@@ -304,7 +309,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(6),
+    schemaVersion: z.literal(7),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,

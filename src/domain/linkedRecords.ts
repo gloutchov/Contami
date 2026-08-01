@@ -31,7 +31,7 @@ function transactionForProperty(entry: PropertyEntry, existing?: Transaction): T
     description: entry.description,
     categoryId: entry.categoryId!,
     paymentMethodId: entry.paymentMethodId!,
-    accountId: existing?.accountId,
+    accountId: entry.accountId ?? existing?.accountId,
     kind: entry.kind as "income" | "expense",
     amount: entry.amount,
     currency: existing?.currency ?? "EUR",
@@ -56,7 +56,7 @@ function transactionForShared(entry: SharedExpense, existing?: Transaction): Tra
     description: entry.description,
     categoryId: entry.categoryId,
     paymentMethodId: entry.paymentMethodId,
-    accountId: existing?.accountId,
+    accountId: entry.accountId ?? existing?.accountId,
     kind: "expense",
     amount: entry.amount,
     currency: existing?.currency ?? "EUR",
@@ -82,7 +82,7 @@ function transactionForVehicle(entry: VehicleEntry, existing?: Transaction): Tra
   const timestamp = nowIso();
   return {
     id: existing?.id ?? entry.transactionId ?? randomUUID(), date: entry.date, description: entry.description,
-    categoryId: entry.categoryId!, paymentMethodId: entry.paymentMethodId!, accountId: existing?.accountId,
+    categoryId: entry.categoryId!, paymentMethodId: entry.paymentMethodId!, accountId: entry.accountId ?? existing?.accountId,
     kind: "expense", amount: entry.amount, currency: existing?.currency ?? "EUR", recurringId: existing?.recurringId,
     vehicleId: entry.vehicleId, vehicleEntryId: entry.id, shared: existing?.shared ?? false, planned: existing?.planned,
     sharedPaidBy: existing?.sharedPaidBy ?? "owner", sharedSettled: existing?.sharedSettled ?? false,
@@ -107,6 +107,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
       id: existing?.id ?? randomUUID(), propertyId: transaction.propertyId, date: transaction.date,
       kind: transaction.kind, category: categoryName(data, transaction.categoryId), categoryId: transaction.categoryId,
       description: transaction.description, amount: transaction.amount, paymentMethodId: transaction.paymentMethodId,
+      accountId: transaction.accountId,
       transactionId: transaction.id, isCommonExpense: existing?.isCommonExpense ?? false, notes: transaction.notes,
     };
     replaceOrAdd(data.propertyEntries, entry);
@@ -139,7 +140,8 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
       kind: existing?.kind ?? "other", description: transaction.description, amount: transaction.amount,
       odometerKm: existing?.odometerKm, distanceKm: existing?.distanceKm, fuelLiters: existing?.fuelLiters,
       fuelUnitPrice: existing?.fuelUnitPrice, fuelType: existing?.fuelType, vendor: existing?.vendor,
-      categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, transactionId: transaction.id, notes: transaction.notes,
+      categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, accountId: transaction.accountId,
+      transactionId: transaction.id, notes: transaction.notes,
     };
     replaceOrAdd(data.vehicleEntries, entry);
     transaction.vehicleEntryId = entry.id;
@@ -158,7 +160,7 @@ export function upsertTransactionWithLinks(data: FinanceData, value: Transaction
       : Math.round(transaction.amount * ownerRatio * 100) / 100;
     const entry: SharedExpense = {
       id: existing?.id ?? randomUUID(), date: transaction.date, description: transaction.description,
-      categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, amount: transaction.amount,
+      categoryId: transaction.categoryId, paymentMethodId: transaction.paymentMethodId, accountId: transaction.accountId, amount: transaction.amount,
       ownerShare, partnerShare: existing && Math.abs(existing.amount - transaction.amount) <= 0.01
         ? existing.partnerShare
         : Math.round((transaction.amount - ownerShare) * 100) / 100,
@@ -198,6 +200,7 @@ export function upsertPropertyExpenseWithLinks(data: FinanceData, value: Propert
       description: value.description,
       categoryId: value.categoryId!,
       paymentMethodId: value.paymentMethodId!,
+      accountId: value.accountId,
       amount: value.amount,
       ownerShare: shared.ownerShare,
       partnerShare: shared.partnerShare,
@@ -441,7 +444,16 @@ export function deleteLinkedEntity(data: FinanceData, entity: string, id: string
   } as const;
   const collection = collections[entity as keyof typeof collections];
   if (!collection?.some((item) => item.id === id)) throw new Error("ENTITY_NOT_FOUND");
-  const inUse = entity === "account" ? data.transactions.some((item) => item.accountId === id)
+  const inUse = entity === "account" ? (
+    data.transactions.some((item) => item.accountId === id || item.destinationAccountId === id)
+    || data.accounts.some((item) => item.defaultFundingAccountId === id)
+    || data.propertyEntries.some((item) => item.accountId === id)
+    || data.investmentEntries.some((item) => item.accountId === id)
+    || data.recurringItems.some((item) => item.accountId === id)
+    || data.sharedExpenses.some((item) => item.accountId === id)
+    || data.vehicleEntries.some((item) => item.accountId === id)
+    || data.investments.some((item) => item.periodicAccountId === id)
+  )
     : entity === "category" ? catalogUsageCount(data, "category", id) > 0
       : entity === "paymentMethod" ? catalogUsageCount(data, "paymentMethod", id) > 0
         : entity === "investmentType" ? data.investments.some((item) => item.typeId === id)

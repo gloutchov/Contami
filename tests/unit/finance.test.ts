@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountOpeningBalance, applyFinanceCommand, computeDashboard, createEmptyFinanceData, transactionCashTotals } from "../../src/domain/finance";
+import { accountOpeningBalance, applyFinanceCommand, computeDashboard, createEmptyFinanceData, transactionAccountTotals, transactionCashTotals } from "../../src/domain/finance";
 
 describe("finance domain", () => {
   it("creates a bilingual, usable empty dataset", () => {
@@ -78,6 +78,43 @@ describe("finance domain", () => {
     });
 
     expect(computeDashboard(data)).toMatchObject({ liquidBalance: 1_000, yearIncome: 0, yearExpenses: 0 });
+  });
+
+  it("separates filtered account and cash-register totals, balances, and internal transfers", () => {
+    const data = createEmptyFinanceData(2026);
+    const bankId = crypto.randomUUID();
+    const cashId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const incomeCategoryId = data.categories.find((item) => item.kind === "income")!.id;
+    const expenseCategoryId = data.categories.find((item) => item.kind === "expense")!.id;
+    const transferCategoryId = data.categories.find((item) => item.kind === "both")!.id;
+    const accountMethodId = data.paymentMethods.find((item) => item.kind !== "cash")!.id;
+    const cashMethodId = data.paymentMethods.find((item) => item.kind === "cash")!.id;
+    data.accounts.push(
+      { id: bankId, name: "Synthetic bank", kind: "bank", currency: "EUR", openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "" },
+      { id: cashId, name: "Synthetic cash", kind: "cash", defaultFundingAccountId: bankId, currency: "EUR", openingBalance: 50, active: true, openedAt: "2026-01-01", notes: "" },
+    );
+    data.transactions.push(
+      { id: crypto.randomUUID(), date: "2026-02-01", description: "Synthetic account income", categoryId: incomeCategoryId, paymentMethodId: accountMethodId, accountId: bankId, kind: "income", amount: 200, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp },
+      { id: crypto.randomUUID(), date: "2026-02-02", description: "Synthetic ATM withdrawal", categoryId: transferCategoryId, paymentMethodId: accountMethodId, accountId: bankId, destinationAccountId: cashId, kind: "transfer", cashFlowDirection: "neutral", amount: 100, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp },
+      { id: crypto.randomUUID(), date: "2026-02-03", description: "Synthetic cash expense", categoryId: expenseCategoryId, paymentMethodId: cashMethodId, accountId: cashId, kind: "expense", amount: 20, currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp },
+      { id: crypto.randomUUID(), date: "2026-12-01", description: "Synthetic planned account expense", categoryId: expenseCategoryId, paymentMethodId: accountMethodId, accountId: bankId, kind: "expense", amount: 40, currency: "EUR", planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp },
+    );
+
+    const cashOnly = data.transactions.filter((item) => item.paymentMethodId === cashMethodId);
+    expect(transactionAccountTotals(data, cashOnly, "account", { includePlanned: true })).toEqual({
+      inflows: 0, outflows: 0, net: 0, openingBalance: 1_000, balance: 1_000,
+    });
+    expect(transactionAccountTotals(data, cashOnly, "cashRegister", { includePlanned: true })).toEqual({
+      inflows: 0, outflows: 20, net: -20, openingBalance: 50, balance: 30,
+    });
+    expect(transactionAccountTotals(data, data.transactions, "account", { includePlanned: true })).toEqual({
+      inflows: 200, outflows: 140, net: 60, openingBalance: 1_000, balance: 1_060,
+    });
+    expect(transactionAccountTotals(data, data.transactions, "cashRegister", { includePlanned: true })).toEqual({
+      inflows: 100, outflows: 20, net: 80, openingBalance: 50, balance: 130,
+    });
+    expect(computeDashboard(data)).toMatchObject({ liquidBalance: 1_230, cashRegisterBalance: 130, yearIncome: 200, yearExpenses: 20 });
   });
 
   it("ignores account movements before opening and exposes opening cash separately", () => {

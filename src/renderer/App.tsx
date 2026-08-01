@@ -37,6 +37,10 @@ function errorKey(error: unknown): TranslationKey {
   if (text.includes("WORKBOOK_CHANGED_EXTERNALLY")) return "workbookChangedExternally";
   if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
   if (text.includes("ENTITY_IN_USE")) return "entityInUse";
+  if (text.includes("ACCOUNT_REQUIRED")
+    || text.includes("ACCOUNT_PAYMENT_METHOD_MISMATCH")
+    || text.includes("INVALID_INTERNAL_TRANSFER")
+    || text.includes("INVALID_CASH_REGISTER_FUNDING_ACCOUNT")) return "invalidAccountSelection";
   if (text.includes("DUPLICATE_TAX_NAME")) return "duplicateTaxName";
   if (text.includes("IMPORT_PREVIEW_EXPIRED")) return "importPreviewExpired";
   if (text.includes("IMPORT_NO_VALID_ROWS")) return "importNoValidRows";

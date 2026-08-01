@@ -19,6 +19,10 @@ Le strategie non usano similarità, correzioni automatiche o nomi “quasi ugual
 
 Strategies never use fuzzy similarity, automatic correction, or near-matching names. Catalog references resolve through the embedded UUID or the exact unique name of an active item.
 
+Nei template v2, scegli una **Cassa** per le righe con metodo Contanti e un conto non-Cassa per gli altri metodi. Per un trasferimento interno neutro, `account` è la sorgente e `destination_account` la destinazione; devono essere distinti e nella stessa valuta.
+
+In v2 templates, choose a **cash register** for rows using the Cash payment method and a non-cash account for other methods. For a neutral internal transfer, `account` is the source and `destination_account` is the destination; they must be distinct and use the same currency.
+
 ## Errori e recupero / Errors and recovery
 
 | Codice / Code | Significato / Meaning | Recupero / Recovery |

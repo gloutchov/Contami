@@ -127,6 +127,7 @@ textarea { resize: vertical; min-height: 82px; }
 .data-table td { padding: 14px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .data-table tbody tr:last-child td { border-bottom: 0; }.data-table tbody tr:hover { background: color-mix(in srgb, var(--mint-soft) 45%, transparent); }
 .amount-income { color: #168060; font-weight: 700; }.amount-expense { color: var(--coral); font-weight: 700; }
+.value-loss { color: var(--coral); }
 .pill { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; background: var(--mint-soft); color: var(--navy-2); font-weight: 700; font-size: 10px; }
 :root[data-theme="dark"] .pill { color: #c9f6e5; }
 .entity-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
@@ -156,5 +157,5 @@ textarea { resize: vertical; min-height: 82px; }
   .spin { animation: none; }
 }
 
-@media (max-width: 1240px) { .kpi-grid, .view-kpi-grid { grid-template-columns: repeat(2, 1fr); }.entity-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 900px) { .app-shell { grid-template-columns: 78px 1fr; }.sidebar { width: 78px; padding-inline: 10px; }.brand { width: 54px; margin-inline: 2px; }.brand-word { display: none; }.nav-item { justify-content: center; padding: 0; }.nav-item span, .privacy-chip { display: none; }.workspace { grid-column: 2; }.workspace main { padding-inline: 22px; }.dashboard-grid, .settings-grid, .catalog-columns { grid-template-columns: 1fr; }.settings-card.wide { grid-column: auto; }.import-controls { grid-template-columns: 1fr; grid-template-areas: "strategy" "help" "action"; }.import-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1240px) { .kpi-grid, .view-kpi-grid { grid-template-columns: repeat(2, 1fr); }.transaction-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }.entity-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .app-shell { grid-template-columns: 78px 1fr; }.sidebar { width: 78px; padding-inline: 10px; }.brand { width: 54px; margin-inline: 2px; }.brand-word { display: none; }.nav-item { justify-content: center; padding: 0; }.nav-item span, .privacy-chip { display: none; }.workspace { grid-column: 2; }.workspace main { padding-inline: 22px; }.transaction-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.dashboard-grid, .settings-grid, .catalog-columns { grid-template-columns: 1fr; }.settings-card.wide { grid-column: auto; }.import-controls { grid-template-columns: 1fr; grid-template-areas: "strategy" "help" "action"; }.import-stats { grid-template-columns: repeat(2, 1fr); } }

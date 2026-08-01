@@ -1,4 +1,5 @@
 import { financeCommandSchema, type FinanceCommand } from "./commands";
+import { accountIsAvailable, resolvePaymentAccountId, transactionAccountEffects, validateAccount, validateTransactionAccounts } from "./accounts";
 import { DEFAULT_INVESTMENT_TYPES, DEFAULT_TAX_TYPES } from "./catalogDefaults";
 import {
   deleteLinkedEntity,
@@ -26,7 +27,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 6, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 7, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -88,18 +89,31 @@ function ensureValidPropertyTax(data: FinanceData, entry: FinanceData["propertyE
   if (entry.taxInstallmentNumber && entry.taxInstallmentNumber > taxType.installments) throw new Error("INVALID_TAX_INSTALLMENT");
 }
 
+function ensureEntryAccount(data: FinanceData, value: { date: string; paymentMethodId?: string; accountId?: string }, monetary: boolean, currency = "EUR"): void {
+  if (!monetary) return;
+  if (!value.paymentMethodId) throw new Error("PAYMENT_METHOD_NOT_FOUND");
+  value.accountId = resolvePaymentAccountId(data, value.paymentMethodId, value.accountId, value.date, currency);
+}
+
+function ensureInvestmentPlanAccount(data: FinanceData, value: FinanceData["investments"][number]): void {
+  if (!value.periodicAmount) return;
+  if (!value.periodicPaymentMethodId || !value.periodicNextDueDate) throw new Error("PAYMENT_METHOD_NOT_FOUND");
+  value.periodicAccountId = resolvePaymentAccountId(data, value.periodicPaymentMethodId, value.periodicAccountId, value.periodicNextDueDate, value.currency);
+}
+
 function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand): void {
   switch (command.type) {
-    case "addTransaction": ensureUnique(next.transactions, command.value.id); upsertTransactionWithLinks(next, command.value); break;
-    case "updateTransaction": ensureExists(next.transactions, command.value.id); upsertTransactionWithLinks(next, command.value); break;
-    case "addAccount": ensureUnique(next.accounts, command.value.id); next.accounts.push(command.value); break;
-    case "updateAccount": replace(next.accounts, command.value); break;
+    case "addTransaction": ensureUnique(next.transactions, command.value.id); validateTransactionAccounts(next, command.value); upsertTransactionWithLinks(next, command.value); break;
+    case "updateTransaction": ensureExists(next.transactions, command.value.id); validateTransactionAccounts(next, command.value); upsertTransactionWithLinks(next, command.value); break;
+    case "addAccount": ensureUnique(next.accounts, command.value.id); validateAccount(next, command.value); next.accounts.push(command.value); break;
+    case "updateAccount": validateAccount(next, command.value); replace(next.accounts, command.value); break;
     case "addProperty": ensureUnique(next.properties, command.value.id); next.properties.push(command.value); break;
     case "updateProperty": replace(next.properties, command.value); break;
     case "addPropertyEntry":
       ensureUnique(next.propertyEntries, command.value.id);
       if (!next.properties.some((item) => item.id === command.value.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
       ensureValidPropertyTax(next, command.value, false);
+      ensureEntryAccount(next, command.value, command.value.kind === "income" || command.value.kind === "expense");
       upsertPropertyEntryWithLinks(next, command.value); break;
     case "addPropertyRentRecurring": {
       ensureUnique(next.propertyEntries, command.value.entry.id);
@@ -107,6 +121,8 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       const property = next.properties.find((item) => item.id === command.value.entry.propertyId);
       if (!property) throw new Error("PROPERTY_NOT_FOUND");
       if (property.usage !== "rental") throw new Error("PROPERTY_NOT_RENTAL");
+      ensureEntryAccount(next, command.value.entry, true);
+      command.value.recurring.accountId = resolvePaymentAccountId(next, command.value.recurring.paymentMethodId, command.value.recurring.accountId, command.value.recurring.nextDueDate);
       upsertPropertyEntryWithLinks(next, command.value.entry);
       next.recurringItems.push(command.value.recurring);
       const transaction = next.transactions.find((item) => item.id === command.value.entry.transactionId || item.propertyEntryId === command.value.entry.id);
@@ -118,42 +134,49 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
     case "updatePropertyEntry":
       ensureExists(next.propertyEntries, command.value.id);
       ensureValidPropertyTax(next, command.value, true);
+      ensureEntryAccount(next, command.value, command.value.kind === "income" || command.value.kind === "expense");
       upsertPropertyEntryWithLinks(next, command.value); break;
     case "addPropertyExpense":
       ensureUnique(next.propertyEntries, command.value.entry.id);
       if (!next.properties.some((item) => item.id === command.value.entry.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
       if (command.value.shared) ensureUnique(next.sharedExpenses, command.value.shared.id);
       ensureValidPropertyTax(next, command.value.entry, false);
+      ensureEntryAccount(next, command.value.entry, true);
       upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
     case "updatePropertyExpense":
       ensureExists(next.propertyEntries, command.value.entry.id);
       ensureValidPropertyTax(next, command.value.entry, true);
+      ensureEntryAccount(next, command.value.entry, true);
       upsertPropertyExpenseWithLinks(next, command.value.entry, command.value.shared); break;
     case "addInvestment":
-      ensureUnique(next.investments, command.value.id); next.investments.push(command.value); syncInvestmentPlan(next, command.value); break;
+      ensureUnique(next.investments, command.value.id); ensureInvestmentPlanAccount(next, command.value); next.investments.push(command.value); syncInvestmentPlan(next, command.value); break;
     case "addInvestmentWithInitialContribution":
       ensureUnique(next.investments, command.value.investment.id);
       ensureUnique(next.investmentEntries, command.value.initialContribution.id);
+      ensureInvestmentPlanAccount(next, command.value.investment);
+      ensureEntryAccount(next, command.value.initialContribution, true, command.value.investment.currency);
       next.investments.push(command.value.investment);
       syncInvestmentPlan(next, command.value.investment);
       upsertInvestmentEntryWithLinks(next, command.value.initialContribution); break;
-    case "updateInvestment": replace(next.investments, command.value); syncInvestmentPlan(next, command.value); break;
+    case "updateInvestment": ensureInvestmentPlanAccount(next, command.value); replace(next.investments, command.value); syncInvestmentPlan(next, command.value); break;
     case "addInvestmentEntry":
       ensureUnique(next.investmentEntries, command.value.id);
       if (!next.investments.some((item) => item.id === command.value.investmentId)) throw new Error("INVESTMENT_NOT_FOUND");
+      ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency);
       upsertInvestmentEntryWithLinks(next, command.value); break;
-    case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); upsertInvestmentEntryWithLinks(next, command.value); break;
-    case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
-    case "updateRecurringItem": replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
-    case "addSharedExpense": ensureUnique(next.sharedExpenses, command.value.id); upsertSharedExpenseWithLinks(next, command.value); break;
-    case "updateSharedExpense": ensureExists(next.sharedExpenses, command.value.id); upsertSharedExpenseWithLinks(next, command.value); break;
+    case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency); upsertInvestmentEntryWithLinks(next, command.value); break;
+    case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
+    case "updateRecurringItem": command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
+    case "addSharedExpense": ensureUnique(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
+    case "updateSharedExpense": ensureExists(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "addVehicle": ensureUnique(next.vehicles, command.value.id); next.vehicles.push(command.value); break;
     case "updateVehicle": replace(next.vehicles, command.value); break;
     case "addVehicleEntry":
       ensureUnique(next.vehicleEntries, command.value.id);
       if (!next.vehicles.some((item) => item.id === command.value.vehicleId)) throw new Error("VEHICLE_NOT_FOUND");
+      ensureEntryAccount(next, command.value, command.value.kind !== "valuation" && command.value.amount > 0);
       upsertVehicleEntryWithLinks(next, command.value); break;
-    case "updateVehicleEntry": ensureExists(next.vehicleEntries, command.value.id); upsertVehicleEntryWithLinks(next, command.value); break;
+    case "updateVehicleEntry": ensureExists(next.vehicleEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation" && command.value.amount > 0); upsertVehicleEntryWithLinks(next, command.value); break;
     case "addCategory": ensureUnique(next.categories, command.value.id); next.categories.push(command.value); break;
     case "updateCategory": replace(next.categories, command.value); break;
     case "addPaymentMethod": ensureUnique(next.paymentMethods, command.value.id); next.paymentMethods.push(command.value); break;
@@ -275,7 +298,7 @@ export interface HistoricalMetric {
 }
 
 export interface DashboardMetrics {
-  netWorth: number; liquidBalance: number; propertyValue: number; investmentValue: number; pensionValue: number;
+  netWorth: number; liquidBalance: number; cashRegisterBalance: number; propertyValue: number; investmentValue: number; pensionValue: number;
   yearIncome: number; yearExpenses: number; monthlyRecurring: number; sharedBalance: number;
   propertyIncome: number; propertyExpenses: number;
   months: Array<{ month: string; income: number; expenses: number }>;
@@ -301,6 +324,45 @@ export function accountOpeningBalance(data: FinanceData, throughDate?: string): 
     .reduce((sum, account) => sum + account.openingBalance, 0);
 }
 
+export type TransactionAccountGroup = "account" | "cashRegister";
+
+export interface TransactionAccountTotals {
+  inflows: number;
+  outflows: number;
+  net: number;
+  openingBalance: number;
+  balance: number;
+}
+
+function accountBelongsToGroup(account: FinanceData["accounts"][number], group: TransactionAccountGroup): boolean {
+  return group === "cashRegister" ? account.kind === "cash" : account.kind !== "cash";
+}
+
+export function transactionAccountTotals(
+  data: FinanceData,
+  items: readonly FinanceData["transactions"][number][],
+  group: TransactionAccountGroup,
+  options: { includePlanned?: boolean; openingThroughDate?: string } = {},
+): TransactionAccountTotals {
+  const accounts = new Map(data.accounts.map((account) => [account.id, account]));
+  const openingBalance = data.accounts
+    .filter((account) => accountBelongsToGroup(account, group))
+    .filter((account) => !options.openingThroughDate || account.openedAt <= options.openingThroughDate)
+    .reduce((sum, account) => sum + account.openingBalance, 0);
+  let inflows = 0;
+  let outflows = 0;
+  for (const item of items) {
+    for (const effect of transactionAccountEffects(item, { includePlanned: options.includePlanned })) {
+      const account = accounts.get(effect.accountId);
+      if (!account || !accountBelongsToGroup(account, group) || !accountIsAvailable(account, item.date)) continue;
+      if (effect.amount >= 0) inflows += effect.amount;
+      else outflows += Math.abs(effect.amount);
+    }
+  }
+  const net = inflows - outflows;
+  return { inflows, outflows, net, openingBalance, balance: openingBalance + net };
+}
+
 export function computeDashboard(data: FinanceData): DashboardMetrics {
   const year = String(data.meta.activeYear);
   let yearIncome = 0;
@@ -314,12 +376,10 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
   }));
   for (const item of data.transactions) {
     if (item.planned) continue;
-    if (item.accountId) {
-      const account = data.accounts.find((candidate) => candidate.id === item.accountId);
-      if (account && item.date >= account.openedAt && (!account.closedAt || item.date <= account.closedAt)) {
-        const current = accountMovements.get(item.accountId) ?? 0;
-        if (item.kind === "income" || (item.kind === "transfer" && item.cashFlowDirection === "inflow")) accountMovements.set(item.accountId, current + item.amount);
-        else if (item.kind === "expense" || (item.kind === "transfer" && item.cashFlowDirection === "outflow")) accountMovements.set(item.accountId, current - item.amount);
+    for (const effect of transactionAccountEffects(item)) {
+      const account = data.accounts.find((candidate) => candidate.id === effect.accountId);
+      if (account && accountIsAvailable(account, item.date)) {
+        accountMovements.set(effect.accountId, (accountMovements.get(effect.accountId) ?? 0) + effect.amount);
       }
     }
     if (!item.date.startsWith(year)) continue;
@@ -334,6 +394,9 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
     }
   }
   const liquidBalance = accountOpeningBalance(data) + data.accounts.reduce((sum, account) => sum + (accountMovements.get(account.id) ?? 0), 0);
+  const cashRegisterBalance = data.accounts
+    .filter((account) => account.kind === "cash")
+    .reduce((sum, account) => sum + account.openingBalance + (accountMovements.get(account.id) ?? 0), 0);
   const latestPropertyValues = new Map<string, { date: string; amount: number }>();
   let propertyIncome = 0;
   let propertyExpenses = 0;
@@ -360,7 +423,7 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
     ...data.annualSummaries.map((item) => ({ year: item.year, netWorth: item.closingNetWorth, liquidBalance: item.liquidBalance, propertyValue: item.propertyValue, investmentValue: item.investmentValue, income: item.income, expenses: item.expenses, monthlyRecurring: item.monthlyRecurring })),
     { year: data.meta.activeYear, netWorth, liquidBalance, propertyValue, investmentValue: combinedInvestmentValue, income: yearIncome, expenses: yearExpenses, monthlyRecurring },
   ].sort((a, b) => a.year - b.year);
-  return { netWorth, liquidBalance, propertyValue, investmentValue, pensionValue, yearIncome, yearExpenses, monthlyRecurring, sharedBalance, propertyIncome, propertyExpenses, months, categories, history };
+  return { netWorth, liquidBalance, cashRegisterBalance, propertyValue, investmentValue, pensionValue, yearIncome, yearExpenses, monthlyRecurring, sharedBalance, propertyIncome, propertyExpenses, months, categories, history };
 }
 
 export function createAnnualSummary(data: FinanceData): AnnualSummary {

@@ -124,11 +124,11 @@ function createDevelopmentApi(): ContaMiApi {
     execute: async (command) => { data = applyFinanceCommand(data, command); return snapshot(); },
     rolloverYear: async () => ({ canceled: false, year: data.meta.activeYear + 1, newWorkbookPath: "ContaMi-next.xlsx" }),
     revealWorkbook: async () => true,
-    generateImportTemplate: async (type) => ({ canceled: false, fileName: `ContaMi-template-${type.replaceAll("_", "-")}-v1.xlsx` }),
+    generateImportTemplate: async (type) => ({ canceled: false, fileName: `ContaMi-template-${type.replaceAll("_", "-")}-v2.xlsx` }),
     previewImport: async () => ({
       canceled: false,
       previewId: crypto.randomUUID(),
-      fileName: "ContaMi-template-transactions-v1.xlsx",
+      fileName: "ContaMi-template-transactions-v2.xlsx",
       templateType: "transactions",
       validRows: 3,
       rejectedRows: 1,
@@ -142,7 +142,7 @@ function createDevelopmentApi(): ContaMiApi {
     confirmImport: async () => ({
       snapshotUpdated: true,
       templateType: "transactions",
-      fileName: "ContaMi-template-transactions-v1.xlsx",
+      fileName: "ContaMi-template-transactions-v2.xlsx",
       validRows: 3,
       rejectedRows: 1,
       amountTotal: 345.67,

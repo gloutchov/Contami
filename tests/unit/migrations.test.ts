@@ -18,7 +18,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.investmentTypes).toHaveLength(7);
     expect(migrated.taxTypes.map((item) => item.name)).toEqual(["Canone TV", "IMU", "TARI"]);
     expect(migrated.annualSummaries[0]).toMatchObject({
@@ -53,7 +53,7 @@ describe("finance data migrations", () => {
     const migrated = migrateFinanceData(legacy);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
 
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.propertyEntries[0]).toMatchObject({
       taxTypeId: imu.id,
       taxInstallmentNumber: 2,
@@ -85,7 +85,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({
       phoneInternetCost: 0,
       condominiumCost: 0,
@@ -131,11 +131,47 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(6);
+    expect(migrated.meta.schemaVersion).toBe(7);
     expect(migrated.investmentEntries[0]?.accountId).toBe(accountId);
     expect(migrated.transactions[0]?.accountId).toBe(accountId);
     expect(migrated.investments[0]?.periodicAccountId).toBe(accountId);
     expect(migrated.recurringItems[0]?.accountId).toBe(accountId);
+  });
+
+  it("upgrades version 6 linked records without guessing historical cash movements", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026));
+    const accountId = crypto.randomUUID();
+    const propertyId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    legacy.meta.schemaVersion = 6 as 7;
+    legacy.accounts.push({
+      id: accountId, name: "Synthetic bank", kind: "bank", currency: "EUR",
+      openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    legacy.properties.push({
+      id: propertyId, name: "Synthetic property", kind: "apartment", usage: "residence",
+      ownershipShare: 1, purchasePrice: 0, active: true, notes: "",
+    });
+    legacy.propertyEntries.push({
+      id: entryId, propertyId, date: "2026-02-01", kind: "expense", category: "Home",
+      categoryId: legacy.categories[3].id, description: "Synthetic expense", amount: 25,
+      paymentMethodId: legacy.paymentMethods[0].id, transactionId, notes: "",
+    });
+    legacy.transactions.push({
+      id: transactionId, date: "2026-02-01", description: "Synthetic expense",
+      categoryId: legacy.categories[3].id, paymentMethodId: legacy.paymentMethods[0].id,
+      accountId, kind: "expense", amount: 25, currency: "EUR", propertyId, propertyEntryId: entryId,
+      notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.propertyEntries[0].accountId).toBe(accountId);
+    expect(migrated.transactions[0].destinationAccountId).toBeUndefined();
+    expect(migrated.accounts[0].defaultFundingAccountId).toBeUndefined();
   });
 
   it("does not guess an investment cash account when multiple accounts are active", () => {

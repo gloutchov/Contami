@@ -34,7 +34,7 @@ describe("operational data repair", () => {
         openingBalance: 500, active: true, openedAt: "2026-01-01", notes: "",
       },
       {
-        id: crypto.randomUUID(), name: "Synthetic second account", kind: "cash", currency: "EUR",
+        id: crypto.randomUUID(), name: "Synthetic second account", kind: "bank", currency: "EUR",
         openingBalance: 50, active: true, openedAt: "2026-06-01", notes: "",
       },
     );
@@ -58,6 +58,27 @@ describe("operational data repair", () => {
     expect(repaired.repairedTransactionAccounts).toBe(0);
     expect(repaired.unresolvedTransactionAccounts).toBe(2);
     expect(repaired.data.transactions.every((item) => !item.accountId)).toBe(true);
+  });
+
+  it("does not assign a cash payment to the only bank account", () => {
+    const data = createEmptyFinanceData(2026);
+    data.accounts.push({
+      id: crypto.randomUUID(), name: "Synthetic bank account", kind: "bank", currency: "EUR",
+      openingBalance: 500, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.transactions.push({
+      id: crypto.randomUUID(), date: "2026-07-01", description: "Synthetic cash expense",
+      categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods.find((item) => item.kind === "cash")!.id,
+      kind: "expense", amount: 30, currency: "EUR", notes: "",
+      createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    const repaired = repairOperationalData(data);
+
+    expect(repaired.repairedTransactionAccounts).toBe(0);
+    expect(repaired.unresolvedTransactionAccounts).toBe(1);
+    expect(repaired.data.transactions[0]?.accountId).toBeUndefined();
   });
 
   it("closes active installment plans at zero and removes stale planned rows", () => {

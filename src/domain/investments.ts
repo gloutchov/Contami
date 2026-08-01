@@ -48,11 +48,30 @@ export function latestInvestmentValue(data: FinanceData, investmentId: string): 
     }, 0);
 }
 
+export function investmentInvestedCapital(data: FinanceData, investmentId: string): number {
+  return Math.max(0, confirmedInvestmentEntries(data, investmentId).reduce((capital, entry) => {
+    if (entry.kind === "contribution") return capital + entry.amount;
+    if (entry.kind === "withdrawal") return capital - entry.amount;
+    return capital;
+  }, 0));
+}
+
 export function investmentPositionValue(data: FinanceData, investment: Investment): number {
   const children = investmentChildren(data, investment.id);
   return children.length
     ? children.filter((child) => child.active).reduce((sum, child) => sum + investmentPositionValue(data, child), 0)
     : latestInvestmentValue(data, investment.id);
+}
+
+export function investmentPositionInvestedCapital(data: FinanceData, investment: Investment): number {
+  const children = investmentChildren(data, investment.id);
+  return children.length
+    ? children.filter((child) => child.active).reduce((sum, child) => sum + investmentPositionInvestedCapital(data, child), 0)
+    : investmentInvestedCapital(data, investment.id);
+}
+
+export function investmentPositionIsLoss(data: FinanceData, investment: Investment): boolean {
+  return investmentPositionValue(data, investment) < investmentPositionInvestedCapital(data, investment);
 }
 
 export function pensionPlans(data: FinanceData): Investment[] {

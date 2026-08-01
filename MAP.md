@@ -31,11 +31,12 @@ ContaMì/
 │   ├── config/
 │   │   └── appConfig.ts                # limiti e parametri applicativi centrali
 │   ├── domain/
+│   │   ├── accounts.ts                # saldi di conti/Casse, compatibilità metodi e trasferimenti interni
 │   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
 │   │   ├── commands.ts                 # comandi validati e tipi azione
-│   │   ├── finance.ts                  # aggregazioni, KPI, liquidità direzionata e applicazione comandi
+│   │   ├── finance.ts                  # aggregazioni, KPI, saldi filtrati separati Conto/Cassa e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── investmentTransactionSync.ts # coppie movimento/Transazione e riconciliazione idempotente
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
@@ -43,8 +44,8 @@ ContaMì/
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
 │   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
-│   │   ├── migrations.ts               # migrazione workbook v1–v5 → v6 e riconciliazione conti
-│   │   ├── models.ts                   # schema Zod v6 e modello finanziario
+│   │   ├── migrations.ts               # migrazione workbook v1–v6 → v7 senza riclassificazioni euristiche
+│   │   ├── models.ts                   # schema Zod v7 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
 │   │   └── rollover.ts                 # passaggio d’anno e ripianificazione delle rate residue
 │   ├── infrastructure/
@@ -70,8 +71,10 @@ ContaMì/
 │   ├── renderer/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
-│   │   │   └── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
+│   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
+│   │   │   └── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
+│   │   │   ├── AccountForm.tsx     # conti ordinari e Casse con alimentazione predefinita
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
 │   │   │   ├── PropertyExpenseForms.tsx # utenze/tasse, consumi e quote condivise
@@ -88,6 +91,8 @@ ContaMì/
 │   │   │   ├── propertyIndicators.ts   # indicatori residenza / residence indicators
 │   │   │   └── vehicleHistory.ts       # serie annuali, vita intera e confronto costo/km per vettura
 │   │   ├── views/                      # dashboard e liste tematiche lazy-loaded
+│   │   │   ├── OverviewView.tsx     # patrimonio, liquidità e saldo complessivo delle Casse
+│   │   │   ├── TransactionsView.tsx # filtri e due file di KPI separati tra conti e Casse
 │   │   │   ├── InvestmentsView.tsx  # portafoglio privo delle pensioni integrative
 │   │   │   ├── PensionsView.tsx     # dashboard pensioni, comparti, dettagli e CRUD
 │   │   │   └── VehiclesView.tsx     # dashboard automobili, confronto e registrazioni
@@ -102,7 +107,8 @@ ContaMì/
 │   └── test/setup.ts                   # ambiente comune Vitest
 ├── tests/
 │   ├── e2e/
-│   │   └── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
+│   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
+│   │   └── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
@@ -113,6 +119,7 @@ ContaMì/
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
+│       ├── accounts.test.ts             # saldi Casse, trasferimenti interni e vincoli metodo
 │       ├── finance.test.ts              # comandi e KPI finanziari
 │       ├── detailFilters.test.tsx       # combinazione/reset dei filtri condivisi IT/EN
 │       ├── dialogAccessibility.test.tsx # focus trap, ripristino focus e nomi accessibili
@@ -127,7 +134,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1–v5 → v6
+│       ├── migrations.test.ts            # compatibilità schema v1–v6 → v7
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
@@ -170,7 +177,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v6 + migrations
+                                                               ├── canonical .xlsx v7 + migrations
                                                                └── optional .numbers mirror
 ```
 
