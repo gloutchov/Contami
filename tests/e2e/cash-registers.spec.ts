@@ -11,7 +11,7 @@ test("keeps cash-register balances separate and internal transfers neutral", asy
   await useEnglish(page);
   const accountCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Account", exact: true }) });
   const cashCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Cash registers", exact: true }) });
-  await expect(accountCard).toContainText("Bank · Balance: €27,389.71");
+  await expect(accountCard).toContainText("Bank · Balance: €28,889.71");
 
   await cashCard.getByRole("button", { name: "New cash register" }).click();
   const cashDialog = page.getByRole("dialog", { name: "New cash register" });
@@ -32,7 +32,7 @@ test("keeps cash-register balances separate and internal transfers neutral", asy
   await withdrawalDialog.getByRole("button", { name: "Save" }).click();
 
   await page.getByRole("navigation").getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(accountCard).toContainText("Bank · Balance: €27,289.71");
+  await expect(accountCard).toContainText("Bank · Balance: €28,789.71");
   await expect(cashCard).toContainText("Cash · Balance: €100.00");
 
   await page.getByRole("navigation").getByRole("button", { name: "Transactions", exact: true }).click();
@@ -46,7 +46,7 @@ test("keeps cash-register balances separate and internal transfers neutral", asy
   await cashExpenseDialog.getByRole("button", { name: "Save" }).click();
 
   await page.getByRole("navigation").getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(accountCard).toContainText("Bank · Balance: €27,289.71");
+  await expect(accountCard).toContainText("Bank · Balance: €28,789.71");
   await expect(cashCard).toContainText("Cash · Balance: €80.00");
 
   await page.getByRole("navigation").getByRole("button", { name: "Overview", exact: true }).click();
