@@ -18,7 +18,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.investmentTypes).toHaveLength(7);
     expect(migrated.taxTypes.map((item) => item.name)).toEqual(["Canone TV", "IMU", "TARI"]);
     expect(migrated.annualSummaries[0]).toMatchObject({
@@ -53,7 +53,7 @@ describe("finance data migrations", () => {
     const migrated = migrateFinanceData(legacy);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
 
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.propertyEntries[0]).toMatchObject({
       taxTypeId: imu.id,
       taxInstallmentNumber: 2,
@@ -85,7 +85,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({
       phoneInternetCost: 0,
       condominiumCost: 0,
@@ -131,7 +131,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.investmentEntries[0]?.accountId).toBe(accountId);
     expect(migrated.transactions[0]?.accountId).toBe(accountId);
     expect(migrated.investments[0]?.periodicAccountId).toBe(accountId);
@@ -168,7 +168,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(7);
+    expect(migrated.meta.schemaVersion).toBe(8);
     expect(migrated.propertyEntries[0].accountId).toBe(accountId);
     expect(migrated.transactions[0].destinationAccountId).toBeUndefined();
     expect(migrated.accounts[0].defaultFundingAccountId).toBeUndefined();
@@ -211,5 +211,60 @@ describe("finance data migrations", () => {
 
     expect(migrated.investmentEntries[0]?.accountId).toBeUndefined();
     expect(migrated.transactions[0]?.accountId).toBeUndefined();
+  });
+
+  it("upgrades version 7 planned occurrences without guessing a late rent's competence", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026));
+    legacy.meta.schemaVersion = 7 as 8;
+    const propertyId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const plannedTransactionId = crypto.randomUUID();
+    const plannedEntryId = crypto.randomUUID();
+    const confirmedTransactionId = crypto.randomUUID();
+    const confirmedEntryId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const categoryId = legacy.categories.find((item) => item.nameIt === "Affitti")!.id;
+    const paymentMethodId = legacy.paymentMethods[0].id;
+    legacy.properties.push({
+      id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental",
+      ownershipShare: 1, purchasePrice: 0, active: true, notes: "",
+    });
+    legacy.recurringItems.push({
+      id: recurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 800,
+      frequency: "monthly", categoryId, paymentMethodId, propertyId, nextDueDate: "2026-08-15",
+      active: true, notes: "",
+    });
+    legacy.transactions.push(
+      {
+        id: confirmedTransactionId, date: "2026-07-04", description: "Synthetic rent", categoryId,
+        paymentMethodId, kind: "income", amount: 800, currency: "EUR", recurringId, propertyId,
+        propertyEntryId: confirmedEntryId, planned: false, notes: "", createdAt: timestamp, updatedAt: timestamp,
+      },
+      {
+        id: plannedTransactionId, date: "2026-08-15", description: "Synthetic rent", categoryId,
+        paymentMethodId, kind: "income", amount: 800, currency: "EUR", recurringId, propertyId,
+        propertyEntryId: plannedEntryId, planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+      },
+    );
+    legacy.propertyEntries.push(
+      {
+        id: confirmedEntryId, propertyId, date: "2026-07-04", kind: "income", category: "Affitti",
+        categoryId, description: "Synthetic rent", amount: 800, paymentMethodId,
+        transactionId: confirmedTransactionId, notes: "",
+      },
+      {
+        id: plannedEntryId, propertyId, date: "2026-08-15", kind: "income", category: "Affitti",
+        categoryId, description: "Synthetic rent", amount: 800, paymentMethodId,
+        transactionId: plannedTransactionId, notes: "",
+      },
+    );
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.meta.schemaVersion).toBe(8);
+    expect(migrated.transactions.find((item) => item.id === plannedTransactionId)?.dueDate).toBe("2026-08-15");
+    expect(migrated.propertyEntries.find((item) => item.id === plannedEntryId)?.dueDate).toBe("2026-08-15");
+    expect(migrated.transactions.find((item) => item.id === confirmedTransactionId)?.dueDate).toBeUndefined();
+    expect(migrated.propertyEntries.find((item) => item.id === confirmedEntryId)?.dueDate).toBeUndefined();
   });
 });

@@ -9,7 +9,7 @@ import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -209,9 +209,11 @@ export class ExcelWorkbookRepository {
               ? WORKBOOK_TABLES_V5
               : schemaVersion === 6
                 ? WORKBOOK_TABLES_V6
-              : schemaVersion === WORKBOOK_SCHEMA_VERSION
-                ? WORKBOOK_TABLES
-                : undefined;
+                : schemaVersion === 7
+                  ? WORKBOOK_TABLES_V7
+                  : schemaVersion === WORKBOOK_SCHEMA_VERSION
+                    ? WORKBOOK_TABLES
+                    : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     const physicalRows = new Map<WorkbookTableDefinition["key"], number[]>();
     for (const definition of definitions) {

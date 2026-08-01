@@ -2,6 +2,7 @@ import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Pencil, Plus, R
 import { useState } from "react";
 import type { FinanceCommand } from "../../domain/commands";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
+import { propertyHasOverdueRent } from "../../domain/rent";
 import { DetailDialog } from "../components/DetailDialog";
 import { EntryFilters } from "../components/EntryFilters";
 import { EmptyState } from "../components/EmptyState";
@@ -26,12 +27,13 @@ export function PropertiesView({ data, onSave }: { data: FinanceData; onSave: (c
   const [commonExpenseSearch, setCommonExpenseSearch] = useState("");
   const [commonExpenseMonth, setCommonExpenseMonth] = useState("");
   const latestValue = (id: string) => [...data.propertyEntries].filter((item) => item.propertyId === id && item.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0]?.amount;
-  const currentEntries = data.propertyEntries.filter((item) => item.date.startsWith(String(data.meta.activeYear)));
+  const currentEntries = data.propertyEntries.filter((item) => item.date.startsWith(String(data.meta.activeYear))
+    && !data.transactions.find((transaction) => transaction.id === item.transactionId)?.planned);
   const totalValue = data.properties.filter((item) => item.active).reduce((sum, item) => sum + (latestValue(item.id) ?? item.purchasePrice) * item.ownershipShare, 0);
   const income = currentEntries.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
   const costs = currentEntries.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
-  const today = new Date(); const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const rentOverdue = (property: Property) => property.active && property.usage === "rental" && Boolean(property.expectedMonthlyRent) && today.getDate() >= (property.rentDueDay ?? 1) && !data.propertyEntries.some((entry) => entry.propertyId === property.id && entry.kind === "income" && entry.date.startsWith(currentMonth) && !data.transactions.find((transaction) => transaction.id === entry.transactionId)?.planned);
+  const rentOverdue = (property: Property) => property.active && property.usage === "rental"
+    && propertyHasOverdueRent(data, property.id, todayIso());
   const commonExpenses = currentEntries.filter((item) => item.kind === "expense" && item.isCommonExpense);
   const filteredCommonExpenses = filterDatedEntries(commonExpenses, commonExpenseMonth, commonExpenseSearch);
   const remove = (entity: "property" | "propertyEntry", id: string) => { if (window.confirm(t("deleteConfirm"))) runUiAction(() => onSave({ type: "deleteEntity", entity, id })); };

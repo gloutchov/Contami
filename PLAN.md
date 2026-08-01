@@ -43,14 +43,15 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M17 — Filtri e azioni nelle viste di dettaglio | `milestone/17-detail-filters` | `1.4.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Completata e rilasciata |
 | Patch conti e flussi di cassa investimenti | `patch/1.5.1-investment-cash-accounts` | `1.5.1` | Completata localmente; gate verde e workbook privato migrato |
-| M20 — Casse, trasferimenti interni e indicatori di perdita | `milestone/20-cash-registers` | `1.6.0` | Implementazione, conversione e gate locali completati; pronta per commit e CI |
-| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.7.0` | Ripianificata dopo M20 |
-| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.8.0` | Ripianificata dopo M19 |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.9.0` | Pianificata dopo M16 |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.10.0` | Pianificata dopo M9 |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.11.0` | Pianificata dopo M10 |
+| M20 — Casse, trasferimenti interni e indicatori di perdita | `milestone/20-cash-registers` | `1.6.0` | Rilasciata; CI/release macOS e Windows verdi |
+| M21 — Competenza e incasso delle rate di affitto | `milestone/21-rent-payment-allocation` | `1.7.0` | Completata localmente; gate verde e workbook privato corretto |
+| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Ripianificata dopo M21 |
+| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.9.0` | Ripianificata dopo M19 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.10.0` | Pianificata dopo M16 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.11.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.12.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → cambio tariffa `v1.7.0` → trasporti `v1.8.0` → apertura workbook `v1.9.0` → integrità salvataggi `v1.10.0` → CSP rigorosa `v1.11.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → trasporti `v1.9.0` → apertura workbook `v1.10.0` → integrità salvataggi `v1.11.0` → CSP rigorosa `v1.12.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -558,6 +559,38 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito conversione privata 2026-08-01:** dopo autorizzazione esplicita del proprietario a usare l'adapter Excel locale di ContaMì come fallback, il workbook originale è rimasto intatto ed è stata prodotta una copia separata in schema v7, esclusa da Git. La conversione ha creato la Cassa unica associata all'unico conto bancario, assegnato alla Cassa i movimenti contanti e i relativi record collegati e trasformato soltanto i prelievi riconoscibili in trasferimenti interni. Nessun movimento mancante è stato inventato. Superati rilettura strutturale e seconda apertura idempotente, conservazione dei conteggi, controllo riferimenti e saldi, scansione degli errori formula e verifica visiva locale dei 20 fogli tramite Quick Look e Playwright; dati e anteprime private non sono entrati in fixture, Git o servizi remoti.
 
+**Esito pubblicazione 2026-08-01:** commit `bc9359b` integrato con fast-forward in `main`; CI su `main` (`30704258252`) e sul tag `v1.6.0` (`30704420829`) verdi su macOS e Windows. Il workflow Release `30704420835` ha completato packaging, ispezione, smoke del pacchetto e dell'installazione su entrambe le piattaforme e ha pubblicato sei artifact con `SHA256SUMS.txt`; i digest pubblicati coincidono con il manifesto. Il branch M20 è stato rimosso dopo le verifiche.
+
+## M21 — Competenza e incasso delle rate di affitto
+
+**Obiettivo:** rappresentare separatamente il mese di competenza di una rata di affitto e la data del suo incasso, affinché un pagamento tardivo saldi la rata corretta senza nascondere o anticipare le altre scadenze.
+
+**Attività pianificate**
+
+- Tracciare il flusso completo tra Ricorrenza, Transazione pianificata, registrazione immobile e riepilogo affitti, verificando localmente il caso Pasteur senza inserire dati privati in Git, log o test.
+- Definire nel dominio un'identità stabile della rata e distinguere, dove necessario, data di competenza/scadenza e data effettiva di incasso; la liquidità segue l'incasso, mentre lo stato dell'affitto segue la rata di competenza.
+- Correggere conferma, modifica, rigenerazione e riconciliazione delle rate affitto affinché un incasso tardivo aggiorni la scadenza originaria invece di consumare o marcare come pagata la rata del mese corrente.
+- Conservare UUID e collegamenti bidirezionali tra immobile, ricorrenza e Transazione; impedire duplicati, salti mensili e riassociazione implicita in presenza di casi ambigui.
+- Versionare schema e migrazione soltanto se servono nuovi campi persistenti; ogni riparazione automatica deve essere deterministica, idempotente, preceduta da backup e lasciare invariati i casi non univoci.
+- Correggere su una copia separata il workbook privato indicato dal proprietario, mantenendo intatto l'originale e verificando rilettura, conteggi, collegamenti, seconda apertura idempotente e resa dei fogli interessati.
+- Aggiornare la vista Immobili e gli eventuali dettagli affitto per rendere distinguibili rata dovuta, pagata puntualmente, pagata in ritardo e insoluta, con stringhe IT/EN e accessibilità invariata.
+
+**Criteri di accettazione**
+
+- Nel caso maggio pagato, giugno incassato ai primi di luglio e luglio non pagato, giugno resta visibile come rata saldata in ritardo e luglio resta visibile come insoluta.
+- La data dell'incasso tardivo incide sulla liquidità del giorno effettivo senza spostare il mese di competenza della rata né alterare entrate storiche già confermate.
+- Conferma, modifica, riapertura, rigenerazione delle pianificazioni e rollover non producono rate mancanti, doppie o associate al mese sbagliato.
+- Workbook precedenti continuano ad aprirsi senza perdita dati; riparazioni e migrazioni non indovinano corrispondenze ambigue e una seconda apertura non riscrive il file.
+- La copia privata corretta resta esclusa da Git, fixture, log, CI, artifact e servizi remoti ed è accompagnata da una copia recuperabile.
+
+**Test richiesti:** unit test sintetici per pagamenti puntuali, tardivi, anticipati e mancati, confini di mese/anno e più insoluti; test di collegamento Ricorrenza/Transazione/Immobile, idempotenza, migrazione o riparazione, backup, round-trip e rollover; regressione liquidità e dashboard; Playwright IT/EN, chiaro/scuro e 1080 px sul caso giugno/luglio.
+
+**Documentazione:** manuali IT/EN, README, schema workbook se modificato, MAP, SECURITY_MODEL per persistenza/riparazione e note di rilascio.
+
+**Esito applicativo 2026-08-01:** individuata la causa nella precedente sovrapposizione tra data di scadenza/competenza e data effettiva del movimento: un incasso registrato a luglio veniva quindi interpretato come rata di luglio e non lasciava una rata distinta per giugno. Lo schema workbook è stato portato a v8 aggiungendo `dueDate` a Transazioni e Registrazioni immobiliari; la migrazione v1–v7 assegna il campo soltanto alle pianificazioni ancora aperte, per le quali la data precedente è univoca, e non indovina la competenza degli incassi storici confermati. La conferma di un movimento pianificato richiede ora la data effettiva, conserva scadenza, UUID e collegamenti e fa avanzare la ricorrenza alla prima rata ancora aperta. Modificare la competenza riapre la vecchia rata e riconcilia la nuova senza duplicati; le cadenze di fine mese restano ancorate anche attraverso febbraio e il rollover conserva le rate d'affitto insolute con la competenza originaria. La scheda dell'immobile mostra rate pagate, pagate in ritardo, insolute, future o con competenza storica non assegnata; pianificazioni e insoluti restano esclusi da liquidità, consuntivi e grafici degli incassi. Aggiornati demo sintetica, stringhe IT/EN, manuali, README, MAP e modello di sicurezza. Gate locale verde: lint, typecheck, 138 test Vitest, build renderer/Electron, controllo documentale e `npm audit` con 0 vulnerabilità; collaudo Playwright completato a 1080 px in IT/chiaro ed EN/scuro, inclusa la conferma con data effettiva e senza errori console.
+
+**Esito correzione privata 2026-08-01:** il workbook originale è rimasto intatto ed è stata prodotta una copia separata in schema v8, con backup pre-correzione. Applicando esclusivamente la situazione confermata dal proprietario, l'incasso dei primi di luglio è stato associato alla competenza di giugno e la rata di luglio è stata ricostruita come pianificata e insoluta, senza alterare importi o inventare incassi. Dopo un'ulteriore conferma esplicita, i restanti bonifici storici d'affitto privi di competenza sono stati assegnati alla rata dello stesso mese dell'incasso; il caso giugno/luglio è rimasto separato. Superati rilettura strutturale, controllo dei collegamenti, assenza di competenze duplicate o non assegnate, seconda apertura idempotente, scansione degli errori formula e verifica visiva locale; workbook, backup e anteprime private restano esclusi da Git, fixture, CI, artifact e servizi remoti.
+
 ## M19 — Cambio tariffa delle ricorrenze
 
 **Obiettivo:** consentire una variazione di importo con decorrenza esplicita, mantenendo immutati lo storico e le scadenze precedenti e aggiornando in modo deterministico tutte le Transazioni ancora programmate dal mese scelto in avanti.
@@ -663,13 +696,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 ## Revisione roadmap — 2026-07-30
 
+- Il 2026-08-01 è stata inserita M21 davanti alle attività ancora pianificate per distinguere competenza e incasso delle rate di affitto e correggere il caso di pagamento tardivo; M19, M16, M9, M10 e M11 slittano rispettivamente ai checkpoint da `v1.8.0` a `v1.12.0`.
 - Il 2026-08-01 è stata inserita M20 davanti a tutte le attività ancora pianificate: introduce Casse, trasferimenti interni e indicatori di perdita; M19, M16, M9, M10 e M11 slittano rispettivamente ai checkpoint da `v1.7.0` a `v1.11.0`.
 - Inserite M17, M18 e M19 prima di M16 e delle successive attività di hardening, integrità dei salvataggi e CSP.
 - M17 raccoglie i filtri mancanti nelle modali di Immobili, automobili, investimenti e comparti pensione, completa il filtro descrizione delle Spese condivise e porta **Aggiorna valore** nel dettaglio dell’investimento.
 - M18 verifica e rende obbligatoria la rappresentazione nelle Transazioni dei Versamenti e delle Liquidazioni di investimenti e comparti, sia una tantum sia periodici, mantenendoli trasferimenti patrimoniali senza doppio conteggio.
 - M19 introduce cambi tariffa con decorrenza mensile e cronologia persistente: lo storico confermato resta immutato e vengono aggiornate soltanto le pianificazioni future interessate.
 - Il filtro delle automobili già previsto in M16 è stato anticipato in M17; M16 resta dedicata alla rinomina Automobile→Trasporti e al collegamento stabile dei pagamenti rateali con le Ricorrenze.
-- La sequenza di versione è stata ripianificata da `v1.4.0` a `v1.10.0`; le funzioni restano locali e non introducono rete, telemetria, cloud o dati reali nei test.
+- La sequenza di versione è stata ripianificata fino a `v1.12.0`; le funzioni restano locali e non introducono rete, telemetria, cloud o dati reali nei test.
 
 ## Decisione futura — Cifratura portabile
 

@@ -78,6 +78,7 @@ export function transactionFromInvestmentEntry(
   return {
     id: existing?.id ?? entry.transactionId ?? idFactory(),
     date: entry.date,
+    dueDate: existing?.dueDate,
     description: entry.description,
     categoryId: entry.categoryId!,
     paymentMethodId: entry.paymentMethodId!,

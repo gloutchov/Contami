@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyFinanceCommand, computeDashboard, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import { portfolioValues } from "../../src/domain/investments";
+import { rentInstallmentsForProperty } from "../../src/domain/rent";
 
 function createEmptyFinanceData(year: number) {
   const data = createBaseFinanceData(year);
@@ -342,6 +343,89 @@ describe("linked finance records", () => {
     expect(data.transactions.find((item) => item.propertyEntryId === entryId)).toMatchObject({ recurringId, planned: undefined });
     expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned)).toHaveLength(9);
     expect(data.propertyEntries.filter((item) => item.propertyId === propertyId && item.kind === "income")).toHaveLength(10);
+  });
+
+  it("keeps the rent due date when a June installment is received in July", () => {
+    let data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    const recurringId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Affitti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data = applyFinanceCommand(data, { type: "addProperty", value: {
+      id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental", ownershipShare: 1,
+      purchasePrice: 100_000, active: true, notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addPropertyRentRecurring", value: {
+      entry: {
+        id: crypto.randomUUID(), propertyId, date: "2026-03-15", kind: "income", category: "Affitti",
+        categoryId, description: "Synthetic rent", amount: 800, paymentMethodId, notes: "",
+      },
+      recurring: {
+        id: recurringId, name: "Synthetic rent", kind: "rent", direction: "income", amount: 800,
+        frequency: "monthly", categoryId, paymentMethodId, propertyId, nextDueDate: "2026-03-15",
+        active: true, notes: "",
+      },
+    } });
+
+    for (const [dueDate, paidAt] of [["2026-04-15", "2026-04-12"], ["2026-05-15", "2026-05-15"], ["2026-06-15", "2026-07-04"]] as const) {
+      const planned = data.transactions.find((item) => item.recurringId === recurringId && item.dueDate === dueDate && item.planned)!;
+      data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+        ...planned, date: paidAt, planned: false, updatedAt: new Date().toISOString(),
+      } });
+    }
+
+    expect(data.transactions.find((item) => item.recurringId === recurringId && item.dueDate === "2026-06-15")).toMatchObject({
+      date: "2026-07-04", planned: false,
+    });
+    expect(data.propertyEntries.find((item) => item.dueDate === "2026-06-15")).toMatchObject({ date: "2026-07-04" });
+    expect(data.recurringItems.find((item) => item.id === recurringId)?.nextDueDate).toBe("2026-07-15");
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.dueDate === "2026-07-15")).toHaveLength(1);
+    expect(rentInstallmentsForProperty(data, propertyId, "2026-08-01").map((item) => [item.dueDate, item.status])).toEqual([
+      ["2026-03-15", "paid"],
+      ["2026-04-15", "paid"],
+      ["2026-05-15", "paid"],
+      ["2026-06-15", "paidLate"],
+      ["2026-07-15", "overdue"],
+      ["2026-08-15", "scheduled"],
+      ["2026-09-15", "scheduled"],
+      ["2026-10-15", "scheduled"],
+      ["2026-11-15", "scheduled"],
+      ["2026-12-15", "scheduled"],
+    ]);
+
+    const juneReceipt = data.transactions.find((item) => item.recurringId === recurringId && item.dueDate === "2026-06-15")!;
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...juneReceipt, dueDate: "2026-07-15", updatedAt: new Date().toISOString(),
+    } });
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.dueDate === "2026-07-15")).toHaveLength(1);
+    expect(rentInstallmentsForProperty(data, propertyId, "2026-08-01").filter((item) => item.dueDate === "2026-06-15"))
+      .toMatchObject([{ status: "overdue", paidAt: undefined }]);
+
+    const reassignedReceipt = data.transactions.find((item) => item.id === juneReceipt.id)!;
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...reassignedReceipt, dueDate: "2026-06-15", updatedAt: new Date().toISOString(),
+    } });
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.dueDate === "2026-06-15")).toHaveLength(1);
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.dueDate === "2026-07-15")).toHaveLength(1);
+    expect(data.recurringItems.find((item) => item.id === recurringId)?.nextDueDate).toBe("2026-07-15");
+  });
+
+  it("keeps a month-end recurrence anchored after February", () => {
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic month-end service", kind: "service", direction: "expense",
+      amount: 40, frequency: "monthly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, nextDueDate: "2026-01-31", active: true, notes: "",
+    } });
+
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned).slice(0, 4).map((item) => item.dueDate))
+      .toEqual(["2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30"]);
+    const january = data.transactions.find((item) => item.recurringId === recurringId && item.dueDate === "2026-01-31")!;
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: { ...january, planned: false } });
+
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned).slice(0, 3).map((item) => item.dueDate))
+      .toEqual(["2026-02-28", "2026-03-31", "2026-04-30"]);
   });
 
   it("limits installment plans and closes them after the final confirmation", () => {

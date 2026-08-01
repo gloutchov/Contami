@@ -44,10 +44,11 @@ ContaMì/
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
 │   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
-│   │   ├── migrations.ts               # migrazione workbook v1–v6 → v7 senza riclassificazioni euristiche
-│   │   ├── models.ts                   # schema Zod v7 e modello finanziario
+│   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
+│   │   ├── migrations.ts               # migrazione workbook v1–v7 → v8 senza attribuzioni ambigue
+│   │   ├── models.ts                   # schema Zod v8 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
-│   │   └── rollover.ts                 # passaggio d’anno e ripianificazione delle rate residue
+│   │   └── rollover.ts                 # passaggio d’anno, rate residue e affitti insoluti
 │   ├── infrastructure/
 │   │   ├── settings/
 │   │   │   └── SettingsService.ts      # preferenze locali atomiche
@@ -134,7 +135,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1–v6 → v7
+│       ├── migrations.test.ts            # compatibilità schema v1–v7 → v8
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
@@ -177,7 +178,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v7 + migrations
+                                                               ├── canonical .xlsx v8 + migrations
                                                                └── optional .numbers mirror
 ```
 

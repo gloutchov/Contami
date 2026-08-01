@@ -31,13 +31,23 @@ describe("historical view helpers", () => {
   it("keeps dated property valuations and cash flows on adaptive timelines", () => {
     const data = createEmptyFinanceData(2026);
     const propertyId = crypto.randomUUID();
+    const plannedEntryId = crypto.randomUUID();
+    const plannedTransactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
     data.properties.push({ id: propertyId, name: "Home", kind: "apartment", usage: "rental", purchaseDate: "2025-10-01", purchasePrice: 200_000, ownershipShare: 1, active: true, notes: "" });
     data.propertyEntries.push(
       { id: crypto.randomUUID(), propertyId, date: "2026-01-15", kind: "valuation", category: "Valutazione", description: "First value", amount: 210_000, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-07-20", kind: "valuation", category: "Valutazione", description: "Second value", amount: 225_000, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-07-05", kind: "income", category: "Rent", description: "Rent", amount: 900, categoryId: data.categories[1].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), propertyId, date: "2026-07-18", kind: "expense", category: "Maintenance", description: "Maintenance", amount: 150, categoryId: data.categories[3].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: plannedEntryId, propertyId, date: "2026-08-05", dueDate: "2026-08-05", kind: "income", category: "Rent", description: "Planned rent", amount: 900, categoryId: data.categories[1].id, paymentMethodId: data.paymentMethods[0].id, transactionId: plannedTransactionId, notes: "" },
     );
+    data.transactions.push({
+      id: plannedTransactionId, date: "2026-08-05", dueDate: "2026-08-05", description: "Planned rent",
+      categoryId: data.categories[1].id, paymentMethodId: data.paymentMethods[0].id, kind: "income",
+      amount: 900, currency: "EUR", propertyId, propertyEntryId: plannedEntryId, planned: true,
+      notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
 
     expect(propertyValueTimeline(data, propertyId)).toEqual([
       { date: "2025-10-01", commercialValue: 200_000 },

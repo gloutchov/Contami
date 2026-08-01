@@ -27,7 +27,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 7, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 8, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -123,12 +123,16 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       if (property.usage !== "rental") throw new Error("PROPERTY_NOT_RENTAL");
       ensureEntryAccount(next, command.value.entry, true);
       command.value.recurring.accountId = resolvePaymentAccountId(next, command.value.recurring.paymentMethodId, command.value.recurring.accountId, command.value.recurring.nextDueDate);
+      command.value.entry.dueDate = command.value.recurring.nextDueDate;
       upsertPropertyEntryWithLinks(next, command.value.entry);
       next.recurringItems.push(command.value.recurring);
       const transaction = next.transactions.find((item) => item.id === command.value.entry.transactionId || item.propertyEntryId === command.value.entry.id);
-      if (transaction) transaction.recurringId = command.value.recurring.id;
+      if (transaction) {
+        transaction.recurringId = command.value.recurring.id;
+        transaction.dueDate = command.value.recurring.nextDueDate;
+      }
       syncRecurringLink(next, command.value.recurring);
-      syncRecurringTransactions(next, command.value.recurring);
+      syncRecurringTransactions(next, command.value.recurring, Number(command.value.recurring.nextDueDate.slice(8, 10)));
       break;
     }
     case "updatePropertyEntry":
@@ -165,8 +169,8 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency);
       upsertInvestmentEntryWithLinks(next, command.value); break;
     case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency); upsertInvestmentEntryWithLinks(next, command.value); break;
-    case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
-    case "updateRecurringItem": command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value); break;
+    case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
+    case "updateRecurringItem": command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
     case "addSharedExpense": ensureUnique(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "updateSharedExpense": ensureExists(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "addVehicle": ensureUnique(next.vehicles, command.value.id); next.vehicles.push(command.value); break;
@@ -406,6 +410,7 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
       if (!current || item.date > current.date) latestPropertyValues.set(item.propertyId, { date: item.date, amount: item.amount });
     }
     if (!item.date.startsWith(year)) continue;
+    if (data.transactions.find((transaction) => transaction.id === item.transactionId)?.planned) continue;
     if (item.kind === "income") propertyIncome += item.amount;
     else if (item.kind === "expense") propertyExpenses += item.amount;
   }

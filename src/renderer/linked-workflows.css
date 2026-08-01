@@ -25,6 +25,7 @@
 .recurring-row:hover { background: color-mix(in srgb, var(--gold) 14%, transparent) !important; }
 .recurring-badge { margin-left: 8px; background: color-mix(in srgb, var(--gold) 28%, var(--surface-solid)); color: #855500; }
 .planned-badge { margin-left: 5px; background: color-mix(in srgb, #4e94a7 20%, var(--surface-solid)); color: var(--navy-2); }
+.transaction-due-date { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
 .asof-strip { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 15px; margin: -4px 0 14px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); color: var(--muted); font-size: 11px; }
 .asof-strip strong { color: var(--text); }
 
@@ -59,6 +60,14 @@
 .detail-facts small, .type-totals small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
 .detail-facts strong { font-size: 12px; }
 .detail-table { max-height: 390px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+.rent-installments-section { margin: 0 0 18px; }
+.rent-installments-section h3 { margin: 0 0 10px; font-size: 13px; }
+.rent-status { white-space: nowrap; }
+.rent-status-paid { background: color-mix(in srgb, var(--mint) 24%, var(--surface-solid)); color: #147154; }
+.rent-status-paidLate { background: color-mix(in srgb, var(--gold) 24%, var(--surface-solid)); color: #855500; }
+.rent-status-overdue { background: color-mix(in srgb, var(--coral) 23%, var(--surface-solid)); color: #a74737; }
+.rent-status-scheduled, .rent-status-unassigned { background: color-mix(in srgb, #4e94a7 18%, var(--surface-solid)); color: var(--navy-2); }
+:root[data-theme="dark"] .rent-status { color: var(--text); }
 .consumption-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
 .consumption-grid span { display: grid; gap: 6px; padding: 12px; border-radius: 12px; background: var(--mint-soft); color: var(--muted); font-size: 10px; }
 .consumption-grid strong { color: var(--text); font-size: 17px; }
