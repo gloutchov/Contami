@@ -4,7 +4,7 @@ Questo documento governa lo sviluppo di ContaMì. Va aggiornato alla chiusura di
 
 ## Visione del prodotto
 
-ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, trasporti, investimenti, pensione integrativa, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
+ContaMì è un’app desktop bilingue (italiano/inglese) per macOS e Windows che rende semplice registrare e comprendere finanze personali complesse mantenendo un foglio di calcolo leggibile e archiviabile come fonte dati durevole. L’interfaccia è organizzata per viste — quadro generale, transazioni, immobili, automobile, investimenti, pensione integrativa, ricorrenze e spese condivise — con dashboard e inserimenti guidati.
 
 ## Decisioni architetturali iniziali
 
@@ -44,14 +44,14 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M18 — Movimenti di investimenti e pensioni nelle Transazioni | `milestone/18-investment-transaction-sync` | `1.5.0` | Completata e rilasciata |
 | Patch conti e flussi di cassa investimenti | `patch/1.5.1-investment-cash-accounts` | `1.5.1` | Completata localmente; gate verde e workbook privato migrato |
 | M20 — Casse, trasferimenti interni e indicatori di perdita | `milestone/20-cash-registers` | `1.6.0` | Rilasciata; CI/release macOS e Windows verdi |
-| M21 — Competenza e incasso delle rate di affitto | `milestone/21-rent-payment-allocation` | `1.7.0` | Completata localmente; gate verde e workbook privato corretto |
-| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Ripianificata dopo M21 |
-| M16 — Trasporti e collegamento dei pagamenti rateali | `milestone/16-transport-improvements` | `1.9.0` | Ripianificata dopo M19 |
+| M21 — Competenza e incasso delle rate di affitto | `milestone/21-rent-payment-allocation` | `1.7.0` | Rilasciata; CI/release macOS e Windows verdi |
+| M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Completata e rilasciata; collaudo del proprietario superato |
+| M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Prossima milestone pianificata |
 | M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.10.0` | Pianificata dopo M16 |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.11.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.12.0` | Pianificata dopo M10 |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → trasporti `v1.9.0` → apertura workbook `v1.10.0` → integrità salvataggi `v1.11.0` → CSP rigorosa `v1.12.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → apertura workbook `v1.10.0` → integrità salvataggi `v1.11.0` → CSP rigorosa `v1.12.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -535,7 +535,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - Portare il workbook allo schema v7 aggiungendo il conto destinazione ai trasferimenti interni e il conto di alimentazione alle Casse, con migrazione deterministica dei workbook v6 che non riclassifica né sposta movimenti storici in modo euristico.
 - Rappresentare un prelievo o versamento di contante con una sola Transazione di trasferimento: uscita dal conto sorgente ed entrata nella Cassa destinazione, o percorso inverso, senza alterare la liquidità complessiva né i consuntivi di redditi e spese.
 - Richiedere una Cassa per i nuovi movimenti con metodo di pagamento Contanti; quando ne esiste una sola può essere proposta automaticamente, mentre con più Casse la scelta resta esplicita.
-- Rendere esplicito il conto o la Cassa interessati anche nei flussi collegati di Immobili, Trasporti e Spese condivise, preservando la sincronizzazione bidirezionale con le Transazioni.
+- Rendere esplicito il conto o la Cassa interessati anche nei flussi collegati di Immobili, Automobile e Spese condivise, preservando la sincronizzazione bidirezionale con le Transazioni.
 - Mostrare in Impostazioni il saldo corrente di ciascun conto e Cassa, includendo saldi iniziali, movimenti ordinari, trasferimenti direzionati e trasferimenti interni; applicare la stessa semantica al rollover annuale.
 - Mostrare in Panoramica il saldo complessivo delle Casse e dividere i KPI filtrati di Transazioni in due file da tre: Entrate, Uscite e Saldo per i conti, poi gli stessi valori per le Casse.
 - Colorare in rosso il controvalore mostrato nei box delle viste Investimenti e Pensione Integrativa quando è inferiore al capitale netto investito, calcolato nel dominio e aggregato correttamente per collettori e comparti.
@@ -606,7 +606,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - Propagare l’importo aggiornato ai record collegati che nasceranno dalla futura conferma, inclusi movimenti di investimento/comparto e spese condivise, senza riscrivere record storici.
 - Consentire più cambi tariffa successivi, validandone ordine, importi, date e sovrapposizioni; modifica o annullamento di un cambio futuro deve ricalcolare soltanto le occorrenze non confermate interessate.
 - Eseguire ogni cambio in una sola trasformazione atomica con controllo della revisione, backup, rilettura e rollback, mostrando prima della conferma il numero di scadenze future che verranno aggiornate.
-- Aggiornare lo schema workbook con una migrazione deterministica dalla v5 alla nuova versione necessaria; i workbook precedenti ricevono una sola tariffa base e mantengono invariati tutti i record esistenti.
+- Aggiornare lo schema workbook con una migrazione deterministica dalla v8 alla nuova versione necessaria; i workbook precedenti mantengono l’importo esistente come tariffa base e tutti i record già presenti restano invariati.
 
 **Criteri di accettazione**
 
@@ -620,25 +620,32 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** manuali IT/EN con esempi sintetici prima/dopo la decorrenza, README, schema workbook, MAP, SECURITY_MODEL, messaggi di migrazione e note di rilascio.
 
-## M16 — Trasporti e collegamento dei pagamenti rateali
+**Esito applicativo 2026-08-01:** introdotta la cronologia tariffaria persistente con tariffa base immutabile e una o più variazioni ordinate per mese di decorrenza. **Cambia tariffa / Change rate** mostra il numero di scadenze coinvolte e richiede conferma anche da tastiera; annullamento e validazioni non inviano modifiche. La trasformazione aggiorna in posto soltanto le Transazioni pianificate interessate, conserva UUID, operazioni confermate, rate residue, prossima scadenza e data di fine, e riallinea i record collegati di affitti, investimenti/comparti e spese condivise. Chiusura/riapertura, rigenerazione e rollover riapplicano la cronologia senza duplicati. Lo schema workbook è v9 con il foglio `Recurring Rate Changes`; la migrazione v8→v9 aggiunge una cronologia vuota senza modificare le raccolte esistenti e usa il normale flusso verificato con backup e rollback. Gate locale verde: lint, typecheck, 150 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e 4 test Playwright a 1080 px; collaudo UI completato in IT/chiaro ed EN/scuro, inclusi anteprima, conferma da tastiera e assenza di errori console.
 
-**Obiettivo:** rendere più generale e coerente la gestione dei mezzi e collegare correttamente i pagamenti rateali alle Ricorrenze.
+## M16 — Pagamenti rateali dell’Automobile
+
+**Obiettivo:** completare il collegamento già abbozzato tra Automobile e Ricorrenze, mantenendo le denominazioni visibili **Automobile / Vehicles** e facendo sì che un eventuale finanziamento del mezzo sia un unico piano rateale coerente, senza duplicati, riferimenti orfani o perdita dello storico.
 
 **Attività pianificate**
 
-- Rinominare la sezione visibile **Automobile** in **Trasporti** in navigazione, titoli, dashboard, modali, stati vuoti e manuali, aggiornando coerentemente le stringhe italiane e inglesi senza imporre una migrazione dei nomi tecnici già salvati nel workbook.
-- Quando, durante la creazione o la modifica di un mezzo, viene indicato un pagamento rateale, creare o aggiornare la relativa registrazione in **Ricorrenze** tramite un collegamento stabile, evitando duplicati e mantenendo sincronizzati importo, frequenza, scadenze e stato.
-- Definire il comportamento del collegamento rateale anche per modifica, chiusura, riapertura e cancellazione del mezzo, preservando storico, conferme e atomicità del salvataggio.
+- Aggiungere al modulo di creazione/modifica dell’Automobile una sezione facoltativa per il finanziamento con importo rata, frequenza, prossima scadenza, rate residue o data di fine, categoria, metodo di pagamento e conto/Cassa.
+- Creare o aggiornare Automobile e relativa Ricorrenza con un solo comando atomico validato; riutilizzare il collegamento `vehicleId` già presente e garantire al massimo un piano rateale attivo gestito dal mezzo.
+- Mantenere sincronizzati nome, frequenza, scadenze, rate residue, stato e riferimenti finanziari. Le variazioni successive dell’importo devono riusare la cronologia tariffaria della M19, senza modificare tariffa base o rate confermate.
+- Classificare come `installment` le registrazioni Automobile generate dalle scadenze del piano, conservando UUID e collegamenti bidirezionali con le Transazioni durante modifica e conferma.
+- Chiudere e riaprire insieme mezzo e piano collegato, eliminando o rigenerando soltanto le pianificazioni pertinenti; definire una cancellazione esplicita che preservi le operazioni confermate e rimuova ogni riferimento orfano.
+- Rendere rollover e importazione conservativi: copiare il piano soltanto insieme al mezzo attivo, mantenere rate residue e cronologia tariffaria ed evitare ricorrenze riferite a mezzi assenti.
 
 **Criteri di accettazione**
 
-- Tutte le superfici utente mostrano **Trasporti** al posto di **Automobile** in IT/EN, mentre workbook esistenti, importazione e rollover continuano a funzionare senza perdita dati.
-- Un mezzo con pagamento rateale produce una sola ricorrenza collegata e immediatamente visibile; modifiche e cambi di stato non creano duplicati né lasciano riferimenti orfani.
-- I flussi restano accessibili da tastiera e leggibili in tema chiaro/scuro, IT/EN e alla larghezza minima di 1080 px.
+- Navigazione, titoli e manuali continuano a usare **Automobile** in italiano e **Vehicles** in inglese; non è prevista alcuna rinomina dello schema tecnico o dei fogli esistenti.
+- Salvare un mezzo con finanziamento produce una sola Ricorrenza collegata e immediatamente visibile; modifiche ripetute e cambio tariffa non creano duplicati né riscrivono rate confermate.
+- Ogni scadenza pianificata o confermata conserva una sola coppia Transazione↔registrazione Automobile classificata come rata, con importo e UUID coerenti.
+- Chiusura, riapertura, cancellazione, importazione e rollover preservano lo storico confermato e non lasciano Ricorrenze, Transazioni o registrazioni con riferimenti orfani.
+- Il flusso resta accessibile da tastiera e leggibile in tema chiaro/scuro, IT/EN e alla larghezza minima di 1080 px.
 
-**Test richiesti:** unit test del collegamento mezzo/ricorrenza e delle transizioni di stato; integrazione e round-trip workbook; regressione importazione, cambio tariffa e rollover; Playwright della creazione rateale e della modale in IT/EN e chiaro/scuro.
+**Test richiesti:** unit test del comando atomico mezzo/ricorrenza, unicità del piano, classificazione `installment` e transizioni chiusura/riapertura/cancellazione; integrazione e round-trip workbook; regressione importazione, cambio tariffa M19, rate residue e rollover senza orfani; Playwright di creazione, modifica e riapertura del finanziamento in IT/EN e chiaro/scuro.
 
-**Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario e note di rilascio.
+**Documentazione:** aggiornamento di manuali IT/EN, README, MAP, schema workbook se necessario, SECURITY_MODEL se cambia il comando persistito e note di rilascio.
 
 ## Patch grafici, menu release e integrità UUID
 
@@ -702,7 +709,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - M17 raccoglie i filtri mancanti nelle modali di Immobili, automobili, investimenti e comparti pensione, completa il filtro descrizione delle Spese condivise e porta **Aggiorna valore** nel dettaglio dell’investimento.
 - M18 verifica e rende obbligatoria la rappresentazione nelle Transazioni dei Versamenti e delle Liquidazioni di investimenti e comparti, sia una tantum sia periodici, mantenendoli trasferimenti patrimoniali senza doppio conteggio.
 - M19 introduce cambi tariffa con decorrenza mensile e cronologia persistente: lo storico confermato resta immutato e vengono aggiornate soltanto le pianificazioni future interessate.
-- Il filtro delle automobili già previsto in M16 è stato anticipato in M17; M16 resta dedicata alla rinomina Automobile→Trasporti e al collegamento stabile dei pagamenti rateali con le Ricorrenze.
+- Il filtro delle automobili già previsto in M16 è stato anticipato in M17. Il 2026-08-01 è stata annullata la rinomina Automobile→Trasporti perché troppo generica; M16 resta dedicata al collegamento atomico e stabile dei pagamenti rateali con le Ricorrenze e alla correzione dei relativi cicli di vita.
 - La sequenza di versione è stata ripianificata fino a `v1.12.0`; le funzioni restano locali e non introducono rete, telemetria, cloud o dati reali nei test.
 
 ## Decisione futura — Cifratura portabile

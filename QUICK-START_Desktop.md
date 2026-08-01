@@ -8,7 +8,8 @@
 4. Apri **Impostazioni** e crea almeno un conto; se usi contanti, crea anche una **Cassa** e associa facoltativamente il conto di alimentazione predefinito. Personalizza categorie e metodi di pagamento se necessario.
 5. Usa **Transazioni** per entrate e uscite quotidiane: i riepiloghi filtrati separano Conto e Cassa. La Panoramica mostra anche il saldo complessivo delle Casse; gli altri menu gestiscono immobili, automobile, investimenti, pensione integrativa, ricorrenze e spese condivise.
 6. Chiudi elementi conclusi con **Chiudi**: restano nello storico e possono essere riaperti.
-7. A fine anno usa **Chiudi anno**. Scegli il nuovo file; ContaMì non elimina né sovrascrive il vecchio.
+7. Per cambiare l’importo di una ricorrenza, apri **Modifica → Cambia tariffa**, scegli importo e mese e controlla l’anteprima: vengono aggiornate soltanto le scadenze pianificate.
+8. A fine anno usa **Chiudi anno**. Scegli il nuovo file; ContaMì non elimina né sovrascrive il vecchio.
 
 Il workbook è il dato autorevole. Non tenerlo aperto e modificarlo contemporaneamente in Excel/Numbers mentre salvi dall’app: ContaMì rileva il conflitto e chiede di riaprirlo. I backup sono nella cartella nascosta `.contami-backups` accanto al file `.xlsx`.
 
@@ -20,6 +21,7 @@ Il workbook è il dato autorevole. Non tenerlo aperto e modificarlo contemporane
 4. Open **Settings** and create at least one account; if you use cash, also create a **Cash register** and optionally select its default funding account. Customize categories and payment methods if needed.
 5. Use **Transactions** for everyday income and expenses: filtered summaries separate accounts from cash registers. Overview also shows the total cash-register balance; the other views manage properties, vehicles, investments, private pensions, recurring items, and shared expenses.
 6. Use **Close** for completed items: they remain in history and can be reopened.
-7. At year-end use **Close year**. Pick the new file; ContaMì never deletes or overwrites the old one.
+7. To change a recurring amount, open **Edit → Change rate**, choose the amount and month, and review the preview: only planned occurrences are updated.
+8. At year-end use **Close year**. Pick the new file; ContaMì never deletes or overwrites the old one.
 
 The workbook is authoritative. Do not edit it concurrently in Excel/Numbers while saving from the app: ContaMì detects the conflict and asks you to reopen it. Backups live in the hidden `.contami-backups` folder beside the `.xlsx` file.

@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.7.0 — rent due dates and actual receipts** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.8.0 — recurring rate history and future-only changes** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -20,6 +20,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Data, descrizione, categoria, metodo di pagamento e importo validati a ogni inserimento pertinente.
 - Chiusura e riapertura logica di conti, immobili, investimenti, pensioni/comparti e ricorrenze senza perdere lo storico.
 - I pagamenti rateali generano soltanto le rate residue entro l’eventuale data di fine; ogni conferma scala il residuo, il rollover pianifica nell’anno nuovo solo le rate ancora dovute e l’ultima rata chiude automaticamente la ricorrenza conservando lo storico. Il riquadro **Rate residue** elenca i piani ancora aperti al passaggio del mouse o al focus da tastiera; eventuali piani attivi già arrivati a zero vengono chiusi in modo conservativo all’apertura.
+- **Cambia tariffa** mantiene l’importo originario della ricorrenza e applica uno o più nuovi importi dal mese scelto soltanto alle scadenze pianificate. L’anteprima indica quante righe saranno aggiornate; UUID, collegamenti, rate residue e operazioni già confermate restano invariati anche dopo riapertura e rollover.
 - Workbook `.xlsx` portabile su macOS e Windows; copia `.numbers` nativa su macOS quando Apple Numbers è installato.
 - Otto template Excel versionati e bilingui, generabili da Impostazioni anche senza workbook aperto, con intestazioni stabili, campi guidati e menu a discesa per preparare l’importazione di dati precedenti.
 - Importazione guidata degli otto template con preflight di sicurezza, anteprima ed errori per riga/colonna, strategie esplicite per i duplicati e conferma atomica con backup.
@@ -41,6 +42,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Date, description, category, payment method, and amount validation wherever applicable.
 - Logical close/reopen for accounts, properties, investments, pensions/compartments, and recurring items without losing history.
 - Installment plans generate only the remaining payments up to their optional end date; each confirmation reduces the balance, year rollover schedules only the payments still due, and the final installment closes the recurring item while preserving its history. Hovering or focusing the **Installments left** card lists the open plans; any active plan already at zero is conservatively closed on load.
+- **Change rate** preserves the recurring item’s original amount and applies one or more new amounts from a selected month only to planned occurrences. A preview shows how many rows will change; UUIDs, links, remaining-installment counts, and confirmed operations stay unchanged across reopen and rollover.
 - Portable `.xlsx` workbook on macOS and Windows; native `.numbers` mirror on macOS when Apple Numbers is installed.
 - Eight versioned bilingual Excel templates generated from Settings, even without an open workbook, with stable headers, guided fields, and drop-down lists for preparing legacy-data imports.
 - Guided import for all eight templates with security preflight, row/column preview errors, explicit duplicate strategies, and atomic confirmation with backup.
