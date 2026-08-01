@@ -45,8 +45,9 @@ ContaMì/
 │   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
-│   │   ├── migrations.ts               # migrazione workbook v1–v7 → v8 senza attribuzioni ambigue
-│   │   ├── models.ts                   # schema Zod v8 e modello finanziario
+│   │   ├── recurringRates.ts           # tariffa per decorrenza, anteprima e protezione dello storico
+│   │   ├── migrations.ts               # migrazione workbook v1–v8 → v9 senza riscrivere importi
+│   │   ├── models.ts                   # schema Zod v9 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
 │   │   └── rollover.ts                 # passaggio d’anno, rate residue e affitti insoluti
 │   ├── infrastructure/
@@ -73,7 +74,8 @@ ContaMì/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
-│   │   │   └── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
+│   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
+│   │   │   └── RecurringRateChangesEditor.tsx # cronologia, anteprima e conferma tariffa
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── AccountForm.tsx     # conti ordinari e Casse con alimentazione predefinita
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
@@ -135,7 +137,8 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1–v7 → v8
+│       ├── migrations.test.ts            # compatibilità schema v1–v8 → v9
+│       ├── recurringRates.test.ts        # decorrenze, storico, collegamenti e rollover tariffario
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
@@ -178,7 +181,7 @@ Renderer UI ──typed bridge──> Preload ──validated IPC──> Main se
      └── shared contracts <── Domain rules ───────────────┤
                                                           ├── Settings
                                                           └── Spreadsheet adapters
-                                                               ├── canonical .xlsx v8 + migrations
+                                                               ├── canonical .xlsx v9 + migrations
                                                                └── optional .numbers mirror
 ```
 
