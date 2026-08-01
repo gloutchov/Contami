@@ -94,7 +94,7 @@ export const WORKBOOK_TABLES_V7: WorkbookTableDefinition[] = WORKBOOK_TABLES_V6.
   return definition;
 });
 
-export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V7.map((definition) => {
+export const WORKBOOK_TABLES_V8: WorkbookTableDefinition[] = WORKBOOK_TABLES_V7.map((definition) => {
   if (definition.key === "transactions" || definition.key === "propertyEntries") {
     return {
       ...definition,
@@ -104,6 +104,16 @@ export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V7.map
   }
   return definition;
 });
+
+export const WORKBOOK_TABLES: WorkbookTableDefinition[] = [
+  ...WORKBOOK_TABLES_V8,
+  {
+    key: "recurringRateChanges",
+    sheet: "Recurring Rate Changes",
+    columns: ["id", "recurringId", "amount", "effectiveFrom"],
+    dateColumns: ["effectiveFrom"],
+  },
+];
 
 export const WORKBOOK_TABLES_V2: WorkbookTableDefinition[] = [
   { key: "categories", sheet: "Categories", columns: ["id", "nameIt", "nameEn", "kind", "active"] },
@@ -134,4 +144,4 @@ export const WORKBOOK_TABLES_V1: WorkbookTableDefinition[] = [
   { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth"] },
 ];
 
-export const WORKBOOK_SCHEMA_VERSION = 8;
+export const WORKBOOK_SCHEMA_VERSION = 9;

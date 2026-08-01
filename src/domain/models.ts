@@ -200,6 +200,13 @@ export const recurringItemSchema = z.object({
   notes,
 });
 
+export const recurringRateChangeSchema = z.object({
+  id,
+  recurringId: id,
+  amount: money.positive(),
+  effectiveFrom: isoDate.refine((value) => value.endsWith("-01"), "A recurring rate change must start on the first day of a month"),
+});
+
 export const sharedExpenseSchema = z.object({
   id,
   date: isoDate,
@@ -311,7 +318,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(8),
+    schemaVersion: z.literal(9),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
@@ -327,6 +334,7 @@ export const financeDataSchema = z.object({
   investments: z.array(investmentSchema).max(100_000),
   investmentEntries: z.array(investmentEntrySchema).max(1_000_000),
   recurringItems: z.array(recurringItemSchema).max(100_000),
+  recurringRateChanges: z.array(recurringRateChangeSchema).max(500_000),
   sharedExpenses: z.array(sharedExpenseSchema).max(1_000_000),
   vehicles: z.array(vehicleSchema).max(10_000),
   vehicleEntries: z.array(vehicleEntrySchema).max(1_000_000),
@@ -334,6 +342,19 @@ export const financeDataSchema = z.object({
   propertyAnnualSummaries: z.array(propertyAnnualSummarySchema).max(100_000),
   investmentAnnualSummaries: z.array(investmentAnnualSummarySchema).max(1_000_000),
   vehicleAnnualSummaries: z.array(vehicleAnnualSummarySchema).max(100_000),
+}).superRefine((value, context) => {
+  const recurringIds = new Set(value.recurringItems.map((item) => item.id));
+  const effectiveMonths = new Set<string>();
+  for (const [index, change] of value.recurringRateChanges.entries()) {
+    if (!recurringIds.has(change.recurringId)) {
+      context.addIssue({ code: "custom", message: "A recurring rate change must reference an existing recurring item", path: ["recurringRateChanges", index, "recurringId"] });
+    }
+    const key = `${change.recurringId}:${change.effectiveFrom}`;
+    if (effectiveMonths.has(key)) {
+      context.addIssue({ code: "custom", message: "A recurring item cannot have overlapping rate changes", path: ["recurringRateChanges", index, "effectiveFrom"] });
+    }
+    effectiveMonths.add(key);
+  }
 });
 
 export type Category = z.infer<typeof categorySchema>;
@@ -347,6 +368,7 @@ export type PropertyEntry = z.infer<typeof propertyEntrySchema>;
 export type Investment = z.infer<typeof investmentSchema>;
 export type InvestmentEntry = z.infer<typeof investmentEntrySchema>;
 export type RecurringItem = z.infer<typeof recurringItemSchema>;
+export type RecurringRateChange = z.infer<typeof recurringRateChangeSchema>;
 export type SharedExpense = z.infer<typeof sharedExpenseSchema>;
 export type AnnualSummary = z.infer<typeof annualSummarySchema>;
 export type Vehicle = z.infer<typeof vehicleSchema>;

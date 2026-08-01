@@ -17,6 +17,11 @@ import { portfolioValues } from "./investments";
 import type { AnnualSummary, FinanceData } from "./models";
 import { financeDataSchema } from "./models";
 import { repairOperationalData } from "./operationalDataRepair";
+import {
+  assertConfirmedRatesUnchanged,
+  recurringRateChangesFor,
+  sortRecurringRateChanges,
+} from "./recurringRates";
 
 const nowIso = () => new Date().toISOString();
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -27,7 +32,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 8, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 9, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -42,7 +47,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
     investmentTypes: structuredClone(DEFAULT_INVESTMENT_TYPES),
     taxTypes: structuredClone(DEFAULT_TAX_TYPES),
     accounts: [], transactions: [], properties: [], propertyEntries: [], investments: [], investmentEntries: [],
-    recurringItems: [], sharedExpenses: [], vehicles: [], vehicleEntries: [], annualSummaries: [],
+    recurringItems: [], recurringRateChanges: [], sharedExpenses: [], vehicles: [], vehicleEntries: [], annualSummaries: [],
     propertyAnnualSummaries: [], investmentAnnualSummaries: [], vehicleAnnualSummaries: [],
   });
 }
@@ -99,6 +104,24 @@ function ensureInvestmentPlanAccount(data: FinanceData, value: FinanceData["inve
   if (!value.periodicAmount) return;
   if (!value.periodicPaymentMethodId || !value.periodicNextDueDate) throw new Error("PAYMENT_METHOD_NOT_FOUND");
   value.periodicAccountId = resolvePaymentAccountId(data, value.periodicPaymentMethodId, value.periodicAccountId, value.periodicNextDueDate, value.currency);
+}
+
+function recurringBaseAmountIsLocked(data: FinanceData, recurringId: string): boolean {
+  return data.recurringRateChanges.some((item) => item.recurringId === recurringId)
+    || data.transactions.some((item) => item.recurringId === recurringId && !item.planned);
+}
+
+function syncRecurringRateChange(data: FinanceData, recurringId: string): void {
+  const recurring = data.recurringItems.find((item) => item.id === recurringId);
+  if (!recurring) throw new Error("RECURRING_ITEM_NOT_FOUND");
+  syncRecurringTransactions(data, recurring);
+  syncRecurringLink(data, recurring);
+}
+
+function ensureDistinctRateMonth(data: FinanceData, recurringId: string, effectiveFrom: string, excludedId?: string): void {
+  if (data.recurringRateChanges.some((item) => item.id !== excludedId
+    && item.recurringId === recurringId
+    && item.effectiveFrom === effectiveFrom)) throw new Error("DUPLICATE_RATE_CHANGE_MONTH");
 }
 
 function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand): void {
@@ -162,7 +185,14 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       next.investments.push(command.value.investment);
       syncInvestmentPlan(next, command.value.investment);
       upsertInvestmentEntryWithLinks(next, command.value.initialContribution); break;
-    case "updateInvestment": ensureInvestmentPlanAccount(next, command.value); replace(next.investments, command.value); syncInvestmentPlan(next, command.value); break;
+    case "updateInvestment": {
+      ensureInvestmentPlanAccount(next, command.value);
+      const existingPlan = next.recurringItems.find((item) => item.investmentId === command.value.id && item.kind === "investment");
+      const previous = next.investments.find((item) => item.id === command.value.id);
+      if (existingPlan && previous?.periodicAmount !== command.value.periodicAmount
+        && recurringBaseAmountIsLocked(next, existingPlan.id)) throw new Error("RECURRING_BASE_AMOUNT_LOCKED");
+      replace(next.investments, command.value); syncInvestmentPlan(next, command.value); break;
+    }
     case "addInvestmentEntry":
       ensureUnique(next.investmentEntries, command.value.id);
       if (!next.investments.some((item) => item.id === command.value.investmentId)) throw new Error("INVESTMENT_NOT_FOUND");
@@ -170,7 +200,48 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       upsertInvestmentEntryWithLinks(next, command.value); break;
     case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency); upsertInvestmentEntryWithLinks(next, command.value); break;
     case "addRecurringItem": ensureUnique(next.recurringItems, command.value.id); command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); next.recurringItems.push(command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
-    case "updateRecurringItem": command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate); replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
+    case "updateRecurringItem": {
+      const previous = next.recurringItems.find((item) => item.id === command.value.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      if (Math.abs(previous.amount - command.value.amount) > 0.005
+        && recurringBaseAmountIsLocked(next, command.value.id)) throw new Error("RECURRING_BASE_AMOUNT_LOCKED");
+      command.value.accountId = resolvePaymentAccountId(next, command.value.paymentMethodId, command.value.accountId, command.value.nextDueDate);
+      replace(next.recurringItems, command.value); syncRecurringLink(next, command.value); syncRecurringTransactions(next, command.value, Number(command.value.nextDueDate.slice(8, 10))); break;
+    }
+    case "addRecurringRateChange": {
+      ensureUnique(next.recurringRateChanges, command.value.id);
+      ensureExists(next.recurringItems, command.value.recurringId);
+      ensureDistinctRateMonth(next, command.value.recurringId, command.value.effectiveFrom);
+      const candidate = [...recurringRateChangesFor(next, command.value.recurringId), command.value]
+        .sort((left, right) => left.effectiveFrom.localeCompare(right.effectiveFrom));
+      assertConfirmedRatesUnchanged(next, command.value.recurringId, candidate);
+      next.recurringRateChanges = sortRecurringRateChanges([...next.recurringRateChanges, command.value]);
+      syncRecurringRateChange(next, command.value.recurringId);
+      break;
+    }
+    case "updateRecurringRateChange": {
+      const previous = next.recurringRateChanges.find((item) => item.id === command.value.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      if (previous.recurringId !== command.value.recurringId) throw new Error("INVALID_RATE_CHANGE_RECURRING_ITEM");
+      ensureDistinctRateMonth(next, command.value.recurringId, command.value.effectiveFrom, command.value.id);
+      const candidate = recurringRateChangesFor(next, command.value.recurringId)
+        .map((item) => item.id === command.value.id ? command.value : item)
+        .sort((left, right) => left.effectiveFrom.localeCompare(right.effectiveFrom));
+      assertConfirmedRatesUnchanged(next, command.value.recurringId, candidate);
+      next.recurringRateChanges = sortRecurringRateChanges(next.recurringRateChanges
+        .map((item) => item.id === command.value.id ? command.value : item));
+      syncRecurringRateChange(next, command.value.recurringId);
+      break;
+    }
+    case "deleteRecurringRateChange": {
+      const previous = next.recurringRateChanges.find((item) => item.id === command.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      const candidate = recurringRateChangesFor(next, previous.recurringId).filter((item) => item.id !== previous.id);
+      assertConfirmedRatesUnchanged(next, previous.recurringId, candidate);
+      next.recurringRateChanges = next.recurringRateChanges.filter((item) => item.id !== previous.id);
+      syncRecurringRateChange(next, previous.recurringId);
+      break;
+    }
     case "addSharedExpense": ensureUnique(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "updateSharedExpense": ensureExists(next.sharedExpenses, command.value.id); ensureEntryAccount(next, command.value, true); upsertSharedExpenseWithLinks(next, command.value); break;
     case "addVehicle": ensureUnique(next.vehicles, command.value.id); next.vehicles.push(command.value); break;

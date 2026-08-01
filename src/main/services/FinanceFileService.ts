@@ -189,7 +189,9 @@ export class FinanceFileService {
               ? "TRANSACTION_ACCOUNTS_REPAIRED"
               : loaded.closedInstallmentPlans > 0
                 ? "FINISHED_INSTALLMENTS_CLOSED"
-                : undefined;
+                : loaded.migratedSchema
+                  ? "WORKBOOK_SCHEMA_UPGRADED"
+                  : undefined;
     return loaded.data;
   }
 

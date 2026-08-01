@@ -12,6 +12,7 @@ export const UUID_COLLECTION_KEYS = [
   "investments",
   "investmentEntries",
   "recurringItems",
+  "recurringRateChanges",
   "sharedExpenses",
   "vehicles",
   "vehicleEntries",
