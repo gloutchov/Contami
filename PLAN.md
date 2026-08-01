@@ -47,11 +47,13 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M21 — Competenza e incasso delle rate di affitto | `milestone/21-rent-payment-allocation` | `1.7.0` | Rilasciata; CI/release macOS e Windows verdi |
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Completata e rilasciata; collaudo del proprietario superato |
 | M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.10.0` | Pianificata dopo M16 |
-| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.11.0` | Pianificata dopo M9 |
-| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.12.0` | Pianificata dopo M10 |
+| M22 — Aggiornamento Node.js e toolchain | `milestone/22-node-toolchain-refresh` | `1.10.0` | Pianificata dopo M16; risolve la ricorrenza Dependabot #45 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.11.0` | Pianificata dopo M22 |
+| M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.12.0` | Pianificata dopo M9 |
+| M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.13.0` | Pianificata dopo M10 |
+| M23 — Landing page bilingue | `milestone/23-landing-page` | `1.14.0` | Pianificata come ultima milestone |
 
-**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → apertura workbook `v1.10.0` → integrità salvataggi `v1.11.0` → CSP rigorosa `v1.12.0`.
+**Sequenza di promozione corrente:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → integrità salvataggi `v1.12.0` → CSP rigorosa `v1.13.0` → landing page bilingue `v1.14.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -649,6 +651,58 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito 2026-08-01:** aggiunta nel modulo Automobile la sezione facoltativa per il finanziamento con importo, frequenza, prossima scadenza, rate residue o data di fine, categoria, metodo e Conto/Cassa. Il nuovo comando atomico salva mezzo e piano in un’unica trasformazione, sincronizza il nome, mantiene un solo piano attivo per `vehicleId` e riusa la cronologia tariffaria M19 senza modificare tariffa base o rate confermate. Ogni scadenza genera una sola coppia Transazione↔registrazione Automobile classificata `installment`; chiusura e riapertura agiscono su entrambi, la cancellazione definitiva è bloccata in presenza di storico e la disattivazione del finanziamento conserva le operazioni confermate. Importazione e rollover non mantengono piani riferiti a mezzi assenti o esclusi. Lo schema workbook resta v9 perché i collegamenti persistenti necessari erano già disponibili. Versione applicativa portata a `1.9.0`; aggiornati UI IT/EN, manuali, README, quick start, MAP, modello di sicurezza e specifica import. Gate locale verde: lint, typecheck, 161 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e 5 test Playwright a 1080 px, inclusi creazione, modifica, chiusura/riapertura in IT/scuro ed EN/chiaro senza errori console o overflow. Collaudo del proprietario superato. La milestone è stata implementata nel commit `213abbd` e integrata in `main` con fast-forward. CI verdi sul branch (`30716282002`), su `main` (`30716477387`) e sul tag `v1.9.0` (`30716648185`). Il workflow Release `30716648199` ha completato packaging, ispezione e smoke test del pacchetto e dell’installazione su macOS ARM64/x64 e Windows x64; la release pubblicata contiene sei artifact applicativi e `SHA256SUMS.txt`, verificato rispetto ai digest SHA-256 esposti da GitHub.
 
+## M22 — Aggiornamento Node.js e toolchain
+
+**Obiettivo:** aggiornare e rendere coerente la versione minima di Node.js usata da sviluppo, CI e documentazione, così da rimuovere il blocco ricorrente degli aggiornamenti della toolchain e integrare in sicurezza `jsdom` 30.
+
+**Contesto:** la PR automatica Dependabot #45 proponeva `jsdom` da `29.1.1` a `30.0.1`, ma è stata chiusa senza merge perché `jsdom` 30 richiede Node.js `^22.22.2 || ^24.15.0 || >=26`, mentre ContaMì dichiara ancora Node.js `>=22.12.0`. La stessa incompatibilità di versione è già emersa più volte e deve essere risolta alla radice, non rimandata al successivo avviso automatico.
+
+**Attività pianificate**
+
+- Scegliere una baseline Node.js LTS supportata che soddisfi i requisiti delle dipendenze dirette, di Electron e degli strumenti di build su macOS e Windows.
+- Allineare `package.json`, lockfile, workflow GitHub Actions, istruzioni operative e ogni altro punto che dichiara o installa Node.js, evitando versioni divergenti tra locale e CI.
+- Aggiornare `jsdom` alla versione 30 e revisionare gli aggiornamenti transitivi del lockfile senza incorporare modifiche applicative estranee.
+- Verificare compatibilità di Vitest, Playwright, Electron, moduli nativi, packaging e script di release con la nuova baseline.
+- Aggiungere un controllo automatico che rilevi quando la versione Node.js configurata nella CI non soddisfa più `engines` o i requisiti delle dipendenze dirette, così da prevenire il ripetersi del problema.
+- Riesaminare gli avvisi Dependabot rimasti dopo l’aggiornamento e documentare eventuali blocchi reali invece di lasciare PR automatiche ricorrenti senza una decisione esplicita.
+
+**Criteri di accettazione**
+
+- Installazione pulita e comandi di sviluppo funzionano con la nuova versione minima documentata di Node.js su macOS e Windows.
+- `jsdom` 30 è integrato senza errori di engine, regressioni dei test o vulnerabilità introdotte.
+- Configurazione locale, CI e manuali indicano la stessa baseline; un disallineamento futuro viene intercettato automaticamente.
+- Build e pacchetti conservano sandbox, CSP, blocchi di rete e separazione renderer/main esistenti.
+
+**Test richiesti:** installazione pulita, lint, typecheck, test unitari e di integrazione, build, Playwright, packaging/smoke macOS e Windows, controllo documentale e `npm audit`.
+
+**Documentazione:** aggiornamento di `AGENTS.md`, README, manuali IT/EN, workflow e note di rilascio; `MAP.md` e `SECURITY_MODEL.md` soltanto se cambiano struttura o confini di sicurezza.
+
+## M23 — Landing page bilingue per GitHub Pages
+
+**Obiettivo:** creare nella directory del repository `landing/` una presentazione pubblica, statica e bilingue di ContaMì, coerente con l’identità visiva dell’applicazione e distribuibile tramite GitHub Pages.
+
+**Attività pianificate**
+
+- Realizzare una landing page responsive in italiano e inglese, con selettore lingua chiaro e contenuti equivalenti nelle due versioni.
+- Riutilizzare la stessa icona di ContaMì e la palette del programma, mantenendo leggibilità, focus tastiera, contrasto e supporto al tema chiaro/scuro.
+- Presentare in modo sintetico le funzionalità principali: Panoramica, Transazioni, Immobili, Automobile, Investimenti, Pensione Integrativa, Ricorrenze, Spese condivise, Casse e workbook locale.
+- Preparare screenshot e brevi GIF dimostrative esclusivamente con dati sintetici, senza workbook, percorsi o informazioni personali; ottimizzare peso, testo alternativo e fallback statici, rispettando `prefers-reduced-motion`.
+- Inserire collegamenti evidenti alla pagina dei download/release e al repository GitHub, con gestione comprensibile del caso in cui una risorsa richieda ancora autenticazione.
+- Rendere tutti gli asset e i percorsi compatibili con GitHub Project Pages, senza dipendenze da CDN, font remoti, telemetria, cookie o servizi di terze parti.
+- Aggiungere un workflow di pubblicazione limitato a `landing/`, con anteprima o verifica automatica prima del deploy su GitHub Pages.
+
+**Criteri di accettazione**
+
+- La pagina viene pubblicata correttamente dal contenuto di `landing/` e funziona anche sotto il percorso del progetto GitHub Pages, senza link o asset assoluti rotti.
+- Italiano e inglese descrivono le stesse funzionalità; navigazione, cambio lingua, immagini, GIF e link restano utilizzabili da tastiera e su desktop/mobile.
+- Icona, colori e tono visivo sono riconoscibili come ContaMì e non richiedono asset remoti.
+- I link a download e repository puntano alle destinazioni GitHub corrette; nessun dato reale compare nel codice, nei media o nella cronologia Git.
+- Il sito non modifica il modello local-first dell’app e non introduce telemetria, profilazione o capacità di rete nel pacchetto Electron.
+
+**Test richiesti:** build o validazione statica, controllo link e percorsi GitHub Pages, verifica IT/EN, responsive e chiaro/scuro, navigazione tastiera, accessibilità, `prefers-reduced-motion` e ispezione dei media sintetici prima del commit.
+
+**Documentazione:** README con link alla landing e istruzioni di pubblicazione, `MAP.md` per la nuova directory e il workflow, note di manutenzione dei media e aggiornamento di `SECURITY_MODEL.md` per distinguere chiaramente il sito pubblico dall’app desktop senza rete.
+
 ## Patch grafici, menu release e integrità UUID
 
 **Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
@@ -703,8 +757,10 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito 2026-07-27:** implementata nel commit `9e4290a` sul branch `patch/1.3.3-installment-limits` e integrata in `main` dal merge commit `5e0a2f3`. Gate locale verde: lint, typecheck, 93 test unit/integration, build renderer/Electron, controllo documentazione, `npm audit` con 0 vulnerabilità e Playwright IT/EN chiaro/scuro a 1080 px, incluso il controllo geometrico dell’allineamento tra strategia duplicati e pulsante di importazione. CI verdi sul branch (`30273773479`), su `main` (`30273847224`) e sul tag `v1.3.3` (`30273854813`). Il workflow Release `30273854755` ha completato packaging, ispezione, smoke installato e pubblicazione privata per macOS ARM64/x64 e Windows x64; gli asset includono DMG, ZIP, installer Windows e `SHA256SUMS.txt`.
 
-## Revisione roadmap — 2026-07-30
+## Revisione roadmap — 2026-08-01
 
+- Il 2026-08-01 è stata inserita M22 subito dopo M16 per aggiornare la baseline Node.js e la toolchain, risolvere la ricorrenza segnalata dalla PR Dependabot #45 e integrare `jsdom` 30; M9, M10 e M11 slittano rispettivamente ai checkpoint `v1.11.0`, `v1.12.0` e `v1.13.0`.
+- È stata aggiunta M23 come ultima milestone della roadmap: realizzerà in `landing/` il sito bilingue compatibile con GitHub Pages, con identità visiva ContaMì, panoramica delle funzioni, screenshot/GIF sintetici e link a download e repository; il checkpoint previsto è `v1.14.0`.
 - Il 2026-08-01 è stata inserita M21 davanti alle attività ancora pianificate per distinguere competenza e incasso delle rate di affitto e correggere il caso di pagamento tardivo; M19, M16, M9, M10 e M11 slittano rispettivamente ai checkpoint da `v1.8.0` a `v1.12.0`.
 - Il 2026-08-01 è stata inserita M20 davanti a tutte le attività ancora pianificate: introduce Casse, trasferimenti interni e indicatori di perdita; M19, M16, M9, M10 e M11 slittano rispettivamente ai checkpoint da `v1.7.0` a `v1.11.0`.
 - Inserite M17, M18 e M19 prima di M16 e delle successive attività di hardening, integrità dei salvataggi e CSP.
@@ -712,7 +768,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - M18 verifica e rende obbligatoria la rappresentazione nelle Transazioni dei Versamenti e delle Liquidazioni di investimenti e comparti, sia una tantum sia periodici, mantenendoli trasferimenti patrimoniali senza doppio conteggio.
 - M19 introduce cambi tariffa con decorrenza mensile e cronologia persistente: lo storico confermato resta immutato e vengono aggiornate soltanto le pianificazioni future interessate.
 - Il filtro delle automobili già previsto in M16 è stato anticipato in M17. Il 2026-08-01 è stata annullata la rinomina Automobile→Trasporti perché troppo generica; M16 resta dedicata al collegamento atomico e stabile dei pagamenti rateali con le Ricorrenze e alla correzione dei relativi cicli di vita.
-- La sequenza di versione è stata ripianificata fino a `v1.12.0`; le funzioni restano locali e non introducono rete, telemetria, cloud o dati reali nei test.
+- La sequenza di versione è stata ripianificata fino a `v1.14.0`; l’app desktop resta locale e non introduce rete, telemetria, cloud o dati reali nei test. La futura landing è un artifact web separato e non amplia le capacità di rete del pacchetto Electron.
 
 ## Decisione futura — Cifratura portabile
 
