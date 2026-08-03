@@ -35,7 +35,7 @@
 
 ## Sviluppo e test
 
-Richiede Node.js >=22.12.0. Prima di chiudere una modifica:
+Richiede Node.js 24 LTS >=24.15.0. Prima di chiudere una modifica:
 
 ```bash
 npm run lint

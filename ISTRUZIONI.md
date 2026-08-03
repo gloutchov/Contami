@@ -33,7 +33,7 @@ Il bundle e l’eseguibile usano il nome tecnico ASCII `Contami` per la compatib
 2. Avvia l’installer. Se SmartScreen mostra **PC protetto da Windows**, seleziona **Ulteriori informazioni**.
 3. Controlla che il file indicato sia `Contami` e scegli **Esegui comunque**.
 
-Smart App Control può bloccare un’app senza consentire un’eccezione individuale. In quel caso non disattivarlo per installare ContaMì: usa l’avvio dal sorgente o attendi una build firmata. Mantieni Microsoft Defender attivo. Vedi le indicazioni Microsoft su [app non riconosciute](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) e [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
+Smart App Control può bloccare un’app senza consentire un’eccezione individuale. In quel caso non disattivarlo per installare ContaMì: usa l’avvio dal sorgente con Node.js 24 LTS dalla 24.15.0, oppure attendi una build firmata. Mantieni Microsoft Defender attivo. Vedi le indicazioni Microsoft su [app non riconosciute](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) e [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
 
 ## 3. Primo avvio
 
