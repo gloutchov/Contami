@@ -118,4 +118,36 @@ describe("cash and installment views", () => {
       value: { date: "2026-07-04", dueDate: "2026-06-15", planned: false },
     });
   });
+
+  it("confirms a non-rent annual occurrence directly without moving it out of its due month", async () => {
+    const data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    const categoryId = data.categories.find((item) => item.kind === "expense")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    data.recurringItems.push({
+      id: recurringId, name: "Synthetic annual service", kind: "subscription", direction: "expense",
+      amount: 120, frequency: "yearly", categoryId, paymentMethodId,
+      nextDueDate: "2026-12-20", active: true, notes: "",
+    });
+    data.transactions.push({
+      id: crypto.randomUUID(), date: "2026-12-20", dueDate: "2026-12-20", description: "Synthetic annual service",
+      categoryId, paymentMethodId, kind: "expense", amount: 120, currency: "EUR", recurringId,
+      planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<TransactionsView data={data} onSave={onSave} />);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Mese" }), "2026-12");
+    expect(screen.getByText("Synthetic annual service")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Conferma" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("heading", { name: "Conferma movimento previsto" })).not.toBeInTheDocument();
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "updateTransaction",
+      value: { date: "2026-12-20", dueDate: "2026-12-20", planned: false },
+    });
+  });
 });

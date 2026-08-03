@@ -428,6 +428,27 @@ describe("linked finance records", () => {
       .toEqual(["2026-02-28", "2026-03-31", "2026-04-30"]);
   });
 
+  it("keeps a confirmed annual occurrence on its due date and advances the recurrence by one year", () => {
+    let data = createEmptyFinanceData(2026);
+    const recurringId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addRecurringItem", value: {
+      id: recurringId, name: "Synthetic annual service", kind: "subscription", direction: "expense",
+      amount: 120, frequency: "yearly", categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+      paymentMethodId: data.paymentMethods[0].id, nextDueDate: "2026-12-20", active: true, notes: "",
+    } });
+
+    const planned = data.transactions.find((item) => item.recurringId === recurringId && item.planned)!;
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...planned, planned: false, updatedAt: new Date().toISOString(),
+    } });
+
+    expect(data.transactions.find((item) => item.id === planned.id)).toMatchObject({
+      date: "2026-12-20", dueDate: "2026-12-20", planned: false,
+    });
+    expect(data.recurringItems.find((item) => item.id === recurringId)?.nextDueDate).toBe("2027-12-20");
+    expect(data.transactions.filter((item) => item.recurringId === recurringId && item.planned)).toHaveLength(0);
+  });
+
   it("limits installment plans and closes them after the final confirmation", () => {
     let data = createEmptyFinanceData(2026);
     const recurringId = crypto.randomUUID();
