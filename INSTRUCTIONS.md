@@ -200,6 +200,10 @@ Main sheets are `Overview`, `Schema`, `Categories`, `Payment Methods`, `Investme
 
 Do not rename sheets or columns if you want ContaMì to reopen the file. You may freely read, copy, and archive it.
 
+Before passing a file to the Excel parser, ContaMì checks its ZIP structure without expanding its contents. A workbook may contain at most 4,096 entries; its central directory may not exceed 4 MiB, one expanded entry 128 MiB, or all expanded entries 256 MiB; the maximum expanded-to-compressed ratio is 200:1. Entry names are limited to 1,024 bytes, extra fields to 16 KiB, and comments to 4 KiB. The 250 MiB file limit and post-open schema limits also remain in force.
+
+Truncated, encrypted, or ZIP64 archives, duplicate or overlapping entries, abnormal paths, inconsistent local/central metadata, unsupported compression, nested archives, macros, ActiveX, embedded objects, and external links are rejected before parsing. Rejection does not modify the file, and its message contains no path or financial content.
+
 Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file.
 
 If a manual edit creates duplicate UUIDs in workbook tables, ContaMì keeps the first occurrence and assigns new UUIDs to later occurrences when the file is reopened. No row or financial information is deleted, and unambiguous links are realigned. The repair changes only the required cells, is verified before replacement, and preserves the previous version in `.contami-backups`. The app displays a notice after performing this repair.
@@ -220,7 +224,7 @@ The `.xlsx` sidecar is already safe. Close Numbers windows and confirm Numbers i
 
 ### Invalid or oversized file
 
-ContaMì accepts only ContaMì-schema `.xlsx` files up to 250 MB. Restore a backup or choose the correct file.
+ContaMì accepts only ContaMì-schema `.xlsx` files up to 250 MiB whose ZIP structure stays within the limits above. If the message reports an unsafe structure, verify the file’s source and do not bypass the check; if it reports an opening limit, use a smaller valid copy. In both cases the file remains unchanged and the app returns to **Not configured** without saving empty data over the rejected file. The remembered path stays in preferences for diagnosis: select the correct workbook or restore a copy from `.contami-backups`.
 
 ### Preferences reset to Automatic
 
