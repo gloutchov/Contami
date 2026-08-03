@@ -9,8 +9,8 @@ import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
+import { preflightXlsxWorkbook } from "./XlsxWorkbookPreflight";
 import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, type WorkbookTableDefinition } from "./workbookSchema";
-import { preflightXlsxWorkbook } from "./XlsxArchivePreflight";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";

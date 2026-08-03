@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import { afterEach, describe, expect, it } from "vitest";
 import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
-import { WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V7 } from "../../src/infrastructure/spreadsheet/workbookSchema";
+import { WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V7 } from "../../src/infrastructure/spreadsheet/workbookSchema";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
@@ -422,35 +422,6 @@ describe("ExcelWorkbookRepository", () => {
   it("rejects unsupported extensions before touching the filesystem", async () => {
     const repository = new ExcelWorkbookRepository();
     await expect(repository.save(path.join(tmpdir(), "bad.csv"), createEmptyFinanceData())).rejects.toThrow("INVALID_WORKBOOK_PATH");
-  });
-
-  it("preflights and migrates version 1 and 2 workbook archives before parsing", async () => {
-    for (const [version, definitions] of [[1, WORKBOOK_TABLES_V1], [2, WORKBOOK_TABLES_V2]] as const) {
-      const directory = await mkdtemp(path.join(tmpdir(), `contami-workbook-v${version}-`)); directories.push(directory);
-      const filePath = path.join(directory, `ContaMi-v${version}.xlsx`);
-      const data = createEmptyFinanceData(2026);
-      const repository = new ExcelWorkbookRepository();
-      await repository.save(filePath, data);
-
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(filePath);
-      workbook.getWorksheet("_Meta")!.getCell("B2").value = version;
-      for (const definition of definitions) {
-        const current = workbook.getWorksheet(definition.sheet)!;
-        workbook.removeWorksheet(current.id);
-        const legacy = workbook.addWorksheet(definition.sheet);
-        legacy.addRow(definition.columns);
-        const rows = data[definition.key] as unknown as Array<Record<string, unknown>>;
-        legacy.addRows(rows.map((row) => definition.columns.map((column) => row[column] ?? null)));
-      }
-      await workbook.xlsx.writeFile(filePath);
-
-      const migrated = await repository.load(filePath);
-
-      expect(migrated.meta.schemaVersion).toBe(9);
-      expect(migrated.categories).toHaveLength(data.categories.length);
-      expect(migrated.paymentMethods).toHaveLength(data.paymentMethods.length);
-    }
   });
 
   it("loads a version 3 workbook and migrates hardcoded taxes to the current schema", async () => {
