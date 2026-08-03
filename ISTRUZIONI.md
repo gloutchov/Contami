@@ -232,7 +232,7 @@ I fogli principali sono `Overview`, `Schema`, `Categories`, `Payment Methods`, `
 
 Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi leggerlo, copiarlo e archiviarlo liberamente.
 
-Prima di passare il file al parser Excel, ContaMì controlla la struttura ZIP senza espanderne i contenuti. Il workbook può contenere al massimo 4.096 voci; la directory centrale non può superare 16 MiB, una singola voce espansa 128 MiB e il totale espanso 256 MiB; il rapporto massimo tra dimensione espansa e compressa è 200:1 e il nome di ogni voce è limitato a 1.024 byte. Restano validi anche il limite di 250 MB del file e i limiti dello schema applicati dopo l’apertura.
+Prima di passare il file al parser Excel, ContaMì controlla la struttura ZIP senza espanderne i contenuti. Il workbook può contenere al massimo 4.096 voci; la directory centrale non può superare 4 MiB, una singola voce espansa 128 MiB e il totale espanso 256 MiB; il rapporto massimo tra dimensione espansa e compressa è 200:1. I nomi sono limitati a 1.024 byte, gli extra field a 16 KiB e i commenti a 4 KiB. Restano validi anche il limite di 250 MiB del file e i limiti dello schema applicati dopo l’apertura.
 
 Sono rifiutati prima del parsing archivi troncati, cifrati o ZIP64, voci duplicate, sovrapposte o con percorsi anomali, metadati locali e centrali incoerenti, formati di compressione non supportati, archivi annidati, macro, ActiveX, oggetti incorporati e collegamenti esterni. Il rifiuto non modifica il file e il messaggio non include percorsi o contenuti finanziari.
 
@@ -256,7 +256,7 @@ Il `.xlsx` sidecar è già salvo. Chiudi eventuali finestre Numbers e verifica c
 
 ### File non valido o troppo grande
 
-ContaMì accetta solo workbook `.xlsx` con schema ContaMì, dimensione massima 250 MB e struttura ZIP entro i limiti descritti sopra. Se il messaggio indica una struttura non sicura, verifica la provenienza del file e non tentare di aggirare il controllo; se indica un limite di apertura, usa una copia valida più piccola. In entrambi i casi il file resta invariato e l’app torna allo stato **Non configurato** senza salvare dati vuoti sopra il file rifiutato. Il percorso ricordato resta nelle preferenze per poter diagnosticare il problema: seleziona il workbook corretto oppure ripristina una copia da `.contami-backups`.
+ContaMì accetta solo workbook `.xlsx` con schema ContaMì, dimensione massima 250 MiB e struttura ZIP entro i limiti descritti sopra. Se il messaggio indica una struttura non sicura, verifica la provenienza del file e non tentare di aggirare il controllo; se indica un limite di apertura, usa una copia valida più piccola. In entrambi i casi il file resta invariato e l’app torna allo stato **Non configurato** senza salvare dati vuoti sopra il file rifiutato. Il percorso ricordato resta nelle preferenze per poter diagnosticare il problema: seleziona il workbook corretto oppure ripristina una copia da `.contami-backups`.
 
 ### Preferenze tornate ai valori automatici
 

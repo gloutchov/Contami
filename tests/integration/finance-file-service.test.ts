@@ -70,7 +70,7 @@ describe("FinanceFileService startup recovery", () => {
 
     expect(snapshot.workbookConfigured).toBe(false);
     expect(snapshot.workbookDisplayName).toBeUndefined();
-    expect(snapshot.warningCode).toBe("WORKBOOK_ARCHIVE_UNSAFE");
+    expect(snapshot.warningCode).toBe("WORKBOOK_UNSAFE");
     expect(snapshot.data.transactions).toEqual([]);
     await expect(settings.get()).resolves.toMatchObject({ workbookPath: invalidPath });
     expect(await readFile(invalidPath)).toEqual(before);

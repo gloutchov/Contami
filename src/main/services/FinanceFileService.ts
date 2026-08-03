@@ -21,7 +21,7 @@ function isMissingFile(error: unknown): boolean {
 function workbookLoadWarning(error: unknown): string | undefined {
   const code = error instanceof Error ? error.message : "";
   if (code === "WORKBOOK_RESOURCE_LIMIT" || code === "WORKBOOK_TOO_LARGE") return "WORKBOOK_RESOURCE_LIMIT";
-  if (code === "WORKBOOK_ARCHIVE_UNSAFE" || code === "INVALID_WORKBOOK_SCHEMA") return "WORKBOOK_ARCHIVE_UNSAFE";
+  if (code === "WORKBOOK_UNSAFE" || code === "INVALID_WORKBOOK_SCHEMA") return "WORKBOOK_UNSAFE";
   return undefined;
 }
 

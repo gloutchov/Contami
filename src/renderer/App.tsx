@@ -36,7 +36,7 @@ function errorKey(error: unknown): TranslationKey {
   if (text.includes("WORKBOOK_NOT_CONFIGURED")) return "workbookRequired";
   if (text.includes("WORKBOOK_CHANGED_EXTERNALLY")) return "workbookChangedExternally";
   if (text.includes("WORKBOOK_RESOURCE_LIMIT") || text.includes("WORKBOOK_TOO_LARGE")) return "workbookResourceLimit";
-  if (text.includes("WORKBOOK_ARCHIVE_UNSAFE") || text.includes("INVALID_WORKBOOK_SCHEMA")) return "workbookUnsafe";
+  if (text.includes("WORKBOOK_UNSAFE") || text.includes("INVALID_WORKBOOK_SCHEMA")) return "workbookUnsafe";
   if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
   if (text.includes("ENTITY_IN_USE")) return "entityInUse";
   if (text.includes("ACCOUNT_REQUIRED")
@@ -56,7 +56,7 @@ function errorKey(error: unknown): TranslationKey {
 function warningKey(code: string | undefined): TranslationKey | undefined {
   if (code === "NUMBERS_MIRROR_FAILED") return "mirrorWarning";
   if (code === "WORKBOOK_MISSING") return "workbookMissing";
-  if (code === "WORKBOOK_ARCHIVE_UNSAFE") return "workbookUnsafe";
+  if (code === "WORKBOOK_UNSAFE") return "workbookUnsafe";
   if (code === "WORKBOOK_RESOURCE_LIMIT") return "workbookResourceLimit";
   if (code === "DUPLICATE_UUIDS_REPAIRED") return "duplicateUuidsRepaired";
   if (code === "INVESTMENT_TRANSACTIONS_REPAIRED") return "investmentTransactionsRepaired";
