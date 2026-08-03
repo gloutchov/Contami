@@ -5,7 +5,12 @@ const required = [
   "README.md", "ISTRUZIONI.md", "INSTRUCTIONS.md", "SECURITY_MODEL.md", "PLAN.md",
   "MAP.md", "AGENTS.md", "LICENSE", "QUICK-START_Desktop.md",
 ];
-const releaseChecks = ["scripts/inspect-packaged.mjs", "scripts/smoke-packaged.mjs", "scripts/smoke-installed.mjs"];
+const releaseChecks = [
+  "scripts/check-node-baseline.mjs",
+  "scripts/inspect-packaged.mjs",
+  "scripts/smoke-packaged.mjs",
+  "scripts/smoke-installed.mjs",
+];
 await Promise.all([...required, ...releaseChecks].map((file) => access(file)));
 
 const manifest = JSON.parse(await readFile("package.json", "utf8"));
