@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { access, copyFile, mkdir, readdir, rename, rm, stat } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { APP_CONFIG } from "../../config/appConfig";
@@ -10,6 +10,7 @@ import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
 import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, type WorkbookTableDefinition } from "./workbookSchema";
+import { preflightXlsxWorkbook } from "./XlsxArchivePreflight";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -174,8 +175,7 @@ export class ExcelWorkbookRepository {
     migratedSchema: boolean;
   }> {
     assertWorkbookPath(filePath);
-    const info = await stat(filePath);
-    if (info.size > APP_CONFIG.workbook.maxBytes) throw new Error("WORKBOOK_TOO_LARGE");
+    await preflightXlsxWorkbook(filePath);
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const metaSheet = workbook.getWorksheet("_Meta");

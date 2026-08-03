@@ -48,7 +48,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Completata e rilasciata; collaudo del proprietario superato |
 | M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | M22 — Aggiornamento Node.js e toolchain | `milestone/22-node-toolchain-refresh` | `1.10.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.11.0` | Pianificata dopo M22 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.11.0` | Completata localmente; gate macOS verde, in attesa di CI/release |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.12.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.13.0` | Pianificata dopo M10 |
 | M23 — Landing page bilingue | `milestone/23-landing-page` | `1.14.0` | Pianificata come ultima milestone |
@@ -317,6 +317,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Test richiesti:** unit test del preflight, fuzz/property test con seed riproducibili, integrazione con l’adapter, regressione round-trip/migrazioni, file troncati e zip bomb sintetiche, budget di risorse in CI.
 
 **Documentazione:** limiti workbook, messaggi di recupero, SECURITY_MODEL, MAP e note di rilascio.
+
+**Esito locale 2026-08-03:** introdotto un preflight ZIP condiviso che precede ExcelJS sia per il workbook autorevole sia, con il profilo più restrittivo esistente, per i template di importazione. Il controllo usa letture limitate di coda, directory centrale e intestazioni locali; applica limiti centralizzati a file, numero di voci, directory, dimensione espansa totale/per-entry, rapporto di compressione e nomi; rifiuta troncamenti, cifratura, multi-disk/ZIP64, metodi e flag non supportati, duplicati case-insensitive, traversal, sovrapposizioni, metadati locali/centrali incoerenti, parti OOXML mancanti, archivi annidati e contenuto attivo. Gli errori bilingui distinguono struttura non sicura e limite di risorse senza esporre percorsi o contenuti. Un workbook ricordato ma rifiutato porta ora l’app nello stato non configurato senza modificare file o preferenze e senza permettere che dati vuoti lo sovrascrivano. Lo schema resta v9; l’apertura/migrazione v1–v8 e il round-trip corrente non regrediscono. Valutato e rinviato il worker terminabile: il corpus ostile noto viene respinto prima del parser con memoria di preflight limitata, mentre un processo separato aumenterebbe oggi copie di memoria e complessità delle riparazioni. Versione applicativa `1.11.0`. Gate locale verde: baseline Node, lint, typecheck, build renderer/Electron, 168 test Vitest, controllo documentale, `npm audit` con 0 vulnerabilità, 5 test Playwright automatici e collaudo Playwright CLI IT/EN chiaro/scuro a 1080 px senza errori console. Packaging macOS ARM64, ispezione `app.asar`, smoke unpacked e ciclo DMG installazione/avvio/rimozione superati. Restano da completare CI e release macOS/Windows prima della promozione del checkpoint.
 
 ## M10 — Integrità e concorrenza dei salvataggi
 
