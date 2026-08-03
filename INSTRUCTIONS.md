@@ -33,7 +33,7 @@ The bundle and executable use the ASCII technical name `Contami` for unsigned ma
 2. Run the installer. If SmartScreen displays **Windows protected your PC**, choose **More info**.
 3. Confirm that the named file is `Contami`, then choose **Run anyway**.
 
-Smart App Control can block an app without offering a per-app exception. In that case, do not disable it to install ContaMì: run from source or wait for a signed build. Keep Microsoft Defender enabled. See Microsoft guidance on [unrecognized apps](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) and [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
+Smart App Control can block an app without offering a per-app exception. In that case, do not disable it to install ContaMì: run from source with Node.js 24 LTS from 24.15.0 onward, or wait for a signed build. Keep Microsoft Defender enabled. See Microsoft guidance on [unrecognized apps](https://support.microsoft.com/en-us/office/protect-my-pc-from-viruses) and [Smart App Control](https://support.microsoft.com/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
 
 ## 3. First launch
 

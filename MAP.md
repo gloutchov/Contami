@@ -19,6 +19,7 @@ ContaMì/
 │   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
+│   ├── check-node-baseline.mjs         # coerenza baseline Node, dipendenze, CI e documentazione
 │   ├── after-pack.mjs                  # chiude eccezioni di rete nel bundle macOS
 │   ├── check-required-docs.mjs         # controllo documenti e file privati
 │   ├── generate-demo-workbook.ts       # workbook sintetico per QA, mai dati reali
@@ -147,6 +148,7 @@ ContaMì/
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
 │       └── rollover.test.ts             # nuovo anno, riconciliazione e rate a cavallo d’anno
 ├── AGENTS.md                            # regole per agenti e maintainer
+├── .node-version                        # baseline Node.js unica per locale e GitHub Actions
 ├── INSTRUCTIONS.md                     # manuale utente inglese
 ├── ISTRUZIONI.md                       # manuale utente italiano
 ├── LICENSE                              # Apache License 2.0

@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.9.0 — vehicle installment plans linked to recurring items** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.10.0 — Node.js 24 LTS and refreshed toolchain** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -103,7 +103,7 @@ Under **Settings** you can select language (`System`, `Italiano`, `English`), th
 
 ## Sviluppo locale / Local development
 
-Requisiti: Node.js **22.12 o successivo**, npm e Git.
+Requisiti: Node.js **24 LTS, dalla 24.15.0**, npm e Git. `.node-version` definisce la baseline esatta verificata anche dalla CI.
 
 ```bash
 npm install
