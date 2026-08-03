@@ -202,6 +202,8 @@ Do not rename sheets or columns if you want ContaMì to reopen the file. You may
 
 Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file.
 
+Before ExcelJS reads any contents, ContaMì checks the ZIP structure without decompressing entries. A workbook may contain at most 4,096 entries, 256 MiB in total and 128 MiB per uncompressed entry, with a maximum 200:1 ratio; the central directory, names, and metadata have separate limits. Anomalous or duplicate paths, nested archives, encryption, ZIP64, macros, ActiveX, embedded objects, and external links are rejected. These checks do not replace the subsequent full schema and domain-data validation.
+
 If a manual edit creates duplicate UUIDs in workbook tables, ContaMì keeps the first occurrence and assigns new UUIDs to later occurrences when the file is reopened. No row or financial information is deleted, and unambiguous links are realigned. The repair changes only the required cells, is verified before replacement, and preserves the previous version in `.contami-backups`. The app displays a notice after performing this repair.
 
 ## 17. Troubleshooting
@@ -220,7 +222,7 @@ The `.xlsx` sidecar is already safe. Close Numbers windows and confirm Numbers i
 
 ### Invalid or oversized file
 
-ContaMì accepts only ContaMì-schema `.xlsx` files up to 250 MB. Restore a backup or choose the correct file.
+ContaMì accepts only ContaMì-schema `.xlsx` files up to 250 MiB compressed and within the ZIP limits above. If structural, expansion, or schema validation fails, the file is not modified: preserve a copy and restore the latest valid backup or choose the correct file.
 
 ### Preferences reset to Automatic
 

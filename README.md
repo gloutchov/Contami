@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.10.0 — Node.js 24 LTS and refreshed toolchain** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.11.0 — Hardened workbook opening** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -23,6 +23,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - I pagamenti rateali generano soltanto le rate residue entro l’eventuale data di fine; ogni conferma scala il residuo, il rollover pianifica nell’anno nuovo solo le rate ancora dovute e l’ultima rata chiude automaticamente la ricorrenza conservando lo storico. Il riquadro **Rate residue** elenca i piani ancora aperti al passaggio del mouse o al focus da tastiera; eventuali piani attivi già arrivati a zero vengono chiusi in modo conservativo all’apertura.
 - **Cambia tariffa** mantiene l’importo originario della ricorrenza e applica uno o più nuovi importi dal mese scelto soltanto alle scadenze pianificate. L’anteprima indica quante righe saranno aggiornate; UUID, collegamenti, rate residue e operazioni già confermate restano invariati anche dopo riapertura e rollover.
 - Workbook `.xlsx` portabile su macOS e Windows; copia `.numbers` nativa su macOS quando Apple Numbers è installato.
+- Apertura protetta da un preflight ZIP a lettura limitata: prima del parser vengono rifiutati espansione e rapporto di compressione eccessivi, troppe entry, percorsi anomali o duplicati, archivi annidati e contenuto attivo.
 - Otto template Excel versionati e bilingui, generabili da Impostazioni anche senza workbook aperto, con intestazioni stabili, campi guidati e menu a discesa per preparare l’importazione di dati precedenti.
 - Importazione guidata degli otto template con preflight di sicurezza, anteprima ed errori per riga/colonna, strategie esplicite per i duplicati e conferma atomica con backup.
 - Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e consuntivi annuali dettagliati per immobili/utenze, investimenti/comparti e automobili.
@@ -46,6 +47,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Installment plans generate only the remaining payments up to their optional end date; each confirmation reduces the balance, year rollover schedules only the payments still due, and the final installment closes the recurring item while preserving its history. Hovering or focusing the **Installments left** card lists the open plans; any active plan already at zero is conservatively closed on load.
 - **Change rate** preserves the recurring item’s original amount and applies one or more new amounts from a selected month only to planned occurrences. A preview shows how many rows will change; UUIDs, links, remaining-installment counts, and confirmed operations stay unchanged across reopen and rollover.
 - Portable `.xlsx` workbook on macOS and Windows; native `.numbers` mirror on macOS when Apple Numbers is installed.
+- Bounded-read ZIP preflight before parsing rejects excessive expansion or compression ratios, too many entries, anomalous or duplicate paths, nested archives, and active content.
 - Eight versioned bilingual Excel templates generated from Settings, even without an open workbook, with stable headers, guided fields, and drop-down lists for preparing legacy-data imports.
 - Guided import for all eight templates with security preflight, row/column preview errors, explicit duplicate strategies, and atomic confirmation with backup.
 - Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and detailed annual actuals for properties/utilities, investments/compartments, and vehicles.
@@ -138,9 +140,9 @@ The release workflow also runs `test:package:inspect` against the actual `app.as
 
 ## Sicurezza e privacy / Security and privacy
 
-Il renderer Electron è isolato e in sandbox, non ha Node.js, usa un bridge minimo e IPC validato. Popup, navigazioni, download, permessi e traffico remoto sono bloccati. I file sono limitati a `.xlsx` scelti dall’utente; la copia Numbers usa uno script AppleScript fisso e argomenti separati. Dettagli, limiti e modello delle minacce sono in [SECURITY_MODEL.md](SECURITY_MODEL.md).
+Il renderer Electron è isolato e in sandbox, non ha Node.js, usa un bridge minimo e IPC validato. Popup, navigazioni, download, permessi e traffico remoto sono bloccati. I file sono limitati a `.xlsx` scelti dall’utente e superano un preflight ZIP prima di ExcelJS; la copia Numbers usa uno script AppleScript fisso e argomenti separati. Dettagli, limiti e modello delle minacce sono in [SECURITY_MODEL.md](SECURITY_MODEL.md).
 
-The Electron renderer is isolated and sandboxed, has no Node.js access, and uses a minimal validated IPC bridge. Popups, navigation, downloads, permissions, and remote traffic are blocked. Files are limited to user-selected `.xlsx` paths; the Numbers mirror uses a fixed AppleScript with separate arguments. See [SECURITY_MODEL.md](SECURITY_MODEL.md) for controls, limitations, and threat model.
+The Electron renderer is isolated and sandboxed, has no Node.js access, and uses a minimal validated IPC bridge. Popups, navigation, downloads, permissions, and remote traffic are blocked. Files are limited to user-selected `.xlsx` paths and pass a ZIP preflight before ExcelJS; the Numbers mirror uses a fixed AppleScript with separate arguments. See [SECURITY_MODEL.md](SECURITY_MODEL.md) for controls, limitations, and threat model.
 
 ## Documentazione / Documentation
 

@@ -234,6 +234,8 @@ Non rinominare fogli o colonne se vuoi riaprire il file in ContaMì. Puoi legger
 
 Prima di sostituire un file esistente, ContaMì crea un backup in `.contami-backups` accanto al `.xlsx` e conserva le ultime 10 copie. La scrittura avviene prima su un file temporaneo, viene riletta e solo dopo sostituisce il file attivo.
 
+Prima di leggere il contenuto con ExcelJS, ContaMì controlla la struttura ZIP senza decomprimere le entry. Un workbook può contenere al massimo 4.096 entry, 256 MiB complessivi e 128 MiB per singola entry non compressa, con rapporto massimo 200:1; la directory centrale, i nomi e i metadati hanno limiti separati. Percorsi anomali o duplicati, archivi annidati, cifratura, ZIP64, macro, ActiveX, oggetti incorporati e collegamenti esterni vengono rifiutati. Questi controlli non sostituiscono la successiva validazione completa dello schema e dei dati.
+
 Se un ritocco manuale crea UUID duplicati nelle tabelle del workbook, alla riapertura ContaMì conserva la prima occorrenza e assegna nuovi UUID alle successive. Nessuna riga o informazione economica viene eliminata; i collegamenti non ambigui vengono riallineati. La correzione interessa soltanto le celle necessarie, viene verificata prima della sostituzione e conserva la versione precedente in `.contami-backups`. L’app mostra un avviso quando ha eseguito questa riparazione.
 
 ## 17. Risoluzione problemi
@@ -252,7 +254,7 @@ Il `.xlsx` sidecar è già salvo. Chiudi eventuali finestre Numbers e verifica c
 
 ### File non valido o troppo grande
 
-ContaMì accetta solo workbook `.xlsx` con schema ContaMì e dimensione massima 250 MB. Ripristina un backup o apri il file corretto.
+ContaMì accetta solo workbook `.xlsx` con schema ContaMì e file compresso fino a 250 MiB, entro i limiti ZIP descritti sopra. Se il controllo strutturale, di espansione o dello schema fallisce, il file non viene modificato: conservane una copia e ripristina l’ultimo backup valido oppure apri il file corretto.
 
 ### Preferenze tornate ai valori automatici
 

@@ -48,7 +48,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M19 — Cambio tariffa delle ricorrenze | `milestone/19-recurring-rate-changes` | `1.8.0` | Completata e rilasciata; collaudo del proprietario superato |
 | M16 — Pagamenti rateali dell’Automobile | `milestone/16-vehicle-installments` | `1.9.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | M22 — Aggiornamento Node.js e toolchain | `milestone/22-node-toolchain-refresh` | `1.10.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
-| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.11.0` | Pianificata dopo M22 |
+| M9 — Hardening apertura workbook | `milestone/09-workbook-hardening` | `1.11.0` | Implementata localmente; verifica Node 24 e CI in attesa |
 | M10 — Integrità e concorrenza dei salvataggi | `milestone/10-save-integrity` | `1.12.0` | Pianificata dopo M9 |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.13.0` | Pianificata dopo M10 |
 | M23 — Landing page bilingue | `milestone/23-landing-page` | `1.14.0` | Pianificata come ultima milestone |
@@ -318,6 +318,8 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Documentazione:** limiti workbook, messaggi di recupero, SECURITY_MODEL, MAP e note di rilascio.
 
+**Esito locale provvisorio 2026-08-03:** introdotto un preflight ZIP condiviso e a lettura limitata, eseguito prima di ExcelJS sia per il workbook autorevole sia per i template di importazione. I limiti centralizzati coprono dimensione compressa, numero di entry, directory centrale, nomi e metadati, espansione totale/per-entry e rapporto di compressione; vengono rifiutati ZIP64/multidisco, cifratura, metodi non supportati, percorsi anomali o duplicati dopo normalizzazione, offset e metadati incoerenti, archivi annidati e parti attive. Il corpus usa esclusivamente dati sintetici e include troncamenti, zip bomb, mutazioni con seed riproducibile, integrazione prima del parser e regressione dei workbook v1/v2. Gli errori esposti al renderer sono codici redatti con messaggi di recupero IT/EN. L'isolamento dell'intero parser in un processo terminabile è stato valutato e rinviato: i limiti preventivi coprono gli attacchi ZIP noti con minore complessità, mentre il rischio residuo di amplificazione XML entro i limiti ammessi resta documentato e dovrà essere riesaminato se i benchmark multipiattaforma superano il budget. Nell'ambiente disponibile sono verdi lint, typecheck, 181 test Vitest, build renderer/Electron, controllo documentale, `npm audit` con 0 vulnerabilità e 5 test Playwright IT/EN e chiaro/scuro a 1080 px. Il gate resta provvisorio perché, dopo il riavvio, la workstation espone Node.js `22.19.0` invece della baseline obbligatoria `24.15.0`: questi risultati sono di supporto ma non sostituiscono il gate sulla versione richiesta. L'aggiornamento è in attesa dell'IT; controllo baseline, replica del gate con Node 24 e CI macOS/Windows devono essere registrati prima di promuovere `v1.11.0`.
+
 ## M10 — Integrità e concorrenza dei salvataggi
 
 **Obiettivo:** ridurre ulteriormente il rischio di sovrascrivere modifiche esterne o concorrenti, senza compromettere backup, rollback e compatibilità con Excel/Numbers.
@@ -421,7 +423,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Obiettivo:** importare automaticamente i template compilati con anteprima, diagnostica per riga e conferma esplicita, senza lasciare il workbook in uno stato parziale o incoerente.
 
-**Dipendenze:** M13 per il catalogo tasse e M14 per i contratti/template versionati. Il preflight limitato introdotto per i file di importazione sarà riusato ed esteso da M9 quando verrà applicato anche ai workbook autorevoli.
+**Dipendenze:** M13 per il catalogo tasse e M14 per i contratti/template versionati. Il preflight limitato introdotto per i file di importazione è stato riusato ed esteso da M9 anche ai workbook autorevoli.
 
 **Attività pianificate**
 
