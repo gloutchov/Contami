@@ -61,7 +61,9 @@ ContaMì/
 │   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, backup e verifica xlsx
 │   │       ├── NumbersMirrorService.ts # adattatore nativo macOS isolato
 │   │       ├── WorkbookRevisionGuard.ts # conflitti con modifiche esterne
-│   │       ├── XlsxImportPreflight.ts   # limiti ZIP e blocco contenuto attivo
+│   │       ├── XlsxZipPreflight.ts      # parser preventivo ZIP a lettura limitata e policy condivise
+│   │       ├── XlsxWorkbookPreflight.ts # limiti e contenuto ammesso del workbook autorevole
+│   │       ├── XlsxImportPreflight.ts   # policy ZIP più stretta per i template compilati
 │   │       └── workbookSchema.ts       # fogli, colonne e versione schema
 │   ├── main/
 │   │   ├── index.ts                    # processo privilegiato Electron e hardening
@@ -111,6 +113,8 @@ ContaMì/
 │   │   └── ipcValidation.ts            # tuple e limiti degli argomenti IPC
 │   └── test/setup.ts                   # ambiente comune Vitest
 ├── tests/
+│   ├── helpers/
+│   │   └── syntheticZip.ts             # corpus ZIP sintetico, mai workbook privati
 │   ├── e2e/
 │   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   │   ├── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
@@ -123,6 +127,7 @@ ContaMì/
 │   │   ├── import-template-service.test.ts # dialogo e mancata esposizione del percorso
 │   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
+│   │   ├── workbook-preflight.test.ts  # rifiuto prima di ExcelJS e compatibilità v1/v2
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
 │       ├── accounts.test.ts             # saldi Casse, trasferimenti interni e vincoli metodo
@@ -143,6 +148,7 @@ ContaMì/
 │       ├── migrations.test.ts            # compatibilità schema v1–v8 → v9
 │       ├── recurringRates.test.ts        # decorrenze, storico, collegamenti e rollover tariffario
 │       ├── vehicleInstallments.test.ts   # comando atomico, unicità, classificazione e ciclo di vita rate auto
+│       ├── xlsxZipPreflight.test.ts      # limiti, mutazioni seeded e casi ZIP ostili
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
