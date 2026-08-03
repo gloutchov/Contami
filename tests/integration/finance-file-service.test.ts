@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
@@ -51,7 +51,7 @@ describe("FinanceFileService startup recovery", () => {
     expect(recoveredSettings.numbersMirrorPath).toBeUndefined();
   });
 
-  it("does not mistake an existing invalid workbook for a missing file", async () => {
+  it("recovers from an unsafe remembered workbook without treating it as missing or modifying it", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-invalid-workbook-"));
     directories.push(directory);
     const invalidPath = path.join(directory, "invalid.xlsx");
@@ -65,8 +65,15 @@ describe("FinanceFileService startup recovery", () => {
       new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
     );
 
-    await expect(service.snapshot()).rejects.toThrow();
+    const before = await readFile(invalidPath);
+    const snapshot = await service.snapshot();
+
+    expect(snapshot.workbookConfigured).toBe(false);
+    expect(snapshot.workbookDisplayName).toBeUndefined();
+    expect(snapshot.warningCode).toBe("WORKBOOK_ARCHIVE_UNSAFE");
+    expect(snapshot.data.transactions).toEqual([]);
     await expect(settings.get()).resolves.toMatchObject({ workbookPath: invalidPath });
+    expect(await readFile(invalidPath)).toEqual(before);
   });
 
   it("reports automatic duplicate UUID repair when opening a manually edited workbook", async () => {

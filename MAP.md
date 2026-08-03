@@ -61,6 +61,7 @@ ContaMì/
 │   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, backup e verifica xlsx
 │   │       ├── NumbersMirrorService.ts # adattatore nativo macOS isolato
 │   │       ├── WorkbookRevisionGuard.ts # conflitti con modifiche esterne
+│   │       ├── XlsxArchivePreflight.ts  # preflight ZIP condiviso, limiti e coerenza locale/centrale
 │   │       ├── XlsxImportPreflight.ts   # limiti ZIP e blocco contenuto attivo
 │   │       └── workbookSchema.ts       # fogli, colonne e versione schema
 │   ├── main/
@@ -146,6 +147,7 @@ ContaMì/
 │       ├── overviewTransactions.test.ts  # liste recenti alla data odierna / as-of-today lists
 │       ├── propertyIndicators.test.ts    # indicatori residenza bilingui / bilingual residence indicators
 │       ├── uuidRepair.test.ts             # collisioni UUID e collegamenti conservati
+│       ├── xlsxArchivePreflight.test.ts   # corpus ZIP ostile sintetico, fuzz seeded e budget
 │       └── rollover.test.ts             # nuovo anno, riconciliazione e rate a cavallo d’anno
 ├── AGENTS.md                            # regole per agenti e maintainer
 ├── .node-version                        # baseline Node.js unica per locale e GitHub Actions

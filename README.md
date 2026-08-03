@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.10.0 — Node.js 24 LTS and refreshed toolchain** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.11.0 — apertura workbook con preflight ZIP / workbook-opening ZIP preflight** · Licenza / License: **Apache-2.0**
 
 ## Funzioni principali / Key features
 
@@ -23,6 +23,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - I pagamenti rateali generano soltanto le rate residue entro l’eventuale data di fine; ogni conferma scala il residuo, il rollover pianifica nell’anno nuovo solo le rate ancora dovute e l’ultima rata chiude automaticamente la ricorrenza conservando lo storico. Il riquadro **Rate residue** elenca i piani ancora aperti al passaggio del mouse o al focus da tastiera; eventuali piani attivi già arrivati a zero vengono chiusi in modo conservativo all’apertura.
 - **Cambia tariffa** mantiene l’importo originario della ricorrenza e applica uno o più nuovi importi dal mese scelto soltanto alle scadenze pianificate. L’anteprima indica quante righe saranno aggiornate; UUID, collegamenti, rate residue e operazioni già confermate restano invariati anche dopo riapertura e rollover.
 - Workbook `.xlsx` portabile su macOS e Windows; copia `.numbers` nativa su macOS quando Apple Numbers è installato.
+- Ogni workbook viene controllato prima del parser: struttura ZIP, voci, dimensioni espanse, rapporto di compressione, percorsi, duplicati, metadati locali/centrali e contenuto attivo devono rispettare limiti espliciti; un file rifiutato non viene aperto né modificato.
 - Otto template Excel versionati e bilingui, generabili da Impostazioni anche senza workbook aperto, con intestazioni stabili, campi guidati e menu a discesa per preparare l’importazione di dati precedenti.
 - Importazione guidata degli otto template con preflight di sicurezza, anteprima ed errori per riga/colonna, strategie esplicite per i duplicati e conferma atomica con backup.
 - Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e consuntivi annuali dettagliati per immobili/utenze, investimenti/comparti e automobili.
@@ -46,6 +47,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 - Installment plans generate only the remaining payments up to their optional end date; each confirmation reduces the balance, year rollover schedules only the payments still due, and the final installment closes the recurring item while preserving its history. Hovering or focusing the **Installments left** card lists the open plans; any active plan already at zero is conservatively closed on load.
 - **Change rate** preserves the recurring item’s original amount and applies one or more new amounts from a selected month only to planned occurrences. A preview shows how many rows will change; UUIDs, links, remaining-installment counts, and confirmed operations stay unchanged across reopen and rollover.
 - Portable `.xlsx` workbook on macOS and Windows; native `.numbers` mirror on macOS when Apple Numbers is installed.
+- Every workbook is checked before parsing: ZIP structure, entries, expanded sizes, compression ratio, paths, duplicates, local/central metadata, and active content must meet explicit limits; a rejected file is neither opened nor changed.
 - Eight versioned bilingual Excel templates generated from Settings, even without an open workbook, with stable headers, guided fields, and drop-down lists for preparing legacy-data imports.
 - Guided import for all eight templates with security preflight, row/column preview errors, explicit duplicate strategies, and atomic confirmation with backup.
 - Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and detailed annual actuals for properties/utilities, investments/compartments, and vehicles.

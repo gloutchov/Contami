@@ -1,7 +1,25 @@
 export const APP_CONFIG = Object.freeze({
   window: { width: 1_440, height: 900, minWidth: 1_080, minHeight: 700 },
-  workbook: { maxBytes: 250 * 1024 * 1024, backupLimit: 10 },
-  importTemplates: { maxRows: 5_000 },
+  workbook: {
+    maxBytes: 250 * 1024 * 1024,
+    maxArchiveEntries: 4_096,
+    maxCentralDirectoryBytes: 16 * 1024 * 1024,
+    maxExpandedBytes: 256 * 1024 * 1024,
+    maxEntryExpandedBytes: 128 * 1024 * 1024,
+    maxCompressionRatio: 200,
+    maxEntryNameBytes: 1_024,
+    backupLimit: 10,
+  },
+  importTemplates: {
+    maxRows: 5_000,
+    maxBytes: 20 * 1024 * 1024,
+    maxArchiveEntries: 2_000,
+    maxCentralDirectoryBytes: 8 * 1024 * 1024,
+    maxExpandedBytes: 100 * 1024 * 1024,
+    maxEntryExpandedBytes: 25 * 1024 * 1024,
+    maxCompressionRatio: 100,
+    maxEntryNameBytes: 1_024,
+  },
   numbersMirror: { timeoutMs: 60_000, maxBufferBytes: 64 * 1024 },
   ui: { noticeDurationMs: 6_000 },
 });

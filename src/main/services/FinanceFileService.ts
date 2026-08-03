@@ -18,6 +18,13 @@ function isMissingFile(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
+function workbookLoadWarning(error: unknown): string | undefined {
+  const code = error instanceof Error ? error.message : "";
+  if (code === "WORKBOOK_RESOURCE_LIMIT" || code === "WORKBOOK_TOO_LARGE") return "WORKBOOK_RESOURCE_LIMIT";
+  if (code === "WORKBOOK_ARCHIVE_UNSAFE" || code === "INVALID_WORKBOOK_SCHEMA") return "WORKBOOK_ARCHIVE_UNSAFE";
+  return undefined;
+}
+
 export class FinanceFileService {
   private data?: FinanceData;
   private warningCode?: string;
@@ -39,22 +46,31 @@ export class FinanceFileService {
           this.data = await this.loadWorkbook(settings.workbookPath);
           this.revision = await this.revisions.capture(settings.workbookPath);
         } catch (error) {
-          if (!isMissingFile(error)) throw error;
-          this.data = createEmptyFinanceData();
-          this.revision = undefined;
-          this.warningCode = "WORKBOOK_MISSING";
-          settings = await this.settingsService.update({ workbookPath: undefined, numbersMirrorPath: undefined });
+          if (isMissingFile(error)) {
+            this.data = createEmptyFinanceData();
+            this.revision = undefined;
+            this.warningCode = "WORKBOOK_MISSING";
+            settings = await this.settingsService.update({ workbookPath: undefined, numbersMirrorPath: undefined });
+          } else {
+            const warning = workbookLoadWarning(error);
+            if (!warning) throw error;
+            this.data = undefined;
+            this.revision = undefined;
+            this.warningCode = warning;
+          }
         }
       }
       else this.data = createEmptyFinanceData();
     }
-    const shownPath = displayPath(settings);
+    const snapshotData = this.data ?? createEmptyFinanceData();
+    const workbookConfigured = Boolean(settings.workbookPath && this.data);
+    const shownPath = workbookConfigured ? displayPath(settings) : undefined;
     return {
-      data: structuredClone(this.data),
-      metrics: computeDashboard(this.data),
-      workbookConfigured: Boolean(settings.workbookPath),
+      data: structuredClone(snapshotData),
+      metrics: computeDashboard(snapshotData),
+      workbookConfigured,
       workbookDisplayName: shownPath ? path.basename(shownPath) : undefined,
-      lastSavedAt: settings.workbookPath ? this.data.meta.updatedAt : undefined,
+      lastSavedAt: workbookConfigured ? snapshotData.meta.updatedAt : undefined,
       warningCode: this.warningCode,
     };
   }
