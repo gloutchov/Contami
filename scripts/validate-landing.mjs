@@ -30,7 +30,8 @@ if (/https?:\/\/(?:fonts\.|cdn\.|unpkg\.|jsdelivr\.)/i.test(`${html}\n${styles}\
 if (/\.gif\b/i.test(`${html}\n${styles}\n${script}`)) fail("Published landing code must use optimized video rather than GIF sources");
 if (/(?:src|poster|href)=["']\/(?!\/)/i.test(html)) fail("Project Pages assets and links must not use root-absolute paths");
 
-const translationSource = script.match(/const translations = (\{[\s\S]*?\n\});\n\nconst LANGUAGE_STORAGE_KEY/);
+const normalizedScript = script.replace(/\r\n?/g, "\n");
+const translationSource = normalizedScript.match(/const translations = (\{[\s\S]*?\n\});\n\nconst LANGUAGE_STORAGE_KEY/);
 if (!translationSource) {
   fail("Unable to parse landing translations");
 } else {
