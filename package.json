@@ -15,6 +15,7 @@
     "dev": "concurrently --kill-others-on-fail \"vite --host 127.0.0.1\" \"npm:dev:electron\"",
     "dev:renderer": "vite --host 127.0.0.1",
     "dev:electron": "wait-on http://127.0.0.1:5173 && npm run build:electron && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "preview:landing": "node scripts/serve-landing.mjs",
     "build:renderer": "vite build",
     "build:electron": "node scripts/build-electron.mjs",
     "build": "npm run typecheck && npm run build:renderer && npm run build:electron",
@@ -24,6 +25,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:landing": "node scripts/validate-landing.mjs",
+    "test:landing:e2e": "playwright test --config playwright.landing.config.ts",
     "test:e2e:install": "playwright install chromium",
     "test:package:inspect": "node scripts/inspect-packaged.mjs",
     "test:smoke:packaged": "node scripts/smoke-packaged.mjs",
@@ -32,7 +35,7 @@
     "pack": "npm run build && electron-builder --dir",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:win": "npm run build && electron-builder --win --publish never",
-    "preflight": "npm run check:node-baseline && npm run lint && npm run typecheck && npm test && npm run build"
+    "preflight": "npm run check:node-baseline && npm run test:landing && npm run lint && npm run typecheck && npm test && npm run build"
   },
   "build": {
     "appId": "it.contami.desktop",

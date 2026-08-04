@@ -7,6 +7,7 @@ coverage/
 playwright-report/
 test-results/
 output/
+tmp/
 
 # Local application state and generated workbooks
 *.log
