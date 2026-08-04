@@ -7,6 +7,7 @@ const required = [
 ];
 const releaseChecks = [
   "scripts/check-node-baseline.mjs",
+  "scripts/validate-landing.mjs",
   "scripts/inspect-packaged.mjs",
   "scripts/smoke-packaged.mjs",
   "scripts/smoke-installed.mjs",
@@ -50,7 +51,7 @@ const forbidden = tracked.filter((file) => file.startsWith("sources/") || /\.(nu
 if (forbidden.length) throw new Error(`Private or sensitive artifacts are tracked: ${forbidden.join(", ")}`);
 
 const [readme, securityModel, ...workflowText] = await Promise.all([
-  "README.md", "SECURITY_MODEL.md", ".github/workflows/ci.yml", ".github/workflows/release.yml",
+  "README.md", "SECURITY_MODEL.md", ".github/workflows/ci.yml", ".github/workflows/release.yml", ".github/workflows/pages.yml",
 ].map((file) => readFile(file, "utf8")));
 if (!readme.includes(`**${manifest.version} —`) || !securityModel.includes(`Application: ${manifest.version}`)) {
   throw new Error(`README/SECURITY_MODEL version mismatch for ${manifest.version}`);
@@ -61,6 +62,13 @@ for (const command of ["npm run test:package:inspect", "npm run test:smoke:packa
 }
 if (!releaseWorkflow.includes("workflow_dispatch:") || !releaseWorkflow.includes("if: startsWith(github.ref, 'refs/tags/v')")) {
   throw new Error("Release candidates must be manually runnable without publishing; publishing must remain tag-only");
+}
+const pagesWorkflow = workflowText[2];
+if (!pagesWorkflow.includes("npm run test:landing") || !pagesWorkflow.includes("path: landing") || !pagesWorkflow.includes("github.ref == 'refs/heads/main'")) {
+  throw new Error("GitHub Pages workflow must validate and deploy only the landing directory from main");
+}
+if (!workflowText[0].includes("npm run test:landing:e2e")) {
+  throw new Error("Cross-platform CI must run the dedicated landing Playwright checks");
 }
 const mutableActions = workflowText.flatMap((text) => [...text.matchAll(/uses:\s+[^\s@]+@([^\s#]+)/g)].map((match) => match[1]))
   .filter((reference) => !/^[0-9a-f]{40}$/.test(reference));
