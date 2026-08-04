@@ -119,7 +119,13 @@ macOS può chiedere il permesso di controllare Numbers. L’utente deve conceder
 
 I workbook e i backup sono file normali non cifrati dall’app. La riservatezza dipende da permessi del filesystem, FileVault/BitLocker, blocco sessione e politiche di backup/sincronizzazione dell’utente. Non memorizzare il file in servizi cloud non approvati e non condividerlo senza una protezione adeguata.
 
-### 11. Dipendenze e supply chain
+### 11. Landing pubblica
+
+La landing pubblica è un artifact web statico separato dall’app desktop. Il contenuto versionato sotto `landing/` non viene incluso in `app.asar` e non modifica CSP, blocchi di rete o capacità del renderer Electron. Il sito carica soltanto HTML, CSS, JavaScript, immagini e video dalla propria origine GitHub Pages; non usa CDN, font remoti, analytics, telemetria, cookie, backend o chiamate API. I soli collegamenti esterni portano, su azione dell’utente, al repository, alla licenza e alla pagina GitHub `releases/latest`. L’override manuale della lingua conserva esclusivamente `it` o `en` in `localStorage`; in assenza di override la lingua viene derivata da `navigator.language`, usando italiano solo per codici che iniziano con `it`.
+
+Screenshot e dimostrazioni della landing devono contenere esclusivamente dati sintetici e non possono mostrare percorsi completi, workbook privati o informazioni identificative. I poster PNG coprono IT/EN e tema chiaro/scuro; le GIF di produzione restano sorgenti locali ignorate da Git e vengono pubblicate come MP4 H.264 ridimensionati e caricati con `preload="none"`. La validazione automatica controlla parità dei dizionari, asset richiesti, CSP, assenza di dipendenze remote, percorsi relativi compatibili con Project Pages e budget massimo dei video. Il workflow Pages è limitato a `landing/`, parte soltanto da `main` e usa Actions ufficiali fissate a commit SHA.
+
+### 12. Dipendenze e supply chain
 
 - `package-lock.json` rende riproducibili le versioni installate con `npm ci`.
 - L’audit npm è eseguito localmente e in CI; al 2026-08-03 riporta 0 vulnerabilità note dopo gli override compatibili di `uuid >=11.1.1` per ExcelJS e di `shell-quote >=1.10.0`, `brace-expansion >=5.0.9` e `postcss >=8.5.23` per la toolchain di sviluppo.
@@ -131,7 +137,7 @@ I workbook e i backup sono file normali non cifrati dall’app. La riservatezza 
 
 Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` includono pacchetti deprecati pur senza vulnerabilità note correnti; vanno rivalutate con gli aggiornamenti upstream. La Action fissata `softprops/action-gh-release@v3.0.2` usa nativamente Node.js 24. Gli artifact sono deliberatamente generati senza certificati, firma ad-hoc del bundle o notarizzazione. Bundle, metadati tecnici ed eseguibile macOS usano il nome ASCII `Contami` per evitare un crash del runtime unsigned su Apple Silicon; logo, titolo e UI mantengono il marchio `ContaMì`. Lo smoke test locale del bundle ARM non firmato, con Hardened Runtime predefinito, è riuscito. Gatekeeper richiede comunque l’approvazione esplicita in Privacy e Sicurezza e Windows può mostrare SmartScreen o bloccare l’app con Smart App Control. Checksum e istruzioni riducono il rischio operativo, ma non sostituiscono l’identità crittografica del produttore.
 
-### 12. Verifiche implementate
+### 13. Verifiche implementate
 
 - unit test per comandi, catalogo tasse e relativi vincoli, saldi separati di conti/Casse, trasferimenti interni neutri, compatibilità metodo-conto, aggregazioni di consumi/condominio/automobili, finanziamento Automobile atomico e univoco, classificazione/ciclo di vita delle rate, indicatori di perdita investimenti/pensioni, competenza/incasso delle rate di affitto, variazioni tariffarie future e storico confermato, rollover, migrazione v1–v8→v9, propagazione del conto e sincronizzazione bidirezionale/cancellazione di Versamenti/Liquidazioni;
 - integrazione round-trip workbook e controllo file modificato esternamente;
@@ -150,8 +156,9 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 - rendering indipendente di un workbook sintetico, senza dati dell’utente;
 - controllo CI che impedisce di tracciare `sources/`, `.numbers`, `.xlsx`, chiavi e certificati.
 - ispezione di `app.asar` e delle risorse effettive, più installazione, avvio e rimozione automatica del DMG/NSIS su runner macOS e Windows.
+- validazione statica della landing bilingue, dei percorsi Project Pages, della CSP, dei media localizzati e dell’assenza di dipendenze web remote.
 
-### 13. Risposta a incidenti e recupero
+### 14. Risposta a incidenti e recupero
 
 1. Chiudi ContaMì e le app che usano il workbook.
 2. Copia il file sospetto senza modificarlo.
@@ -159,7 +166,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 4. Verifica il checksum dell’installer e reinstalla da una release privata ufficiale se sospetti una manomissione.
 5. Non allegare workbook reali a issue o log pubblici; usa una riproduzione sintetica.
 
-### 14. Miglioramenti pianificati
+### 15. Miglioramenti pianificati
 
 - M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
 - M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
@@ -249,19 +256,25 @@ The adapter is macOS-only and detects Apple bundle id `com.apple.Numbers` at sta
 
 Workbooks and backups are not encrypted by ContaMì. Use filesystem permissions, FileVault/BitLocker, session locking, and appropriate encrypted backups. No keychain is required because the app has no secrets.
 
-### 9. Supply chain and verification
+### 9. Public landing page
+
+The public landing page is a static web artifact separate from the desktop application. Versioned content under `landing/` is not included in `app.asar` and does not change the Electron renderer's CSP, network blocks, or capabilities. The site loads only HTML, CSS, JavaScript, images, and video from its own GitHub Pages origin; it uses no CDN, remote fonts, analytics, telemetry, cookies, backend, or API calls. External links navigate, only after user action, to the repository, license, and GitHub `releases/latest` page. A manual language override stores only `it` or `en` in `localStorage`; without an override, `navigator.language` selects Italian only for codes starting with `it`.
+
+Landing screenshots and demonstrations must contain synthetic data only and must not expose full paths, private workbooks, or identifying information. PNG posters cover Italian/English and light/dark themes; production GIFs remain local, Git-ignored sources and are published as resized H.264 MP4 files loaded with `preload="none"`. Automated validation checks translation parity, required assets, CSP, absence of remote runtime dependencies, relative Project Pages paths, and video budgets. The Pages workflow is scoped to `landing/`, deploys only from `main`, and pins official Actions to commit SHAs.
+
+### 10. Supply chain and verification
 
 `package-lock.json` plus `npm ci` provide deterministic dependency resolution. As of 2026-08-03, npm audit reports zero known vulnerabilities after compatible `uuid >=11.1.1` for ExcelJS and `shell-quote >=1.10.0`, `brace-expansion >=5.0.9`, and `postcss >=8.5.23` overrides for the development toolchain. npm 11 denies unlisted install scripts; the versioned allowlist permits only `esbuild@0.28.1` and `electron-winstaller@5.4.0`, required for builds and Windows packaging. Development, CI, and packaging use Node.js 24 LTS from version 24.15.0. `.node-version` is the single baseline source; preflight verifies it against `engines`, direct-dependency requirements, CI, and documentation. `jsdom` 30.0.1 uses the same baseline. Dependabot monitors npm and Actions weekly; every Action used by CI and release is pinned to a commit SHA resolved from its official repository. CI runs hygiene checks, lint, typecheck, tests, build, 1080-px Playwright checks, and audit on macOS and Windows. Tagged releases inspect the actual `app.asar` content, launch the unpacked executable, install the DMG/NSIS in a temporary platform-specific location, verify launch and removal, and publish SHA-256 checksums.
 
 Residual risks: transitive `exceljs` and `electron-builder` chains still contain deprecated packages despite having no current known vulnerabilities; upstream updates must be reassessed. The pinned `softprops/action-gh-release@v3.0.2` uses Node.js 24 natively. Artifacts are deliberately built without certificates, bundle-level ad-hoc signing, or notarization. The macOS bundle, technical metadata, and executable use the ASCII name `Contami` to avoid an unsigned-runtime crash on Apple Silicon; the logo, title, and UI retain the **ContaMì** brand. The local unsigned ARM-bundle smoke test passed with the default Hardened Runtime. Gatekeeper still requires explicit approval under Privacy & Security, and Windows may show SmartScreen or block the app through Smart App Control. Checksums and instructions reduce risk but do not provide cryptographic publisher identity.
 
-### 10. Tests and recovery
+### 11. Tests and recovery
 
 Implemented checks cover domain aggregation (including separate account/cash-register balances, neutral internal transfers, payment-method compatibility, utilities, condominium, vehicles, atomic and unique vehicle financing, installment classification/lifecycle, confirmed-only liquidity, and rent due/receipt allocation), future-only recurring rate changes and confirmed-history invariance, configurable-tax CRUD and constraints, investment/private-pension loss indicators and separation without double counting, reserved pension-type protection and rollover, v1–v8→v9 migration with conservative account/due-date propagation and unchanged base rates, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing/unsafe-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, bounded-read ZIP preflight limits, a fully synthetic corpus for truncation, zip bombs, duplicates, traversal, nesting, encryption, ZIP64, inconsistent metadata and data descriptors, reproducible seeded mutations, adapter rejection before ExcelJS, v1/v2 migration regression, structural and round-trip verification of all eight v2 templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, Node.js-baseline consistency across `engines`, direct dependencies, CI, and documentation, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
-### 11. Planned improvements
+### 12. Planned improvements
 
 M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
 

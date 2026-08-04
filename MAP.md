@@ -8,7 +8,8 @@ ContaMì/
 │   ├── dependabot.yml                 # aggiornamenti dipendenze / dependency updates
 │   └── workflows/
 │       ├── ci.yml                     # qualità macOS + Windows / cross-platform quality
-│       └── release.yml                # pacchetti, checksum e release / packages and release
+│       ├── release.yml                # pacchetti, checksum e release / packages and release
+│       └── pages.yml                  # validazione e deploy GitHub Pages della sola landing
 ├── assets/
 │   ├── icon.ico                       # icona Windows / Windows icon
 │   ├── icon.png                       # icona macOS e UI / macOS and UI icon
@@ -17,9 +18,17 @@ ContaMì/
 │   ├── import-template-spec.md        # contratti versionati degli otto template Excel
 │   ├── import-guide.md                # compilazione, anteprima, errori e recupero IT/EN
 │   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
+├── landing/
+│   ├── assets/                        # icona, screenshot sintetici e demo MP4 ottimizzate IT/EN
+│   ├── app.js                         # rilevamento lingua, override manuale e media tema/lingua
+│   ├── index.html                     # landing statica semantica e CSP senza dipendenze remote
+│   ├── styles.css                     # layout editoriale responsive, chiaro/scuro e reduced motion
+│   └── README.md                      # manutenzione e rigenerazione sicura dei media
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
 │   ├── check-node-baseline.mjs         # coerenza baseline Node, dipendenze, CI e documentazione
+│   ├── serve-landing.mjs                # preview HTTP locale limitata alla sola landing
+│   ├── validate-landing.mjs             # i18n, asset, CSP, percorsi Pages e budget media
 │   ├── after-pack.mjs                  # chiude eccezioni di rete nel bundle macOS
 │   ├── check-required-docs.mjs         # controllo documenti e file privati
 │   ├── generate-demo-workbook.ts       # workbook sintetico per QA, mai dati reali
@@ -119,6 +128,8 @@ ContaMì/
 │   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   │   ├── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
 │   │   └── vehicle-installments.spec.ts # creazione, modifica e riapertura finanziamento Automobile
+│   ├── landing/
+│   │   └── landing.spec.ts             # IT/EN, temi, demo video, focus e mobile della landing
 │   ├── integration/
 │   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
 │   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
@@ -163,11 +174,13 @@ ContaMì/
 ├── QUICK-START_Desktop.md               # avvio rapido bilingue
 ├── README.md                            # pagina GitHub bilingue
 ├── SECURITY_MODEL.md                    # controlli, minacce e limiti bilingui
+├── design-qa.md                         # confronto visuale e collaudo responsive della landing
 ├── STARTUP_PREFERENCES.md               # preferenze progettuali del proprietario
 ├── index.html                           # host renderer e CSP
 ├── package.json / package-lock.json     # comandi, dipendenze e packaging
 ├── eslint.config.js                     # qualità TypeScript/React
 ├── playwright.config.ts                 # browser QA riproducibile a 1080 px
+├── playwright.landing.config.ts         # QA landing su server statico senza live reload
 ├── tsconfig.json                        # compilazione e tipi
 ├── vite.config.ts                       # build renderer
 └── vitest.config.ts                     # test unitari e integrazione
@@ -183,6 +196,8 @@ Generati, non versionati / Generated, not versioned:
 ├── tmp/                                 # lavorazioni temporanee locali
 └── .playwright-cli/                     # snapshot del collaudo UI locale
 ```
+
+Le GIF originali sotto `landing/assets/` sono sorgenti locali ignorate da Git; il sito pubblica le sole copie MP4 ottimizzate e i poster PNG già ispezionati. La landing usa esclusivamente percorsi relativi e non entra in `app.asar` o negli artifact Electron.
 
 ## Dipendenze tra livelli / Layer direction
 
