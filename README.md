@@ -8,6 +8,8 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 
 > Stato / Status: **1.11.1 — conferma diretta delle ricorrenze non-affitto / direct non-rent recurrence confirmation** · Licenza / License: **Apache-2.0**
 
+Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `landing/` tramite GitHub Pages.
+
 ## Funzioni principali / Key features
 
 - Dashboard generale con saldo Cassa e confronti storici per patrimonio, liquidità, immobili, investimenti e pensioni integrative, entrate, uscite e impegni periodici.
@@ -116,8 +118,10 @@ Controlli completi:
 
 ```bash
 npm run preflight
+npm run test:landing
 npm run test:e2e:install
 npm run test:e2e
+npm run test:landing:e2e
 npm audit
 ```
 
@@ -138,6 +142,10 @@ Il workflow di release esegue inoltre `test:package:inspect` sul contenuto effet
 
 The release workflow also runs `test:package:inspect` against the actual `app.asar` content and `test:smoke:installed`: it mounts and copies the DMG into a temporary macOS location or installs NSIS into a temporary Windows directory, launches the app, and verifies removal. These gates run only on matching platform runners.
 
+La landing è un sito statico separato dall’app desktop. Per verificarla localmente, esegui `npm run preview:landing` e apri `http://127.0.0.1:4174/`; il server espone soltanto `landing/`. `npm run test:landing` controlla traduzioni, media, CSP e percorsi relativi, mentre `npm run test:landing:e2e` verifica IT/EN, chiaro/scuro, video, tastiera e layout mobile. Il workflow `.github/workflows/pages.yml` pubblica esclusivamente `landing/` da `main`.
+
+The landing page is a static site separate from the desktop app. To inspect it locally, run `npm run preview:landing` and open `http://127.0.0.1:4174/`; the server exposes only `landing/`. `npm run test:landing` checks translations, media, CSP and relative paths, while `npm run test:landing:e2e` verifies IT/EN, light/dark, videos, keyboard use and mobile layout. `.github/workflows/pages.yml` publishes only `landing/` from `main`.
+
 ## Sicurezza e privacy / Security and privacy
 
 Il renderer Electron è isolato e in sandbox, non ha Node.js, usa un bridge minimo e IPC validato. Popup, navigazioni, download, permessi e traffico remoto sono bloccati. I file sono limitati a `.xlsx` scelti dall’utente e superano un preflight ZIP prima di ExcelJS; la copia Numbers usa uno script AppleScript fisso e argomenti separati. Dettagli, limiti e modello delle minacce sono in [SECURITY_MODEL.md](SECURITY_MODEL.md).
@@ -154,6 +162,7 @@ The Electron renderer is isolated and sandboxed, has no Node.js access, and uses
 - [Development plan / Piano](PLAN.md)
 - [Reference workbook analysis](docs/reference-analysis.md)
 - [Import template specification / Specifica template](docs/import-template-spec.md)
+- [Landing page maintenance / Manutenzione landing](landing/README.md)
 
 ## Licenza / License
 

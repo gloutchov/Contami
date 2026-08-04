@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self'; media-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta
+      id="meta-description"
+      name="description"
+      content="ContaMì is a free, open-source, local-first desktop app for managing personal finances in a durable spreadsheet."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f7f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#071b23" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ContaMì — Your finances, truly yours" />
+    <meta
+      property="og:description"
+      content="A free, open-source and local-first personal finance desktop app for macOS and Windows."
+    />
+    <meta property="og:image" content="./assets/panoramica_whi_english.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="./assets/contami-icon.png" />
+    <link rel="apple-touch-icon" href="./assets/contami-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./app.js"></script>
+    <title>ContaMì — Your finances, truly yours</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-i18n="accessibility.skip">Skip to content</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="#top" aria-label="ContaMì home">
+          <img src="./assets/contami-icon.png" width="42" height="42" alt="" />
+          <span>ContaM<span aria-hidden="true">ì</span></span>
+        </a>
+
+        <nav class="primary-nav" data-i18n-aria="nav.label" aria-label="Primary navigation">
+          <a href="#overview" data-i18n="nav.overview">Overview</a>
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#technical" data-i18n="nav.technical">Technical</a>
+          <a href="#download" data-i18n="nav.download">Download</a>
+        </nav>
+
+        <div class="language-switcher" role="group" data-i18n-aria="language.label" aria-label="Language">
+          <button type="button" data-language="it" aria-pressed="false">IT</button>
+          <button type="button" data-language="en" aria-pressed="true">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero section" id="top">
+        <div class="hero-copy reveal">
+          <p class="eyebrow" data-i18n="hero.eyebrow">Local-first desktop app</p>
+          <h1>
+            <span data-i18n="hero.title">Your finances,</span>
+            <strong data-i18n="hero.titleAccent">truly yours.</strong>
+          </h1>
+          <p class="hero-lead" data-i18n="hero.lead">
+            Understand and manage your financial life without accounts, cloud services or telemetry. Your workbook stays on your computer.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/gloutchov/Contami/releases/latest" target="_blank" rel="noreferrer" data-i18n="actions.download">
+              Download latest release
+            </a>
+            <a class="button secondary" href="https://github.com/gloutchov/Contami" target="_blank" rel="noreferrer" data-i18n="actions.github">
+              View on GitHub
+            </a>
+          </div>
+          <dl class="hero-facts">
+            <div>
+              <dt data-i18n="facts.priceLabel">Price</dt>
+              <dd data-i18n="facts.priceValue">Free</dd>
+            </div>
+            <div>
+              <dt data-i18n="facts.platformLabel">Platforms</dt>
+              <dd data-i18n="facts.platformValue">macOS · Windows</dd>
+            </div>
+            <div>
+              <dt data-i18n="facts.licenseLabel">License</dt>
+              <dd>Apache 2.0</dd>
+            </div>
+          </dl>
+        </div>
+
+        <figure class="hero-media reveal">
+          <div class="app-window">
+            <img
+              id="hero-image"
+              src="./assets/panoramica_whi_english.png"
+              data-media-key="panoramica"
+              width="1782"
+              height="1117"
+              alt="ContaMì overview in light theme"
+              data-i18n-alt="media.overviewAlt"
+              fetchpriority="high"
+            />
+          </div>
+          <figcaption data-i18n="media.heroCaption">A complete picture, from daily cash flow to long-term wealth.</figcaption>
+        </figure>
+      </section>
+
+      <section class="trust-strip section-narrow reveal" aria-label="Product principles" data-i18n-aria="trust.label">
+        <article>
+          <span class="index">01</span>
+          <h2 data-i18n="trust.localTitle">Local by design</h2>
+          <p data-i18n="trust.localBody">Your financial data stays in the workbook you choose.</p>
+        </article>
+        <article>
+          <span class="index">02</span>
+          <h2 data-i18n="trust.openTitle">Open source</h2>
+          <p data-i18n="trust.openBody">Transparent, auditable and released under Apache 2.0.</p>
+        </article>
+        <article>
+          <span class="index">03</span>
+          <h2 data-i18n="trust.freeTitle">Free to use</h2>
+          <p data-i18n="trust.freeBody">No subscriptions, paid accounts or hidden services.</p>
+        </article>
+        <article>
+          <span class="index">04</span>
+          <h2 data-i18n="trust.privateTitle">Private</h2>
+          <p data-i18n="trust.privateBody">No cloud, advertising, analytics or telemetry.</p>
+        </article>
+      </section>
+
+      <section class="manifesto section" id="overview">
+        <div class="section-heading reveal">
+          <p class="eyebrow" data-i18n="overview.eyebrow">A calmer financial picture</p>
+          <h2 data-i18n="overview.title">Everything you need. Nothing between you and your data.</h2>
+        </div>
+        <div class="manifesto-copy reveal">
+          <p data-i18n="overview.body1">
+            ContaMì brings everyday movements, property, vehicles, investments, pensions, recurring items and shared expenses into one coherent view.
+          </p>
+          <p data-i18n="overview.body2">
+            The spreadsheet remains the durable source of truth: portable, readable and recoverable without a proprietary cloud.
+          </p>
+        </div>
+      </section>
+
+      <section class="features section" id="features">
+        <div class="section-heading feature-heading reveal">
+          <div>
+            <p class="eyebrow" data-i18n="features.eyebrow">Feature chapters</p>
+            <h2 data-i18n="features.title">One financial story, told from every angle.</h2>
+          </div>
+          <p data-i18n="features.intro">Each area shares the same validated data, so connected movements appear once and remain consistent everywhere.</p>
+        </div>
+
+        <ol class="feature-index reveal">
+          <li><a href="#feature-overview"><span>01</span><strong data-i18n="featureNames.overview">Overview</strong></a></li>
+          <li><a href="#feature-transactions"><span>02</span><strong data-i18n="featureNames.transactions">Transactions</strong></a></li>
+          <li><a href="#feature-properties"><span>03</span><strong data-i18n="featureNames.properties">Properties</strong></a></li>
+          <li><a href="#feature-vehicles"><span>04</span><strong data-i18n="featureNames.vehicles">Vehicles</strong></a></li>
+          <li><a href="#feature-investments"><span>05</span><strong data-i18n="featureNames.investments">Investments</strong></a></li>
+          <li><a href="#feature-pension"><span>06</span><strong data-i18n="featureNames.pension">Private pension</strong></a></li>
+          <li><a href="#feature-recurring"><span>07</span><strong data-i18n="featureNames.recurring">Recurring items</strong></a></li>
+          <li><a href="#feature-shared"><span>08</span><strong data-i18n="featureNames.shared">Shared expenses</strong></a></li>
+          <li><a href="#feature-settings"><span>09</span><strong data-i18n="featureNames.settings">Settings & import</strong></a></li>
+        </ol>
+
+        <article class="feature-chapter reveal" id="feature-overview">
+          <div class="chapter-copy">
+            <span class="chapter-number">01</span>
+            <p class="eyebrow" data-i18n="chapters.overview.eyebrow">Your starting point</p>
+            <h3 data-i18n="chapters.overview.title">A complete overview, without losing the details.</h3>
+            <p data-i18n="chapters.overview.body">Net worth, liquidity, cash registers, properties, investments, pensions and recurring commitments stay visible and reconcilable.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="panoramica" controls playsinline preload="none" poster="./assets/panoramica_whi_english.png" data-i18n-aria="media.overviewDemo" aria-label="Overview demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reverse reveal" id="feature-transactions">
+          <div class="chapter-copy">
+            <span class="chapter-number">02</span>
+            <p class="eyebrow" data-i18n="chapters.transactions.eyebrow">Daily clarity</p>
+            <h3 data-i18n="chapters.transactions.title">Follow every movement and every balance.</h3>
+            <p data-i18n="chapters.transactions.body">Searchable transactions, filters, accounts and cash registers reveal what happened, when it happened and how it affects liquidity.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="transazioni" controls playsinline preload="none" poster="./assets/transazioni_whi_english.png" data-i18n-aria="media.transactionsDemo" aria-label="Transactions demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reveal" id="feature-properties">
+          <div class="chapter-copy">
+            <span class="chapter-number">03</span>
+            <p class="eyebrow" data-i18n="chapters.properties.eyebrow">Homes and income</p>
+            <h3 data-i18n="chapters.properties.title">Properties, utilities, taxes and rent in context.</h3>
+            <p data-i18n="chapters.properties.body">Track valuations, costs, consumption, configurable taxes and rent payments with separate due periods and actual receipt dates.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="immobili" controls playsinline preload="none" poster="./assets/immobili_whi_english.png" data-i18n-aria="media.propertiesDemo" aria-label="Properties demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reverse reveal" id="feature-vehicles">
+          <div class="chapter-copy">
+            <span class="chapter-number">04</span>
+            <p class="eyebrow" data-i18n="chapters.vehicles.eyebrow">Every kilometre counts</p>
+            <h3 data-i18n="chapters.vehicles.title">Understand the real cost of your vehicles.</h3>
+            <p data-i18n="chapters.vehicles.body">Fuel, maintenance, insurance, taxes, tyres and optional financing combine into a clear cost history and vehicle comparison.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="automobili" controls playsinline preload="none" poster="./assets/automobili_whi_english.png" data-i18n-aria="media.vehiclesDemo" aria-label="Vehicles demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reveal" id="feature-investments">
+          <div class="chapter-copy">
+            <span class="chapter-number">05</span>
+            <p class="eyebrow" data-i18n="chapters.investments.eyebrow">Long-term perspective</p>
+            <h3 data-i18n="chapters.investments.title">Capital invested and current value, side by side.</h3>
+            <p data-i18n="chapters.investments.body">Contributions, liquidations, valuations and recurring plans remain connected to cash movements without inflating income or expenses.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="investimenti" controls playsinline preload="none" poster="./assets/investimenti_whi_english.png" data-i18n-aria="media.investmentsDemo" aria-label="Investments demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reverse reveal" id="feature-pension">
+          <div class="chapter-copy">
+            <span class="chapter-number">06</span>
+            <p class="eyebrow" data-i18n="chapters.pension.eyebrow">A future without double counting</p>
+            <h3 data-i18n="chapters.pension.title">Private pensions and compartments stay distinct.</h3>
+            <p data-i18n="chapters.pension.body">Collector funds, individual compartments, contributions and current values are aggregated once while preserving each position’s history.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="pensioneintegrativa" controls playsinline preload="none" poster="./assets/pensioneintegrativa_whi_english.png" data-i18n-aria="media.pensionDemo" aria-label="Private pension demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reveal" id="feature-recurring">
+          <div class="chapter-copy">
+            <span class="chapter-number">07</span>
+            <p class="eyebrow" data-i18n="chapters.recurring.eyebrow">Plan ahead</p>
+            <h3 data-i18n="chapters.recurring.title">Recurring income, expenses and instalments that respect history.</h3>
+            <p data-i18n="chapters.recurring.body">Schedule future movements, confirm them safely and change future rates without rewriting operations already completed.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="ricorrenze" controls playsinline preload="none" poster="./assets/ricorrenze_whi_english.png" data-i18n-aria="media.recurringDemo" aria-label="Recurring items demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reverse reveal" id="feature-shared">
+          <div class="chapter-copy">
+            <span class="chapter-number">08</span>
+            <p class="eyebrow" data-i18n="chapters.shared.eyebrow">Clear balances together</p>
+            <h3 data-i18n="chapters.shared.title">Shared expenses without separate calculations.</h3>
+            <p data-i18n="chapters.shared.body">Participants, personal shares, payer and reimbursement status remain linked to the original transaction and monthly totals.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="spesecondivise" controls playsinline preload="none" poster="./assets/spesecondivise_whi_english.png" data-i18n-aria="media.sharedDemo" aria-label="Shared expenses demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature-chapter reveal" id="feature-settings">
+          <div class="chapter-copy">
+            <span class="chapter-number">09</span>
+            <p class="eyebrow" data-i18n="chapters.settings.eyebrow">Your setup, portable</p>
+            <h3 data-i18n="chapters.settings.title">Configure, import and keep control of the workbook.</h3>
+            <p data-i18n="chapters.settings.body">Manage accounts, cash registers and catalogues, generate guided Excel templates and import them with preview, validation and backup.</p>
+          </div>
+          <figure class="feature-media">
+            <video data-media-key="impostazioni" controls playsinline preload="none" poster="./assets/impostazioni_whi_english.png" data-i18n-aria="media.settingsDemo" aria-label="Settings and import demonstration"></video>
+            <figcaption data-i18n="media.demoHint">Use the controls to play the demonstration.</figcaption>
+          </figure>
+        </article>
+      </section>
+
+      <section class="technical section" id="technical">
+        <div class="section-heading reveal">
+          <p class="eyebrow" data-i18n="technical.eyebrow">Under the hood</p>
+          <h2 data-i18n="technical.title">Built to stay understandable, recoverable and yours.</h2>
+        </div>
+        <dl class="technical-list reveal">
+          <div>
+            <dt data-i18n="technical.workbookTitle">Portable workbook</dt>
+            <dd data-i18n="technical.workbookBody">A readable .xlsx file is the canonical source. macOS can optionally keep a Numbers mirror.</dd>
+          </div>
+          <div>
+            <dt data-i18n="technical.savesTitle">Verified saves</dt>
+            <dd data-i18n="technical.savesBody">Temporary write, re-read verification, recoverable backups and protection from external edits.</dd>
+          </div>
+          <div>
+            <dt data-i18n="technical.securityTitle">Hardened desktop app</dt>
+            <dd data-i18n="technical.securityBody">Sandboxed Electron renderer, validated IPC, blocked navigation and no network during normal use.</dd>
+          </div>
+          <div>
+            <dt data-i18n="technical.importTitle">Guided import</dt>
+            <dd data-i18n="technical.importBody">Versioned Excel templates, security preflight, row-level preview and atomic confirmation.</dd>
+          </div>
+          <div>
+            <dt data-i18n="technical.interfaceTitle">Bilingual and adaptive</dt>
+            <dd data-i18n="technical.interfaceBody">Italian and English, system-aware light and dark themes, keyboard-friendly controls.</dd>
+          </div>
+          <div>
+            <dt data-i18n="technical.platformTitle">Cross-platform releases</dt>
+            <dd data-i18n="technical.platformBody">Packages for Windows x64 and macOS on Intel and Apple Silicon, with SHA-256 checksums.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="download section-narrow reveal" id="download">
+        <div>
+          <p class="eyebrow" data-i18n="download.eyebrow">Free · open source · local-first</p>
+          <h2 data-i18n="download.title">Take back control of your finances.</h2>
+          <p data-i18n="download.body">Download the latest release for macOS or Windows, or inspect every line of code on GitHub.</p>
+        </div>
+        <div class="download-actions">
+          <a class="button primary" href="https://github.com/gloutchov/Contami/releases/latest" target="_blank" rel="noreferrer" data-i18n="actions.download">Download latest release</a>
+          <a class="button on-dark" href="https://github.com/gloutchov/Contami" target="_blank" rel="noreferrer" data-i18n="actions.github">View on GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="footer-brand" href="#top">
+        <img src="./assets/contami-icon.png" width="34" height="34" alt="" />
+        <span>ContaMì</span>
+      </a>
+      <p>Copyright © 2026 Gloutchov</p>
+      <a href="https://github.com/gloutchov/Contami/blob/main/LICENSE" target="_blank" rel="noreferrer" data-i18n="footer.license">Released under the Apache 2.0 License</a>
+    </footer>
+
+    <noscript>
+      <p class="noscript">Questa pagina richiede JavaScript per il cambio lingua. This page requires JavaScript for language switching.</p>
+    </noscript>
+  </body>
+</html>

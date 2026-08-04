@@ -27,4 +27,5 @@ jobs:
       - run: npm run preflight
       - run: npm run test:e2e:install
       - run: npm run test:e2e
+      - run: npm run test:landing:e2e
       - run: npm audit --audit-level=high
