@@ -35,6 +35,9 @@ function errorKey(error: unknown): TranslationKey {
   const text = error instanceof Error ? error.message : "";
   if (text.includes("WORKBOOK_NOT_CONFIGURED")) return "workbookRequired";
   if (text.includes("WORKBOOK_CHANGED_EXTERNALLY")) return "workbookChangedExternally";
+  if (text.includes("WORKBOOK_LOCK_STALE")) return "workbookStaleLock";
+  if (text.includes("WORKBOOK_LOCKED") || text.includes("WORKBOOK_LOCK_LOST")) return "workbookLocked";
+  if (text.includes("WORKBOOK_LOCK_UNAVAILABLE")) return "workbookLockUnavailable";
   if (text.includes("WORKBOOK_RESOURCE_LIMIT") || text.includes("WORKBOOK_TOO_LARGE")) return "workbookResourceLimit";
   if (text.includes("WORKBOOK_UNSAFE") || text.includes("INVALID_WORKBOOK_SCHEMA")) return "workbookUnsafe";
   if (text.includes("NUMBERS_MIRROR_FAILED")) return "mirrorWarning";
@@ -58,6 +61,10 @@ function warningKey(code: string | undefined): TranslationKey | undefined {
   if (code === "WORKBOOK_MISSING") return "workbookMissing";
   if (code === "WORKBOOK_UNSAFE") return "workbookUnsafe";
   if (code === "WORKBOOK_RESOURCE_LIMIT") return "workbookResourceLimit";
+  if (code === "WORKBOOK_CHANGED_EXTERNALLY") return "workbookChangedExternally";
+  if (code === "WORKBOOK_LOCK_STALE") return "workbookStaleLock";
+  if (code === "WORKBOOK_LOCKED") return "workbookLocked";
+  if (code === "WORKBOOK_LOCK_UNAVAILABLE") return "workbookLockUnavailable";
   if (code === "DUPLICATE_UUIDS_REPAIRED") return "duplicateUuidsRepaired";
   if (code === "INVESTMENT_TRANSACTIONS_REPAIRED") return "investmentTransactionsRepaired";
   if (code === "INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS") return "investmentTransactionLinksAmbiguous";
@@ -92,9 +99,22 @@ export default function App() {
   const run = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
     setBusy(true); setNotice(undefined);
     try { return await operation(); }
-    catch (error) { setNotice(errorKey(error)); throw error; }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("WORKBOOK_LOCK_STALE") && window.confirm(translations[language].staleLockRecoveryConfirm)) {
+        try {
+          await api.recoverStaleWorkbookLock();
+          return await operation();
+        } catch (recoveryError) {
+          setNotice(errorKey(recoveryError));
+          throw recoveryError;
+        }
+      }
+      setNotice(errorKey(error));
+      throw error;
+    }
     finally { setBusy(false); }
-  }, []);
+  }, [language]);
 
   const updateSettings = useCallback(async (patch: Pick<Partial<AppSettings>, "language" | "theme" | "workbookFormat">) => {
     await run(async () => { const next = await api.updateSettings(patch); setSettings(next); });

@@ -8,6 +8,7 @@ export const IPC = {
   financeExecute: "finance:execute",
   financeRollover: "finance:rollover",
   financeRevealWorkbook: "finance:reveal-workbook",
+  financeRecoverStaleLock: "finance:recover-stale-lock",
   importTemplateGenerate: "import-template:generate",
   importPreview: "import:preview",
   importConfirm: "import:confirm",
