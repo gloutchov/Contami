@@ -5,6 +5,8 @@ export const APP_CONFIG = Object.freeze({
   workbook: {
     maxBytes: 250 * MIB,
     backupLimit: 10,
+    lockLeaseMs: 5 * 60 * 1_000,
+    lockMaxBytes: 4 * 1_024,
     zip: Object.freeze({
       maxEntries: 4_096,
       maxCentralDirectoryBytes: 4 * MIB,

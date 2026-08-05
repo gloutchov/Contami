@@ -236,7 +236,9 @@ Prima di passare il file al parser Excel, ContaMì controlla la struttura ZIP se
 
 Sono rifiutati prima del parsing archivi troncati, cifrati o ZIP64, voci duplicate, sovrapposte o con percorsi anomali, metadati locali e centrali incoerenti, formati di compressione non supportati, archivi annidati, macro, ActiveX, oggetti incorporati e collegamenti esterni. Il rifiuto non modifica il file e il messaggio non include percorsi o contenuti finanziari.
 
-Prima di sostituire un file esistente, ContaMì crea un backup in `.contami-backups` accanto al `.xlsx` e conserva le ultime 10 copie. La scrittura avviene prima su un file temporaneo, viene riletta e solo dopo sostituisce il file attivo.
+Prima di sostituire un file esistente, ContaMì crea un backup in `.contami-backups` accanto al `.xlsx` e conserva le ultime 10 copie. La scrittura avviene prima su un file temporaneo, viene riletta e solo dopo sostituisce il file attivo. Il backup viene accettato soltanto se la sua impronta SHA-256 corrisponde alla revisione caricata.
+
+All’apertura e dopo ogni salvataggio ContaMì acquisisce dimensione, data di modifica e impronta SHA-256 del workbook. Prima del commit le ricontrolla due volte, l’ultima immediatamente dopo il backup: anche una modifica esterna che conserva dimensione e timestamp blocca il salvataggio. Durante questa fase viene creato accanto al workbook un piccolo lock cooperativo con identificatori casuali e scadenza di cinque minuti; non contiene percorsi o dati finanziari. Due salvataggi ContaMì sovrapposti non possono quindi sostituire entrambi la stessa revisione. Excel e Numbers non rispettano questo lock: continua a evitare modifiche simultanee.
 
 Se un ritocco manuale crea UUID duplicati nelle tabelle del workbook, alla riapertura ContaMì conserva la prima occorrenza e assegna nuovi UUID alle successive. Nessuna riga o informazione economica viene eliminata; i collegamenti non ambigui vengono riallineati. La correzione interessa soltanto le celle necessarie, viene verificata prima della sostituzione e conserva la versione precedente in `.contami-backups`. L’app mostra un avviso quando ha eseguito questa riparazione.
 
@@ -249,6 +251,10 @@ ContaMì si apre comunque e torna allo stato **Non configurato**, senza creare a
 ### “Il foglio è stato modificato da un’altra app”
 
 Chiudi Excel/Numbers, poi usa **Apri foglio esistente** per ricaricare la versione su disco. ContaMì blocca il salvataggio per non sovrascrivere modifiche esterne.
+
+### Lock di salvataggio attivo o scaduto
+
+Un lock attivo indica che un’altra operazione ContaMì sta completando il commit: attendi e riprova. Se un arresto anomalo lascia scadere il lock, al tentativo successivo ContaMì chiede conferma prima di rimuovere soltanto il file di lock e ripetere l’operazione. Conferma solo dopo aver chiuso altre istanze o copie dell’app; il workbook e i backup non vengono eliminati. Non cancellare manualmente un lock ancora attivo.
 
 ### La copia Numbers non si aggiorna
 

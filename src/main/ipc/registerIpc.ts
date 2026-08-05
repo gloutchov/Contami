@@ -25,6 +25,7 @@ function safeError(error: unknown): Error {
     "PAYMENT_METHOD_NOT_FOUND", "ACCOUNT_REQUIRED", "ACCOUNT_PAYMENT_METHOD_MISMATCH", "INVALID_INTERNAL_TRANSFER", "INVALID_CASH_REGISTER_FUNDING_ACCOUNT",
     "INVALID_WORKBOOK_PATH", "INVALID_WORKBOOK_SCHEMA", "WORKBOOK_TOO_LARGE", "WORKBOOK_RESOURCE_LIMIT", "WORKBOOK_UNSAFE", "WORKBOOK_VERIFICATION_FAILED",
     "NUMBERS_NOT_AVAILABLE", "NUMBERS_MIRROR_FAILED", "WORKBOOK_NOT_CONFIGURED", "WORKBOOK_CHANGED_EXTERNALLY",
+    "WORKBOOK_LOCKED", "WORKBOOK_LOCK_STALE", "WORKBOOK_LOCK_LOST", "WORKBOOK_LOCK_UNAVAILABLE",
     "IMPORT_TEMPLATE_VERIFICATION_FAILED",
     "INVALID_IMPORT_TEMPLATE", "IMPORT_FILE_UNSAFE", "IMPORT_FILE_TOO_LARGE", "IMPORT_FORMULA_NOT_ALLOWED",
     "IMPORT_HEADERS_INVALID", "IMPORT_TEMPLATE_VERSION_UNSUPPORTED", "IMPORT_ROW_LIMIT", "IMPORT_PLAN_INVALID",
@@ -72,6 +73,7 @@ export function registerIpc(
   handle(IPC.financeExecute, financeExecuteIpcArgumentsSchema, ([command]) => finance.execute(command));
   handle(IPC.financeRollover, noIpcArgumentsSchema, () => finance.rollover());
   handle(IPC.financeRevealWorkbook, noIpcArgumentsSchema, () => finance.revealWorkbook());
+  handle(IPC.financeRecoverStaleLock, noIpcArgumentsSchema, () => finance.recoverStaleLock());
   handle(IPC.importTemplateGenerate, importTemplateGenerateIpcArgumentsSchema, ([type, language]) => importTemplates.generate(type, language));
   handle(IPC.importPreview, importPreviewIpcArgumentsSchema, ([strategy, language]) => imports.preview(strategy, language));
   handle(IPC.importConfirm, importPreviewIdIpcArgumentsSchema, ([previewId]) => imports.confirm(previewId));
