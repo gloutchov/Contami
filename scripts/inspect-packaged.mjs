@@ -1,6 +1,7 @@
 import { listPackage, extractFile } from "@electron/asar";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { assertStrictProductionCspHtml } from "./validate-renderer-csp.mjs";
 
 const manifest = JSON.parse(await readFile("package.json", "utf8"));
 const root = path.resolve(process.argv[2] ?? path.join("release", manifest.version));
@@ -64,6 +65,7 @@ for (const asarPath of asarFiles) {
     throw new Error(`Package version mismatch in ${asarPath}: ${packagedManifest.version} != ${manifest.version}`);
   }
   if ((await stat(asarPath)).size < 1_024) throw new Error(`Unexpectedly small app.asar: ${asarPath}`);
+  assertStrictProductionCspHtml(extractFile(asarPath, "dist/index.html").toString("utf8"), `${asarPath}:dist/index.html`);
 
   const resources = path.dirname(asarPath);
   for (const requiredResource of ["scripts/numbers-mirror.applescript", "assets/icon.png"]) {

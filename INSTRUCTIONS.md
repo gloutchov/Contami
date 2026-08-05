@@ -245,6 +245,7 @@ Check transaction account links, recent valuations, active/closed state, workboo
 - Protect workbooks with operating-system permissions, FileVault/BitLocker, and encrypted backups when appropriate.
 - ContaMì does not encrypt workbooks or manage spreadsheet passwords.
 - Do not place sensitive workbooks in cloud-synced folders unless you accept that provider’s terms.
+- The renderer uses a strict CSP: production accepts only local scripts and stylesheets, rejects style attributes and connections, and keeps network access blocked.
 - Unsigned builds can trigger operating-system warnings.
 - Native Numbers mirroring depends on Apple automation and may require macOS consent.
 

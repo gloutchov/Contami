@@ -277,6 +277,7 @@ Controlla che le transazioni abbiano il conto corretto, che esista una valutazio
 - Proteggi il workbook con i permessi del sistema, FileVault/BitLocker e backup cifrati se contiene dati sensibili.
 - ContaMì non cifra autonomamente il workbook e non gestisce password del foglio.
 - Non sincronizzare cartelle sensibili con servizi cloud se non accetti le loro condizioni.
+- Il renderer usa una CSP rigorosa: in produzione accetta soltanto script e fogli di stile locali, rifiuta attributi di stile e connessioni e mantiene bloccata la rete.
 - Le build non firmate possono produrre avvisi del sistema.
 - La copia Numbers dipende dall’automazione di Apple Numbers e può richiedere un consenso macOS.
 

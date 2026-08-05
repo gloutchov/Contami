@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.12.1 — spese condivise da Immobili e Automobile / shared expenses from Properties and Vehicles** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.13.0 — CSP rigorosa senza stili inline / strict CSP without inline styles** · Licenza / License: **Apache-2.0**
 
 Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `docs/` tramite GitHub Pages configurato su `main` + `/docs`.
 
@@ -32,6 +32,7 @@ Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contam
 - Salvataggio locale verificato con impronta SHA-256, lock cooperativo a scadenza, doppio controllo immediatamente prima della sostituzione, fino a 10 backup verificati e blocco se il file è stato modificato da un’altra app.
 - Riparazione automatica e conservativa degli UUID duplicati introdotti da modifiche manuali al workbook: nessuna registrazione viene eliminata e la versione precedente resta nel backup.
 - Avvio recuperabile se il workbook configurato è stato spostato o cancellato: l’app torna allo stato non configurato e permette di aprire o creare un file.
+- CSP di produzione rigorosa: script e fogli di stile devono essere locali, gli attributi di stile e le connessioni sono negati; grafici e temi restano dinamici tramite SVG e classi locali senza ampliare le capacità del renderer.
 - Nessun account, cloud, telemetria o richiesta di rete durante l’uso normale.
 
 ---
@@ -56,6 +57,7 @@ Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contam
 - Verified local saves with a SHA-256 revision, expiring cooperative lock, a second check immediately before replacement, up to 10 verified backups, and conflict protection when another app changes the file.
 - Automatic, conservative repair of duplicate UUIDs introduced by manual workbook edits: no record is deleted, and the previous version remains available in the backup.
 - Recoverable startup when the configured workbook was moved or deleted: the app returns to its unconfigured state and lets the user open or create a file.
+- Strict production CSP: scripts and stylesheets must be local, while style attributes and connections are denied; charts and themes remain dynamic through local SVG and classes without expanding renderer capabilities.
 - No account, cloud, telemetry, or network request during normal use.
 
 ## Installazione rapida / Quick install
@@ -148,9 +150,9 @@ The landing page is a static site separate from the desktop app. To inspect it l
 
 ## Sicurezza e privacy / Security and privacy
 
-Il renderer Electron è isolato e in sandbox, non ha Node.js, usa un bridge minimo e IPC validato. Popup, navigazioni, download, permessi e traffico remoto sono bloccati. I file sono limitati a `.xlsx` scelti dall’utente e superano un preflight ZIP prima di ExcelJS; la copia Numbers usa uno script AppleScript fisso e argomenti separati. Dettagli, limiti e modello delle minacce sono in [SECURITY_MODEL.md](SECURITY_MODEL.md).
+Il renderer Electron è isolato e in sandbox, non ha Node.js, usa un bridge minimo e IPC validato. La CSP di produzione rifiuta stili inline e connessioni; popup, navigazioni, download, permessi e traffico remoto sono bloccati. I file sono limitati a `.xlsx` scelti dall’utente e superano un preflight ZIP prima di ExcelJS; la copia Numbers usa uno script AppleScript fisso e argomenti separati. Dettagli, limiti e modello delle minacce sono in [SECURITY_MODEL.md](SECURITY_MODEL.md).
 
-The Electron renderer is isolated and sandboxed, has no Node.js access, and uses a minimal validated IPC bridge. Popups, navigation, downloads, permissions, and remote traffic are blocked. Files are limited to user-selected `.xlsx` paths and pass a ZIP preflight before ExcelJS; the Numbers mirror uses a fixed AppleScript with separate arguments. See [SECURITY_MODEL.md](SECURITY_MODEL.md) for controls, limitations, and threat model.
+The Electron renderer is isolated and sandboxed, has no Node.js access, and uses a minimal validated IPC bridge. The production CSP rejects inline styles and connections; popups, navigation, downloads, permissions, and remote traffic are blocked. Files are limited to user-selected `.xlsx` paths and pass a ZIP preflight before ExcelJS; the Numbers mirror uses a fixed AppleScript with separate arguments. See [SECURITY_MODEL.md](SECURITY_MODEL.md) for controls, limitations, and threat model.
 
 ## Documentazione / Documentation
 

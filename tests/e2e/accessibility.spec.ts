@@ -11,29 +11,83 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
     expect(Math.abs((selectBox!.y + selectBox!.height) - (buttonBox!.y + buttonBox!.height))).toBeLessThanOrEqual(1);
   };
   const expectProportionalCompactCharts = async (root: Locator) => {
-    const checks = await root.locator(".trend-bars").evaluateAll((charts) => charts.map((chart) => {
-      const style = getComputedStyle(chart);
-      const chartBox = chart.getBoundingClientRect();
-      const labels = Array.from(chart.querySelectorAll(".trend-column small")).map((label) => label.getBoundingClientRect());
-      const fills = Array.from(chart.querySelectorAll<HTMLElement>(".trend-track i"));
-      const renderedHeights = fills.map((fill) => Math.round(fill.getBoundingClientRect().height));
-      const requestedHeights = fills.map((fill) => fill.style.height);
-      const maximumTrackHeight = Math.max(0, ...Array.from(chart.querySelectorAll(".trend-track")).map((track) => track.getBoundingClientRect().height));
-      return {
-        barsUseTrackHeight: Math.max(0, ...renderedHeights) >= maximumTrackHeight * 0.95,
-        differentValuesHaveDifferentHeights: new Set(requestedHeights).size <= 1 || new Set(renderedHeights).size > 1,
-        labelsInside: labels.length > 0 && labels.every((label) => label.height > 0 && label.top >= chartBox.top && label.bottom <= chartBox.bottom - 1),
-        overflowY: style.overflowY,
-        verticalScroll: chart.scrollHeight > chart.clientHeight + 1,
-      };
-    }));
-    expect(checks.length).toBeGreaterThan(0);
-    expect(checks.every((item) => item.barsUseTrackHeight && item.differentValuesHaveDifferentHeights && !item.verticalScroll && item.labelsInside)).toBe(true);
+    await expect.poll(async () => {
+      const checks = await root.locator(".trend-bars").evaluateAll((charts) => charts.map((chart) => {
+        const chartBox = chart.getBoundingClientRect();
+        const labels = Array.from(chart.querySelectorAll(".trend-column small")).map((label) => label.getBoundingClientRect());
+        const fills = Array.from(chart.querySelectorAll<SVGGraphicsElement>(".trend-fill"));
+        const renderedHeights = fills.map((fill) => Math.round(fill.getBoundingClientRect().height));
+        const requestedHeights = fills.map((fill) => fill.getAttribute("height"));
+        const maximumTrackHeight = Math.max(0, ...Array.from(chart.querySelectorAll(".trend-track")).map((track) => track.getBoundingClientRect().height));
+        return {
+          barsUseTrackHeight: Math.max(0, ...renderedHeights) >= maximumTrackHeight * 0.95,
+          differentValuesHaveDifferentHeights: new Set(requestedHeights).size <= 1 || new Set(renderedHeights).size > 1,
+          labelsInside: labels.length > 0 && labels.every((label) => label.height > 0 && label.top >= chartBox.top && label.bottom <= chartBox.bottom - 1),
+          verticalScroll: chart.scrollHeight > chart.clientHeight + 1,
+        };
+      }));
+      return checks.length > 0 && checks.every((item) => item.barsUseTrackHeight && item.differentValuesHaveDifferentHeights && !item.verticalScroll && item.labelsInside);
+    }, { timeout: 2_000 }).toBe(true);
   };
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
+  await expect(page.locator(".financial-chart-svg").first()).toBeVisible();
+  const chartMotion = await page.locator(".financial-chart-line").first().evaluate((line) => {
+    const style = getComputedStyle(line);
+    return { name: style.animationName, durationSeconds: Number.parseFloat(style.animationDuration) };
+  });
+  expect(chartMotion.name).toBe("financial-chart-line-in");
+  expect(chartMotion.durationSeconds).toBeGreaterThanOrEqual(0.8);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
   const activeYear = new Date().getFullYear();
+  await expect(page.locator(".financial-chart-svg").first()).toBeVisible();
+  const overviewCharts = await page.locator(".financial-chart-svg").evaluateAll((charts) => charts.map((chart) => {
+    const box = chart.getBoundingClientRect();
+    const viewBox = (chart as SVGSVGElement).viewBox.baseVal;
+    const firstGridLine = chart.querySelector<SVGGraphicsElement>(".financial-chart-grid");
+    const gridBox = firstGridLine?.getBoundingClientRect();
+    return {
+      width: box.width,
+      height: box.height,
+      aspectRatioDifference: Math.abs(viewBox.width / viewBox.height - box.width / box.height),
+      plotWidthRatio: gridBox ? gridBox.width / box.width : 0,
+    };
+  }));
+  expect(overviewCharts.length).toBeGreaterThanOrEqual(4);
+  expect(overviewCharts.every((chart) => chart.width > 200 && chart.height > 100)).toBe(true);
+  expect(overviewCharts.every((chart) => chart.aspectRatioDifference < 0.03 && chart.plotWidthRatio > 0.78)).toBe(true);
+  const chartAppearance = await page.locator(".history-grid, .dashboard-grid").first().evaluate(() => {
+    const linePaths = Array.from(document.querySelectorAll<SVGPathElement>(".financial-chart-line"));
+    const areaPaths = Array.from(document.querySelectorAll<SVGPathElement>(".financial-chart-area"));
+    const axis = document.querySelector(".financial-chart-axis");
+    const legend = document.querySelector(".financial-chart-legend");
+    return {
+      allLinesAreSmoothPaths: linePaths.length > 0 && linePaths.every((path) => /\bC\b/.test(path.getAttribute("d") ?? "")),
+      areasUseGradients: areaPaths.length > 0 && areaPaths.every((path) => path.getAttribute("fill")?.startsWith("url(#")),
+      axisFontWeight: axis ? getComputedStyle(axis).fontWeight : "",
+      legendFontWeight: legend ? getComputedStyle(legend).fontWeight : "",
+      polylines: document.querySelectorAll(".financial-chart-svg polyline").length,
+    };
+  });
+  expect(chartAppearance).toEqual({
+    allLinesAreSmoothPaths: true,
+    areasUseGradients: true,
+    axisFontWeight: "400",
+    legendFontWeight: "400",
+    polylines: 0,
+  });
+  const wealthChart = page.locator('[aria-label="Wealth compared with prior years"]');
+  await wealthChart.locator(".financial-chart-hit-area").nth(1).hover();
+  await expect(wealthChart.locator(".financial-chart-tooltip")).toBeVisible();
+  await expect(wealthChart.locator(".financial-chart-tooltip-title")).toHaveText("2025");
+  const hoveredValues = await wealthChart.locator(".financial-chart-tooltip-value").allTextContents();
+  expect(hoveredValues).toHaveLength(4);
+  expect(hoveredValues.every((value) => /\d/.test(value))).toBe(true);
+  await page.locator(".page-header").hover();
+  await expect(wealthChart.locator(".financial-chart-tooltip")).toBeHidden();
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(navigation).toBeVisible();
@@ -42,6 +96,11 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
     return Number.parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1_000);
   });
   expect(reducedTransitionMs).toBeLessThanOrEqual(1);
+  const reducedChartAnimationMs = await page.locator(".financial-chart-line").first().evaluate((element) => {
+    const duration = getComputedStyle(element).animationDuration;
+    return Number.parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1_000);
+  });
+  expect(reducedChartAnimationMs).toBeLessThanOrEqual(1);
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("button", { name: "Italiano" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "it");
@@ -231,5 +290,7 @@ test("supports IT/EN, light/dark and keyboard-safe dialogs at 1080 px", async ({
 
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
+  expect(await page.locator("[style]").count()).toBe(0);
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute("content", /style-src-attr 'none'/);
   expect(consoleErrors).toEqual([]);
 });

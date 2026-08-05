@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-08-05 · Applicazione / Application: 1.12.1
+Versione del documento / Document version: 2026-08-05 · Applicazione / Application: 1.13.0
 
 ## Italiano
 
@@ -45,12 +45,12 @@ Non sono risolvibili dall’app, da soli, un sistema operativo compromesso, malw
 ### 5. Rete, navigazione e contenuti attivi
 
 - In produzione la sessione Electron annulla richieste `http`, `https`, `ws` e `wss`.
-- La Content Security Policy consente soltanto risorse locali; `object-src` e `base-uri` sono disabilitati. In sviluppo è ammesso solo il server locale Vite.
+- La Content Security Policy di produzione consente script, fogli di stile, immagini e font soltanto locali; `style-src-attr 'none'` rifiuta ogni attributo di stile, `connect-src 'none'` rifiuta le connessioni e `object-src`, `base-uri`, `form-action` e `frame-src` sono disabilitati. In sviluppo la sola eccezione aggiuntiva è `style-src-elem 'unsafe-inline'`, necessaria ai fogli iniettati da Vite, insieme alla connessione al server locale; gli attributi `style` restano negati.
 - Popup, nuove finestre e tentativi di collegare `webview` sono negati; navigazioni fuori dalla pagina corrente, drag-and-drop navigabile e download avviati dal renderer sono bloccati.
 - Tutte le richieste e le verifiche di permesso Electron sono negate.
 - Non vengono caricati font, immagini, script o analytics remoti.
 
-La CSP permette stili inline necessari alla UI corrente. Il rischio è mitigato dall’assenza di HTML non fidato e dall’escaping predefinito di React; una futura rimozione di `style-src 'unsafe-inline'` è auspicabile.
+Tema, barre e grafici dinamici non richiedono stili inline: il tema usa un attributo `data-theme` con classi locali e i grafici SVG usano attributi geometrici/presentazionali validati, curve monotone, sfumature locali, dimensioni responsive e animazioni definite nei fogli locali con rispetto di `prefers-reduced-motion`. La dipendenza Recharts, che generava stili runtime, è stata rimossa. Un controllo sorgenti, la verifica dell’HTML di produzione e l’ispezione di `app.asar` impediscono la reintroduzione di attributi `style` o l’allargamento della policy.
 
 ### 6. Validazione dati e workbook
 
@@ -161,6 +161,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 - controllo CI che impedisce di tracciare `sources/`, `.numbers`, `.xlsx`, chiavi e certificati.
 - ispezione di `app.asar` e delle risorse effettive, più installazione, avvio e rimozione automatica del DMG/NSIS su runner macOS e Windows.
 - validazione statica della landing bilingue, dei percorsi Project Pages, della CSP, dei media localizzati e dell’assenza di dipendenze web remote.
+- controllo M11 dei sorgenti renderer contro attributi e mutazioni `style`, verifica distinta delle policy sviluppo/produzione, controllo dell’HTML compilato e della CSP effettiva dentro `app.asar`; Playwright conferma grafici SVG dinamici, temi IT/EN e assenza di violazioni CSP.
 
 ### 14. Risposta a incidenti e recupero
 
@@ -172,7 +173,7 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 15. Miglioramenti pianificati
 
-- M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
+- M11 è completata: la CSP di produzione nega stili inline e connessioni; l’unica eccezione `unsafe-inline` è limitata agli elementi di stile iniettati dal server Vite di sviluppo, mentre `style-src-attr 'none'` resta sempre attivo.
 
 La cifratura applicativa non è pianificata: resta una decisione futura senza milestone o versione assegnata. Sarà rivalutata soltanto se una soluzione standard conserverà interoperabilità e recupero con Excel e Numbers; nel frattempo sono raccomandati FileVault/BitLocker, permessi del filesystem e backup protetti.
 
@@ -205,9 +206,9 @@ Threats considered include malformed `.xlsx` input, a compromised renderer attem
 
 ### 4. Network and active content
 
-Production Electron sessions cancel HTTP/HTTPS and WS/WSS requests. CSP allows local resources only, disables objects and base URLs, and permits only the local Vite server during development. Popups, webviews, external navigation, navigable drag-and-drop, renderer downloads, permission requests, and permission checks are denied. No remote font, image, script, or analytics endpoint is loaded.
+Production Electron sessions cancel HTTP/HTTPS and WS/WSS requests. The production CSP allows only local scripts, stylesheets, images, and fonts; `style-src-attr 'none'` rejects style attributes, `connect-src 'none'` rejects connections, and objects, base URLs, form submissions, and frames are disabled. Development adds only `style-src-elem 'unsafe-inline'` for Vite-injected styles and the local Vite connection; style attributes remain denied. Popups, webviews, external navigation, navigable drag-and-drop, renderer downloads, permission requests, and permission checks are denied. No remote font, image, script, or analytics endpoint is loaded.
 
-Inline styles remain allowed for the current UI. React escaping and the absence of untrusted HTML mitigate this, but removing `style-src 'unsafe-inline'` is a future hardening target.
+Themes, bars, and dynamic charts need no inline styles: the theme uses a `data-theme` attribute with local classes, while local SVG charts use validated geometry and presentation attributes, monotone curves, local gradients, responsive dimensions, and local-stylesheet animations that honor `prefers-reduced-motion`. Recharts, which generated runtime styles, has been removed. Source scanning, production-HTML validation, and `app.asar` inspection prevent style attributes or a broader policy from being reintroduced.
 
 ### 5. Data and workbook validation
 
@@ -279,13 +280,13 @@ Residual risks: transitive `exceljs` and `electron-builder` chains still contain
 
 ### 11. Tests and recovery
 
-Implemented checks cover domain aggregation (including separate account/cash-register balances, neutral internal transfers, payment-method compatibility, utilities, condominium, vehicles, atomic and unique vehicle financing, automatic half-splitting of Property/Vehicle expenses with cent rounding and synchronized removal, installment classification/lifecycle, confirmed-only liquidity, and rent due/receipt allocation), future-only recurring rate changes and confirmed-history invariance, configurable-tax CRUD and constraints, investment/private-pension loss indicators and separation without double counting, reserved pension-type protection and rollover, v1–v8→v9 migration with conservative account/due-date propagation and unchanged base rates, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing/unsafe-workbook startup recovery, SHA-256 external-edit detection with preserved size/timestamp, overlapping-writer races, pre-rename interference, active/stale/malformed locks and explicit crash recovery, validated atomic settings, strict IPC tuples, bounded-read ZIP preflight limits, a fully synthetic corpus for truncation, zip bombs, duplicates, traversal, nesting, encryption, ZIP64, inconsistent metadata and data descriptors, reproducible seeded mutations, adapter rejection before ExcelJS, v1/v2 migration regression, structural and round-trip verification of all eight v2 templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, Node.js-baseline consistency across `engines`, direct dependencies, CI, and documentation, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including separate account/cash-register balances, neutral internal transfers, payment-method compatibility, utilities, condominium, vehicles, atomic and unique vehicle financing, automatic half-splitting of Property/Vehicle expenses with cent rounding and synchronized removal, installment classification/lifecycle, confirmed-only liquidity, and rent due/receipt allocation), future-only recurring rate changes and confirmed-history invariance, configurable-tax CRUD and constraints, investment/private-pension loss indicators and separation without double counting, reserved pension-type protection and rollover, v1–v8→v9 migration with conservative account/due-date propagation and unchanged base rates, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing/unsafe-workbook startup recovery, SHA-256 external-edit detection with preserved size/timestamp, overlapping-writer races, pre-rename interference, active/stale/malformed locks and explicit crash recovery, validated atomic settings, strict IPC tuples, bounded-read ZIP preflight limits, a fully synthetic corpus for truncation, zip bombs, duplicates, traversal, nesting, encryption, ZIP64, inconsistent metadata and data descriptors, reproducible seeded mutations, adapter rejection before ExcelJS, v1/v2 migration regression, structural and round-trip verification of all eight v2 templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, Node.js-baseline consistency across `engines`, direct dependencies, CI, and documentation, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys. M11 additionally scans renderer sources for style attributes/mutations, validates separate development and production policies, checks compiled HTML and the CSP inside `app.asar`, and exercises dynamic SVG charts and themes without CSP violations.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 12. Planned improvements
 
-M11 removes `style-src 'unsafe-inline'` from the CSP.
+M11 is complete: production denies inline styles and connections. The only `unsafe-inline` exception is scoped to style elements injected by the development Vite server, while `style-src-attr 'none'` remains active in every environment.
 
 Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 
