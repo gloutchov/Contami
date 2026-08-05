@@ -11,7 +11,7 @@
 7. Per cambiare l’importo di una ricorrenza, apri **Modifica → Cambia tariffa**, scegli importo e mese e controlla l’anteprima: vengono aggiornate soltanto le scadenze pianificate.
 8. A fine anno usa **Chiudi anno**. Scegli il nuovo file; ContaMì non elimina né sovrascrive il vecchio.
 
-Il workbook è il dato autorevole. Non tenerlo aperto e modificarlo contemporaneamente in Excel/Numbers mentre salvi dall’app: ContaMì rileva il conflitto e chiede di riaprirlo. I backup sono nella cartella nascosta `.contami-backups` accanto al file `.xlsx`.
+Il workbook è il dato autorevole. Non tenerlo aperto e modificarlo contemporaneamente in Excel/Numbers mentre salvi dall’app: ContaMì confronta anche l’impronta SHA-256 e blocca il conflitto. I salvataggi ContaMì usano inoltre un lock cooperativo a scadenza; dopo un crash, l’app chiede conferma prima di rimuovere il solo lock scaduto. I backup sono nella cartella nascosta `.contami-backups` accanto al file `.xlsx`.
 
 ## English
 
@@ -24,4 +24,4 @@ Il workbook è il dato autorevole. Non tenerlo aperto e modificarlo contemporane
 7. To change a recurring amount, open **Edit → Change rate**, choose the amount and month, and review the preview: only planned occurrences are updated.
 8. At year-end use **Close year**. Pick the new file; ContaMì never deletes or overwrites the old one.
 
-The workbook is authoritative. Do not edit it concurrently in Excel/Numbers while saving from the app: ContaMì detects the conflict and asks you to reopen it. Backups live in the hidden `.contami-backups` folder beside the `.xlsx` file.
+The workbook is authoritative. Do not edit it concurrently in Excel/Numbers while saving from the app: ContaMì also compares a SHA-256 fingerprint and blocks the conflict. ContaMì saves also use an expiring cooperative lock; after a crash, the app asks for confirmation before removing only the expired lock. Backups live in the hidden `.contami-backups` folder beside the `.xlsx` file.

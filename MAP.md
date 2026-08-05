@@ -67,9 +67,10 @@ ContaMì/
 │   │   └── spreadsheet/
 │   │       ├── ExcelImportTemplateGenerator.ts # template xlsx passivi, validati e riletti
 │   │       ├── ExcelImportTemplateParser.ts # parser, riferimenti e piani per gli otto template
-│   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, backup e verifica xlsx
+│   │       ├── ExcelWorkbookRepository.ts # lettura/scrittura, commit protetto, backup e verifica xlsx
 │   │       ├── NumbersMirrorService.ts # adattatore nativo macOS isolato
-│   │       ├── WorkbookRevisionGuard.ts # conflitti con modifiche esterne
+│   │       ├── WorkbookLockManager.ts # lock cooperativo limitato, lease e recupero esplicito
+│   │       ├── WorkbookRevisionGuard.ts # revisioni SHA-256 e conflitti con modifiche esterne
 │   │       ├── XlsxZipPreflight.ts      # parser preventivo ZIP a lettura limitata e policy condivise
 │   │       ├── XlsxWorkbookPreflight.ts # limiti e contenuto ammesso del workbook autorevole
 │   │       ├── XlsxImportPreflight.ts   # policy ZIP più stretta per i template compilati
@@ -136,9 +137,11 @@ ContaMì/
 │   │   ├── import-template-parser.test.ts # otto import, sicurezza, riferimenti e duplicati
 │   │   ├── import-data-service.test.ts # anteprima/annullamento/conferma senza percorsi
 │   │   ├── import-template-service.test.ts # dialogo e mancata esposizione del percorso
-│   │   ├── revision-guard.test.ts      # blocco modifiche concorrenti
+│   │   ├── revision-guard.test.ts      # hash e blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
 │   │   ├── workbook-preflight.test.ts  # rifiuto prima di ExcelJS e compatibilità v1/v2
+│   │   ├── workbook-lock.test.ts       # lock attivo/scaduto e recupero dopo crash
+│   │   ├── workbook-save-integrity.test.ts # writer sovrapposti e gara pre-rename
 │   │   └── workbook.test.ts            # round-trip e schema leggibile
 │   └── unit/
 │       ├── accounts.test.ts             # saldi Casse, trasferimenti interni e vincoli metodo
