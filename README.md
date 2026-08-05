@@ -8,7 +8,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 
 > Stato / Status: **1.13.0 — CSP rigorosa senza stili inline / strict CSP without inline styles** · Licenza / License: **Apache-2.0**
 
-Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `landing/` tramite GitHub Pages.
+Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `docs/` tramite GitHub Pages configurato su `main` + `/docs`.
 
 ## Funzioni principali / Key features
 
@@ -144,9 +144,9 @@ Il workflow di release esegue inoltre `test:package:inspect` sul contenuto effet
 
 The release workflow also runs `test:package:inspect` against the actual `app.asar` content and `test:smoke:installed`: it mounts and copies the DMG into a temporary macOS location or installs NSIS into a temporary Windows directory, launches the app, and verifies removal. These gates run only on matching platform runners.
 
-La landing è un sito statico separato dall’app desktop. Per verificarla localmente, esegui `npm run preview:landing` e apri `http://127.0.0.1:4174/`; il server espone soltanto `landing/`. `npm run test:landing` controlla traduzioni, media, CSP e percorsi relativi, mentre `npm run test:landing:e2e` verifica IT/EN, chiaro/scuro, video, tastiera e layout mobile. Il workflow `.github/workflows/pages.yml` pubblica esclusivamente `landing/` da `main`.
+La landing è un sito statico separato dall’app desktop. Per verificarla localmente, esegui `npm run preview:landing` e apri `http://127.0.0.1:4174/`; il server espone soltanto `docs/`. `npm run test:landing` controlla traduzioni, media, CSP e percorsi relativi, mentre `npm run test:landing:e2e` verifica IT/EN, chiaro/scuro, video, tastiera e layout mobile. GitHub Pages va configurato in modalità **Deploy from a branch**, selezionando il branch `main` e la directory `/docs`; `.nojekyll` mantiene la pubblicazione puramente statica.
 
-The landing page is a static site separate from the desktop app. To inspect it locally, run `npm run preview:landing` and open `http://127.0.0.1:4174/`; the server exposes only `landing/`. `npm run test:landing` checks translations, media, CSP and relative paths, while `npm run test:landing:e2e` verifies IT/EN, light/dark, videos, keyboard use and mobile layout. `.github/workflows/pages.yml` publishes only `landing/` from `main`.
+The landing page is a static site separate from the desktop app. To inspect it locally, run `npm run preview:landing` and open `http://127.0.0.1:4174/`; the server exposes only `docs/`. `npm run test:landing` checks translations, media, CSP and relative paths, while `npm run test:landing:e2e` verifies IT/EN, light/dark, videos, keyboard use and mobile layout. Configure GitHub Pages to **Deploy from a branch**, selecting the `main` branch and `/docs` directory; `.nojekyll` keeps publishing purely static.
 
 ## Sicurezza e privacy / Security and privacy
 
@@ -162,9 +162,9 @@ The Electron renderer is isolated and sandboxed, has no Node.js access, and uses
 - [Security model / Modello di sicurezza](SECURITY_MODEL.md)
 - [Repository map / Mappa](MAP.md)
 - [Development plan / Piano](PLAN.md)
-- [Reference workbook analysis](docs/reference-analysis.md)
-- [Import template specification / Specifica template](docs/import-template-spec.md)
-- [Landing page maintenance / Manutenzione landing](landing/README.md)
+- [Reference workbook analysis](documents/reference-analysis.md)
+- [Import template specification / Specifica template](documents/import-template-spec.md)
+- [Landing page maintenance / Manutenzione landing](documents/landing-maintenance.md)
 
 ## Licenza / License
 

@@ -174,7 +174,7 @@ Templates can also be generated without a workbook: available system values are 
 
 To import, first open the destination workbook, choose **Skip**, **Create new copies**, or **Update** for exact matches only, then select **Import completed file**. The preview shows valid and rejected rows, conflicts, planned actions, aggregate amounts, and row/column errors. No data is written until you choose **Confirm import**; closing the preview leaves the workbook unchanged. Confirmation performs one save with external-change detection and a recoverable backup.
 
-Do not rename sheets or headers and do not add formulas, macros, external links, embedded objects, or extra sheets: these are rejected. Correct the file and preview it again when a row reports a missing or ambiguous reference. See [docs/import-template-spec.md](docs/import-template-spec.md) for the contract and [docs/import-guide.md](docs/import-guide.md) for error recovery.
+Do not rename sheets or headers and do not add formulas, macros, external links, embedded objects, or extra sheets: these are rejected. Correct the file and preview it again when a row reports a missing or ambiguous reference. See [documents/import-template-spec.md](documents/import-template-spec.md) for the contract and [documents/import-guide.md](documents/import-guide.md) for error recovery.
 
 ## 14. Language, theme, and preferences
 
