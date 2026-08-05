@@ -111,6 +111,12 @@ export function VehicleForm({ data, value, onClose, onSave }: { data: FinanceDat
 
 export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSave }: { data: FinanceData; value?: VehicleEntry; initialVehicleId?: string; onClose: () => void; onSave: (command: FinanceCommand) => Promise<void> }) {
   const { t, language } = useI18n();
+  const existingTransaction = value
+    ? data.transactions.find((item) => item.id === value.transactionId || item.vehicleEntryId === value.id)
+    : undefined;
+  const existingSharedExpense = existingTransaction
+    ? data.sharedExpenses.find((item) => item.id === existingTransaction.sharedExpenseId || item.transactionId === existingTransaction.id)
+    : undefined;
   const [vehicleId, setVehicleId] = useState(value?.vehicleId ?? initialVehicleId ?? data.vehicles.find((item) => item.active)?.id ?? "");
   const [date, setDate] = useState(value?.date ?? todayIso());
   const [kind, setKind] = useState<VehicleEntry["kind"]>(value?.kind ?? "fuel");
@@ -125,8 +131,10 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? data.categories.find((item) => item.active && (item.nameIt.toLocaleLowerCase().includes("auto") || item.nameEn.toLocaleLowerCase().includes("car")))?.id ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? data.paymentMethods.find((item) => item.active)?.id ?? "");
   const [accountId, setAccountId] = useState(value?.accountId ?? "");
+  const [shared, setShared] = useState(Boolean(existingTransaction?.shared || existingSharedExpense));
+  const [sharedPaidBy, setSharedPaidBy] = useState<"owner" | "partner">(existingSharedExpense?.paidBy ?? existingTransaction?.sharedPaidBy ?? "owner");
   const [notes, setNotes] = useState(value?.notes ?? "");
-  const valid = Boolean(vehicleId && description.trim() && Number(amount || 0) >= 0 && (kind === "valuation" || (categoryId && paymentMethodId && accountId)) && (kind !== "fuel" || Number(fuelLiters) > 0));
+  const valid = Boolean(vehicleId && description.trim() && Number(amount || 0) >= 0 && (kind === "valuation" || (categoryId && paymentMethodId && accountId)) && (kind !== "fuel" || Number(fuelLiters) > 0) && (!shared || (kind !== "valuation" && Number(amount) > 0)));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const entry: VehicleEntry = {
@@ -138,12 +146,21 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
       categoryId: kind === "valuation" ? undefined : categoryId, paymentMethodId: kind === "valuation" ? undefined : paymentMethodId,
       accountId: kind === "valuation" ? undefined : accountId, transactionId: value?.transactionId, notes,
     };
-    await saveAndClose(onSave, { type: value ? "updateVehicleEntry" : "addVehicleEntry", value: entry }, onClose);
+    await saveAndClose(onSave, {
+      type: value ? "updateVehicleEntryWithSharedExpense" : "addVehicleEntryWithSharedExpense",
+      value: {
+        entry,
+        shared: shared ? {
+          paidBy: sharedPaidBy,
+          settled: existingSharedExpense?.settled ?? existingTransaction?.sharedSettled ?? false,
+        } : undefined,
+      },
+    }, onClose);
   };
   return <Modal title={value ? t("editVehicleEntry") : t("newVehicleEntry")} onClose={onClose} onSubmit={submit} submitDisabled={!valid}>
     <Field label={t("vehicle")}><select required value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>{data.vehicles.filter((item) => item.active || item.id === vehicleId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     <Field label={t("date")}><input required type="date" value={date} onChange={(event) => setDate(event.target.value)} /></Field>
-    <Field label={t("type")}><select value={kind} onChange={(event) => setKind(event.target.value as VehicleEntry["kind"])}>{entryKinds.map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field>
+    <Field label={t("type")}><select value={kind} onChange={(event) => { const nextKind = event.target.value as VehicleEntry["kind"]; setKind(nextKind); if (nextKind === "valuation") setShared(false); }}>{entryKinds.map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field>
     <Field label={t("amount")}><input type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
     <Field label={t("description")} wide><input required maxLength={240} value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
     {kind !== "valuation" && <><Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">—</option>{data.categories.filter((item) => item.active && (item.kind === "expense" || item.kind === "both")).map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field><Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} /></>}
@@ -151,6 +168,7 @@ export function VehicleEntryForm({ data, value, initialVehicleId, onClose, onSav
     <Field label={t("distanceKm")}><input type="number" min="0" step="1" value={distanceKm} onChange={(event) => setDistanceKm(event.target.value)} /></Field>
     {kind === "fuel" && <><Field label={t("fuelLiters")}><input required type="number" min="0.001" step="0.001" value={fuelLiters} onChange={(event) => setFuelLiters(event.target.value)} /></Field><Field label={t("fuelUnitPrice")}><input type="number" min="0" step="0.001" value={fuelUnitPrice} onChange={(event) => setFuelUnitPrice(event.target.value)} /></Field><Field label={t("fuelType")}><input maxLength={80} value={fuelType} onChange={(event) => setFuelType(event.target.value)} /></Field></>}
     <Field label={t("vendor")}><input maxLength={160} value={vendor} onChange={(event) => setVendor(event.target.value)} /></Field>
+    {kind !== "valuation" && <><Field label={t("sharedExpense")}><span className="check-field"><input type="checkbox" aria-label={t("splitHalf")} checked={shared} onChange={(event) => setShared(event.target.checked)} />{t("splitHalf")}</span></Field>{shared && <Field label={t("paidBy")}><select value={sharedPaidBy} onChange={(event) => setSharedPaidBy(event.target.value as "owner" | "partner")}><option value="owner">{t("you")}</option><option value="partner">{t("partner")}</option></select></Field>}</>}
     <Field label={t("notes")} wide><textarea maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;
 }

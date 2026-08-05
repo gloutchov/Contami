@@ -8,9 +8,11 @@ import {
   syncRecurringTransactions,
   upsertInvestmentEntryWithLinks,
   upsertPropertyExpenseWithLinks,
+  upsertPropertyEntryWithAutomaticSharedExpense,
   upsertPropertyEntryWithLinks,
   upsertSharedExpenseWithLinks,
   upsertTransactionWithLinks,
+  upsertVehicleEntryWithAutomaticSharedExpense,
   upsertVehicleEntryWithLinks,
 } from "./linkedRecords";
 import { portfolioValues } from "./investments";
@@ -250,6 +252,17 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       ensureValidPropertyTax(next, command.value, true);
       ensureEntryAccount(next, command.value, command.value.kind === "income" || command.value.kind === "expense");
       upsertPropertyEntryWithLinks(next, command.value); break;
+    case "addPropertyEntryWithSharedExpense":
+      ensureUnique(next.propertyEntries, command.value.entry.id);
+      if (!next.properties.some((item) => item.id === command.value.entry.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
+      ensureValidPropertyTax(next, command.value.entry, false);
+      ensureEntryAccount(next, command.value.entry, command.value.entry.kind === "income" || command.value.entry.kind === "expense");
+      upsertPropertyEntryWithAutomaticSharedExpense(next, command.value.entry, command.value.shared); break;
+    case "updatePropertyEntryWithSharedExpense":
+      ensureExists(next.propertyEntries, command.value.entry.id);
+      ensureValidPropertyTax(next, command.value.entry, true);
+      ensureEntryAccount(next, command.value.entry, command.value.entry.kind === "income" || command.value.entry.kind === "expense");
+      upsertPropertyEntryWithAutomaticSharedExpense(next, command.value.entry, command.value.shared); break;
     case "addPropertyExpense":
       ensureUnique(next.propertyEntries, command.value.entry.id);
       if (!next.properties.some((item) => item.id === command.value.entry.propertyId)) throw new Error("PROPERTY_NOT_FOUND");
@@ -359,6 +372,15 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       ensureEntryAccount(next, command.value, command.value.kind !== "valuation" && command.value.amount > 0);
       upsertVehicleEntryWithLinks(next, command.value); break;
     case "updateVehicleEntry": ensureExists(next.vehicleEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation" && command.value.amount > 0); upsertVehicleEntryWithLinks(next, command.value); break;
+    case "addVehicleEntryWithSharedExpense":
+      ensureUnique(next.vehicleEntries, command.value.entry.id);
+      if (!next.vehicles.some((item) => item.id === command.value.entry.vehicleId)) throw new Error("VEHICLE_NOT_FOUND");
+      ensureEntryAccount(next, command.value.entry, command.value.entry.kind !== "valuation" && command.value.entry.amount > 0);
+      upsertVehicleEntryWithAutomaticSharedExpense(next, command.value.entry, command.value.shared); break;
+    case "updateVehicleEntryWithSharedExpense":
+      ensureExists(next.vehicleEntries, command.value.entry.id);
+      ensureEntryAccount(next, command.value.entry, command.value.entry.kind !== "valuation" && command.value.entry.amount > 0);
+      upsertVehicleEntryWithAutomaticSharedExpense(next, command.value.entry, command.value.shared); break;
     case "addCategory": ensureUnique(next.categories, command.value.id); next.categories.push(command.value); break;
     case "updateCategory": replace(next.categories, command.value); break;
     case "addPaymentMethod": ensureUnique(next.paymentMethods, command.value.id); next.paymentMethods.push(command.value); break;

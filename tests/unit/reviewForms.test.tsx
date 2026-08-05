@@ -9,6 +9,7 @@ import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
 import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
 import { TransactionForm } from "../../src/renderer/forms/TransactionForm";
+import { VehicleEntryForm } from "../../src/renderer/forms/VehicleForms";
 import { RecurringForm } from "../../src/renderer/forms/RecurringForm";
 import { I18nProvider } from "../../src/renderer/i18n/I18nContext";
 import { PropertiesView } from "../../src/renderer/views/PropertiesView";
@@ -169,6 +170,58 @@ describe("v0.8 review forms", () => {
       expect(command.value.entry).toMatchObject({ kind: "income", propertyId, categoryId: rentCategory.id, amount: 750 });
       expect(command.value.recurring).toMatchObject({ kind: "rent", direction: "income", propertyId, amount: 750, frequency: "monthly" });
     }
+  });
+
+  it("offers the automatic half split in a generic property expense", async () => {
+    let data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    data.properties.push({ id: propertyId, name: "Casa", kind: "apartment", usage: "residence", ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<PropertyEntryForm data={data} initialPropertyId={propertyId} onClose={() => undefined} onSave={onSave} />);
+
+    await user.selectOptions(screen.getByLabelText("Categoria"), data.categories.find((item) => item.nameIt === "Casa")!.id);
+    await user.type(screen.getByLabelText("Descrizione"), "Manutenzione condivisa");
+    await user.type(screen.getByLabelText("Importo"), "81");
+    await user.selectOptions(screen.getByLabelText("Metodo di pagamento"), data.paymentMethods[0].id);
+    await user.click(screen.getByRole("checkbox", { name: "Dividi automaticamente a metà" }));
+    await user.selectOptions(screen.getByLabelText("Pagato da"), "partner");
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const command = onSave.mock.calls[0][0];
+    expect(command).toMatchObject({
+      type: "addPropertyEntryWithSharedExpense",
+      value: { entry: { propertyId, amount: 81, accountId: data.accounts[0].id }, shared: { paidBy: "partner", settled: false } },
+    });
+    data = applyFinanceCommand(data, command);
+    expect(data.sharedExpenses[0]).toMatchObject({ ownerShare: 40.5, partnerShare: 40.5, paidBy: "partner" });
+  });
+
+  it("offers the automatic half split in a vehicle cost in English", async () => {
+    let data = createEmptyFinanceData(2026);
+    const vehicleId = crypto.randomUUID();
+    data.vehicles.push({ id: vehicleId, name: "Synthetic car", manufacturer: "Example", model: "Three", fuelType: "electric", active: true, notes: "" });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<I18nProvider language="en"><VehicleEntryForm data={data} initialVehicleId={vehicleId} onClose={() => undefined} onSave={onSave} /></I18nProvider>);
+
+    await user.selectOptions(screen.getByLabelText("Type"), "insurance");
+    await user.type(screen.getByLabelText("Amount"), "60");
+    await user.type(screen.getByLabelText("Description"), "Shared synthetic insurance");
+    await user.selectOptions(screen.getByLabelText("Category"), data.categories.find((item) => item.nameEn === "Transport")!.id);
+    await user.selectOptions(screen.getByLabelText("Payment method"), data.paymentMethods[0].id);
+    await user.click(screen.getByRole("checkbox", { name: "Split automatically in half" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const command = onSave.mock.calls[0][0];
+    expect(command).toMatchObject({
+      type: "addVehicleEntryWithSharedExpense",
+      value: { entry: { vehicleId, kind: "insurance", amount: 60, accountId: data.accounts[0].id }, shared: { paidBy: "owner", settled: false } },
+    });
+    data = applyFinanceCommand(data, command);
+    expect(data.sharedExpenses[0]).toMatchObject({ ownerShare: 30, partnerShare: 30 });
   });
 
   it("creates an electricity expense with bands and a shared split", async () => {
