@@ -4,6 +4,8 @@ import { access, readFile } from "node:fs/promises";
 const required = [
   "README.md", "ISTRUZIONI.md", "INSTRUCTIONS.md", "SECURITY_MODEL.md", "PLAN.md",
   "MAP.md", "AGENTS.md", "LICENSE", "QUICK-START_Desktop.md",
+  "documents/import-guide.md", "documents/import-template-spec.md", "documents/reference-analysis.md",
+  "documents/landing-maintenance.md", "docs/index.html", "docs/.nojekyll",
 ];
 const releaseChecks = [
   "scripts/check-node-baseline.mjs",
@@ -49,9 +51,11 @@ if (extraResources.some((entry) => typeof entry?.from !== "string" || entry.from
 const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean);
 const forbidden = tracked.filter((file) => file.startsWith("sources/") || /\.(numbers|xlsx|pem|key|p12)$/i.test(file));
 if (forbidden.length) throw new Error(`Private or sensitive artifacts are tracked: ${forbidden.join(", ")}`);
+const stalePagesPaths = tracked.filter((file) => file === ".github/workflows/pages.yml" || file.startsWith("landing/"));
+if (stalePagesPaths.length) throw new Error(`GitHub Pages must publish only from main/docs: ${stalePagesPaths.join(", ")}`);
 
 const [readme, securityModel, ...workflowText] = await Promise.all([
-  "README.md", "SECURITY_MODEL.md", ".github/workflows/ci.yml", ".github/workflows/release.yml", ".github/workflows/pages.yml",
+  "README.md", "SECURITY_MODEL.md", ".github/workflows/ci.yml", ".github/workflows/release.yml",
 ].map((file) => readFile(file, "utf8")));
 if (!readme.includes(`**${manifest.version} —`) || !securityModel.includes(`Application: ${manifest.version}`)) {
   throw new Error(`README/SECURITY_MODEL version mismatch for ${manifest.version}`);
@@ -62,10 +66,6 @@ for (const command of ["npm run test:package:inspect", "npm run test:smoke:packa
 }
 if (!releaseWorkflow.includes("workflow_dispatch:") || !releaseWorkflow.includes("if: startsWith(github.ref, 'refs/tags/v')")) {
   throw new Error("Release candidates must be manually runnable without publishing; publishing must remain tag-only");
-}
-const pagesWorkflow = workflowText[2];
-if (!pagesWorkflow.includes("npm run test:landing") || !pagesWorkflow.includes("path: landing") || !pagesWorkflow.includes("github.ref == 'refs/heads/main'")) {
-  throw new Error("GitHub Pages workflow must validate and deploy only the landing directory from main");
 }
 if (!workflowText[0].includes("npm run test:landing:e2e")) {
   throw new Error("Cross-platform CI must run the dedicated landing Playwright checks");

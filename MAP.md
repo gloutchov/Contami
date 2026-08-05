@@ -8,22 +8,22 @@ ContaMì/
 │   ├── dependabot.yml                 # aggiornamenti dipendenze / dependency updates
 │   └── workflows/
 │       ├── ci.yml                     # qualità macOS + Windows / cross-platform quality
-│       ├── release.yml                # pacchetti, checksum e release / packages and release
-│       └── pages.yml                  # validazione e deploy GitHub Pages della sola landing
+│       └── release.yml                # pacchetti, checksum e release / packages and release
 ├── assets/
 │   ├── icon.ico                       # icona Windows / Windows icon
 │   ├── icon.png                       # icona macOS e UI / macOS and UI icon
 │   └── logo.png                       # logo GitHub e riferimento visivo / brand logo
 ├── docs/
-│   ├── import-template-spec.md        # contratti versionati degli otto template Excel
-│   ├── import-guide.md                # compilazione, anteprima, errori e recupero IT/EN
-│   └── reference-analysis.md          # analisi priva di PII del Numbers sorgente
-├── landing/
 │   ├── assets/                        # icona, screenshot sintetici e demo MP4 ottimizzate IT/EN
 │   ├── app.js                         # rilevamento lingua, override manuale e media tema/lingua
 │   ├── index.html                     # landing statica semantica e CSP senza dipendenze remote
 │   ├── styles.css                     # layout editoriale responsive, chiaro/scuro e reduced motion
-│   └── README.md                      # manutenzione e rigenerazione sicura dei media
+│   └── .nojekyll                      # pubblicazione statica GitHub Pages da main + /docs
+├── documents/
+│   ├── import-template-spec.md        # contratti versionati degli otto template Excel
+│   ├── import-guide.md                # compilazione, anteprima, errori e recupero IT/EN
+│   ├── reference-analysis.md          # analisi priva di PII del Numbers sorgente
+│   └── landing-maintenance.md         # manutenzione e rigenerazione sicura dei media
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
 │   ├── check-node-baseline.mjs         # coerenza baseline Node, dipendenze, CI e documentazione
@@ -202,7 +202,7 @@ Generati, non versionati / Generated, not versioned:
 └── .playwright-cli/                     # snapshot del collaudo UI locale
 ```
 
-Le GIF originali sotto `landing/assets/` sono sorgenti locali ignorate da Git; il sito pubblica le sole copie MP4 ottimizzate e i poster PNG già ispezionati. La landing usa esclusivamente percorsi relativi e non entra in `app.asar` o negli artifact Electron.
+Le GIF originali sotto `docs/assets/` sono sorgenti locali ignorate da Git; il sito pubblica le sole copie MP4 ottimizzate e i poster PNG già ispezionati. La landing usa esclusivamente percorsi relativi, viene pubblicata da GitHub Pages tramite `main` + `/docs` e non entra in `app.asar` o negli artifact Electron. I documenti tecnici e di manutenzione restano separati sotto `documents/` e non fanno parte del sito pubblico.
 
 ## Dipendenze tra livelli / Layer direction
 

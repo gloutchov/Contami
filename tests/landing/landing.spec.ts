@@ -96,7 +96,7 @@ test("direct local-file preview shows the content and supports language switchin
     if (message.type() === "error") consoleErrors.push(message.text());
   });
 
-  await page.goto(pathToFileURL(path.resolve("landing/index.html")).href);
+  await page.goto(pathToFileURL(path.resolve("docs/index.html")).href);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Your finances");
   await expect(page.locator(".hero-copy")).toBeVisible();
 
