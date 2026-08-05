@@ -1,4 +1,23 @@
+# Premessa
+
+Non sono un esperto nella scrittura di codice. Per lo meno così mi vedo. Ma non sono neppure una persona che ha scoperto che chatGPT può fare APP e subito ha avuto l'ambizione di fargli fare l'applicazione must have che tutti desiderano da una vita.
+
+ContaMì nasce da un'esigenza pratica. Fino ad oggi ho tenuto nota delle finanze personali tramite un foglio di calcolo, e ciò mi costringeva a ripetere l'inserimento della medesima transazione in vari fogli per poter gestire anche le spese condivise con la famiglia, o altre attività che potevano impattare su più comparti che tengo monitorati. Per evitare tutto ciò, ho pensato di realizzare una applicazione.
+Applicazioni di questo tipo, credo, ce ne sono molte in circolazione, ma volevo poter importare i miei vecchi dati, e poter, in un qualunque momento, poter consultare tutto quanto anche con Excel, o Numbers. Perciò, al posto di un database, ho usato come contenitore, un file Excel.
+
+ContaMì fa proprio questo. Gestisce le finanze personali, e minimizza il tempo di inserimento dei dati, andando a compilare tutte le voci necessarie in automatico.
+
+ContaMì può gestire più conti correnti, e anche più cassa contanti. Oltre alle normali transazioni, può gestire gli investimenti, i fondi pensione, l'abitazione di residenza, ed eventuali altre proprietà in affitto. Tiene traccia delle spese ricorrenti, e anche delle spese condivise (se si fa a mezzo con il proprio partner). Ha anche una sezione che monitora le spese del proprio mezzo di trasporto, e volendo lo confronta con altri (anche passati) per avere metriche di riferimento tra l'uno e gli altri.
+
+L'applicazione è stata interamente realizzata con assistenza AI. L'interfaccia è semplice, e per quanto gestisca molti dati differenti, offre la stessa chiave di lettura e di inserimento dati, così da ridurre il tempo di apprendimento da parte di chi la utilizzerà.
+
+E' perfetta?
+Diciamo che funziona, e non mi pare abbia bug evidenti. Al momento il progetto viene mantenuto con build verificate localmente su macOS e Windows, così da allineare supporto dichiarato e supporto realmente verificato. Un Dev professionista potrebbe trovarci molti difetti, e qualche vulnerabilità che mi è scappata. Lascio a loro l'onere e l'onore di sistemare ciò che i miei occhi imberbi non hanno scovato. Rimane comunque, e sempre, una app realizzata in vibe-coding.
+
+
 # ContaMì — Manuale utente
+
+> Questa app è stata realizzata in vibecoding con codex CLI. Attualmente è da intendersi come alpha funzionante. Potrebbe necessitare di ottimizzazione, pulizia di codice orfano, interventi di sicurezza, e molto altro ancora...
 
 ## 1. Cos’è ContaMì
 
