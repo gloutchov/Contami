@@ -53,6 +53,12 @@ export function PropertyForm({ value, onClose, onSave }: { value?: Property; onC
 
 export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onSave }: { data: FinanceData; value?: PropertyEntry; initialPropertyId?: string; onClose: () => void; onSave: (command: FinanceCommand) => Promise<void> }) {
   const { t, language } = useI18n();
+  const existingTransaction = value
+    ? data.transactions.find((item) => item.id === value.transactionId || item.propertyEntryId === value.id)
+    : undefined;
+  const existingSharedExpense = existingTransaction
+    ? data.sharedExpenses.find((item) => item.id === existingTransaction.sharedExpenseId || item.transactionId === existingTransaction.id)
+    : undefined;
   const [propertyId, setPropertyId] = useState(value?.propertyId ?? initialPropertyId ?? data.properties.find((item) => item.active)?.id ?? "");
   const [date, setDate] = useState(value?.date ?? todayIso());
   const [kind, setKind] = useState<PropertyEntry["kind"]>(value?.kind ?? "expense");
@@ -66,6 +72,8 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
   const [unit, setUnit] = useState(value?.unit ?? "");
   const [paymentMethodId, setPaymentMethodId] = useState(value?.paymentMethodId ?? "");
   const [accountId, setAccountId] = useState(value?.accountId ?? "");
+  const [shared, setShared] = useState(Boolean(existingTransaction?.shared || existingSharedExpense));
+  const [sharedPaidBy, setSharedPaidBy] = useState<"owner" | "partner">(existingSharedExpense?.paidBy ?? existingTransaction?.sharedPaidBy ?? "owner");
   const [isCommonExpense, setIsCommonExpense] = useState(value?.isCommonExpense ?? false);
   const [createRentRecurring, setCreateRentRecurring] = useState(false);
   const [recurringFrequency, setRecurringFrequency] = useState<RecurringItem["frequency"]>("monthly");
@@ -84,6 +92,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
     && (!monetary || (paymentMethodId && categoryId && accountId))
     && (kind !== "consumption" || Number(quantity) > 0)
     && (kind !== "valuation" || (valuationMode === "total" ? Number(amount) > 0 : Boolean(selectedProperty?.areaSqm && Number(valuePerSqm) > 0)))
+    && (!shared || (kind === "expense" && Number(amount) > 0))
     && validRecurringRent);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
@@ -121,12 +130,25 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
       }, onClose);
       return;
     }
+    if (kind === "expense" || existingTransaction?.shared || existingTransaction?.sharedExpenseId || existingSharedExpense) {
+      await saveAndClose(onSave, {
+        type: value ? "updatePropertyEntryWithSharedExpense" : "addPropertyEntryWithSharedExpense",
+        value: {
+          entry: item,
+          shared: kind === "expense" && shared ? {
+            paidBy: sharedPaidBy,
+            settled: existingSharedExpense?.settled ?? existingTransaction?.sharedSettled ?? false,
+          } : undefined,
+        },
+      }, onClose);
+      return;
+    }
     await saveAndClose(onSave, { type: value ? "updatePropertyEntry" : "addPropertyEntry", value: item }, onClose);
   };
   return <Modal title={value ? t("editPropertyEntry") : t("newPropertyEntry")} onClose={onClose} onSubmit={submit} submitDisabled={!valid}>
     <Field label={t("property")}><select required value={propertyId} onChange={(event) => setPropertyId(event.target.value)}>{data.properties.filter((item) => item.active || item.id === propertyId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     <Field label={t("date")}><input required type="date" value={date} onChange={(event) => setDate(event.target.value)} /></Field>
-    <Field label={t("type")}><select value={kind} onChange={(event) => { setKind(event.target.value as PropertyEntry["kind"]); setCategoryId(""); }}><option value="income">{t("income")}</option><option value="expense">{t("expense")}</option><option value="valuation">{t("valuation")}</option><option value="consumption">{t("consumption")}</option></select></Field>
+    <Field label={t("type")}><select value={kind} onChange={(event) => { const nextKind = event.target.value as PropertyEntry["kind"]; setKind(nextKind); setCategoryId(""); if (nextKind !== "expense") setShared(false); }}><option value="income">{t("income")}</option><option value="expense">{t("expense")}</option><option value="valuation">{t("valuation")}</option><option value="consumption">{t("consumption")}</option></select></Field>
     {monetary && <Field label={t("category")}><select required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">—</option>{categories.map((item) => <option key={item.id} value={item.id}>{language === "it" ? item.nameIt : item.nameEn}</option>)}</select></Field>}
     {kind === "consumption" && <Field label={t("utility")}><select value={utility} onChange={(event) => setUtility(event.target.value)}><option value="electricity">{t("electricity")}</option><option value="gas">{t("gas")}</option><option value="water">{t("water")}</option><option value="condominium">{t("condominium")}</option></select></Field>}
     <Field label={t("description")} wide><input required value={description} maxLength={240} onChange={(event) => setDescription(event.target.value)} /></Field>
@@ -135,6 +157,7 @@ export function PropertyEntryForm({ data, value, initialPropertyId, onClose, onS
     {monetary && <Field label={t("paymentMethod")}><select required value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)}><option value="">—</option>{data.paymentMethods.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
     {monetary && <PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} />}
     {canCreateRentRecurring && <><Field label={t("recurring")}><span className="check-field"><input type="checkbox" aria-label={t("createRentRecurring")} checked={createRentRecurring} onChange={(event) => { setCreateRentRecurring(event.target.checked); if (event.target.checked) setRecurringNextDueDate(date); }} />{t("createRentRecurring")}</span><small>{t("createRentRecurringHelp")}</small></Field>{createRentRecurring && <><Field label={t("frequency")}><select value={recurringFrequency} onChange={(event) => setRecurringFrequency(event.target.value as RecurringItem["frequency"])}>{(["weekly", "monthly", "quarterly", "yearly"] as const).map((item) => <option key={item} value={item}>{t(item)}</option>)}</select></Field><Field label={t("nextDue")}><input required type="date" value={recurringNextDueDate} onChange={(event) => setRecurringNextDueDate(event.target.value)} /></Field><Field label={t("endDate")}><input type="date" value={recurringEndDate} onChange={(event) => setRecurringEndDate(event.target.value)} /></Field></>}</>}
+    {kind === "expense" && <><Field label={t("sharedExpense")}><span className="check-field"><input type="checkbox" aria-label={t("splitHalf")} checked={shared} onChange={(event) => setShared(event.target.checked)} />{t("splitHalf")}</span></Field>{shared && <Field label={t("paidBy")}><select value={sharedPaidBy} onChange={(event) => setSharedPaidBy(event.target.value as "owner" | "partner")}><option value="owner">{t("you")}</option><option value="partner">{t("partner")}</option></select></Field>}</>}
     {kind === "expense" && <Field label={t("commonExpense")}><span className="check-field"><input type="checkbox" checked={isCommonExpense} onChange={(event) => setIsCommonExpense(event.target.checked)} />{t("commonExpenseHelp")}</span></Field>}
     {kind === "consumption" && <><Field label={t("quantity")}><input required type="number" min="0" step="0.01" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></Field><Field label={t("unit")}><input value={unit} maxLength={24} onChange={(event) => setUnit(event.target.value)} /></Field></>}
     <Field label={t("notes")} wide><textarea value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} /></Field>
