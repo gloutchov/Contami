@@ -15,6 +15,7 @@ const api: ContaMiApi = Object.freeze({
   execute: (command: FinanceCommand) => ipcRenderer.invoke(IPC.financeExecute, command),
   rolloverYear: () => ipcRenderer.invoke(IPC.financeRollover),
   revealWorkbook: () => ipcRenderer.invoke(IPC.financeRevealWorkbook),
+  recoverStaleWorkbookLock: () => ipcRenderer.invoke(IPC.financeRecoverStaleLock),
   generateImportTemplate: (type: ImportTemplateType, language: "it" | "en") => ipcRenderer.invoke(IPC.importTemplateGenerate, type, language),
   previewImport: (strategy: ImportDuplicateStrategy, language: "it" | "en") => ipcRenderer.invoke(IPC.importPreview, strategy, language),
   confirmImport: (previewId: string) => ipcRenderer.invoke(IPC.importConfirm, previewId),

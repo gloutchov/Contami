@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SettingsService } from "../../src/infrastructure/settings/SettingsService";
 import { ExcelWorkbookRepository } from "../../src/infrastructure/spreadsheet/ExcelWorkbookRepository";
 import { NumbersMirrorService } from "../../src/infrastructure/spreadsheet/NumbersMirrorService";
+import { workbookLockPath } from "../../src/infrastructure/spreadsheet/WorkbookLockManager";
 import { FinanceFileService } from "../../src/main/services/FinanceFileService";
 import { applyFinanceCommand, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 
@@ -359,5 +360,41 @@ describe("FinanceFileService startup recovery", () => {
     const stored = await repository.load(workbookPath);
     expect(stored.accounts).toHaveLength(1);
     expect(stored.transactions).toEqual([]);
+  }, 30_000);
+
+  it("recovers an expired crash lock only after an explicit request and then retries safely", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-stale-lock-recovery-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    const data = createEmptyFinanceData(2026);
+    await repository.save(workbookPath, data);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+    await service.snapshot();
+    const now = Date.now();
+    await writeFile(workbookLockPath(workbookPath), JSON.stringify({
+      version: 1,
+      ownerId: crypto.randomUUID(),
+      token: crypto.randomUUID(),
+      acquiredAtMs: now - 10_000,
+      expiresAtMs: now - 5_000,
+    }));
+    const account = {
+      id: crypto.randomUUID(), name: "Synthetic recovered account", kind: "bank" as const, currency: "EUR",
+      openingBalance: 0, active: true, openedAt: "2026-01-01", notes: "",
+    };
+
+    await expect(service.execute({ type: "addAccount", value: account })).rejects.toThrow("WORKBOOK_LOCK_STALE");
+    await expect(service.recoverStaleLock()).resolves.toBe(true);
+    await expect(service.execute({ type: "addAccount", value: account })).resolves.toMatchObject({
+      data: { accounts: expect.arrayContaining([expect.objectContaining({ id: account.id })]) },
+    });
   }, 30_000);
 });

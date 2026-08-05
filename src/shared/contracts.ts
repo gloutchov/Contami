@@ -59,6 +59,7 @@ export interface ContaMiApi {
   execute(command: FinanceCommand): Promise<FinanceSnapshot>;
   rolloverYear(): Promise<RolloverResult>;
   revealWorkbook(): Promise<boolean>;
+  recoverStaleWorkbookLock(): Promise<boolean>;
   generateImportTemplate(type: ImportTemplateType, language: "it" | "en"): Promise<ImportTemplateResult>;
   previewImport(strategy: ImportDuplicateStrategy, language: "it" | "en"): Promise<ImportPreview>;
   confirmImport(previewId: string): Promise<ImportCommitResult>;

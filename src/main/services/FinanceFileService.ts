@@ -22,6 +22,9 @@ function workbookLoadWarning(error: unknown): string | undefined {
   const code = error instanceof Error ? error.message : "";
   if (code === "WORKBOOK_RESOURCE_LIMIT" || code === "WORKBOOK_TOO_LARGE") return "WORKBOOK_RESOURCE_LIMIT";
   if (code === "WORKBOOK_UNSAFE" || code === "INVALID_WORKBOOK_SCHEMA") return "WORKBOOK_UNSAFE";
+  if (code === "WORKBOOK_CHANGED_EXTERNALLY") return code;
+  if (code === "WORKBOOK_LOCK_LOST") return "WORKBOOK_LOCKED";
+  if (code === "WORKBOOK_LOCKED" || code === "WORKBOOK_LOCK_STALE" || code === "WORKBOOK_LOCK_UNAVAILABLE") return code;
   return undefined;
 }
 
@@ -44,7 +47,6 @@ export class FinanceFileService {
       if (settings.workbookPath) {
         try {
           this.data = await this.loadWorkbook(settings.workbookPath);
-          this.revision = await this.revisions.capture(settings.workbookPath);
         } catch (error) {
           if (isMissingFile(error)) {
             this.data = createEmptyFinanceData();
@@ -93,12 +95,13 @@ export class FinanceFileService {
     const workbookPath = format === "numbers"
       ? path.join(path.dirname(chosenPath), `${path.basename(chosenPath, ".numbers")}.contami.xlsx`)
       : chosenPath;
-    this.data = createEmptyFinanceData();
-    await this.repository.save(workbookPath, this.data);
-    this.revision = await this.revisions.capture(workbookPath);
-    this.warningCode = undefined;
+    const next = createEmptyFinanceData();
+    const nextRevision = await this.repository.save(workbookPath, next);
     const mirrorPath = format === "numbers" ? chosenPath : undefined;
     const nextSettings = await this.settingsService.update({ workbookFormat: format, workbookPath, numbersMirrorPath: mirrorPath });
+    this.data = next;
+    this.revision = nextRevision;
+    this.warningCode = undefined;
     await this.updateMirror(nextSettings, true);
     return { canceled: false, path: workbookPath, mirrorPath };
   }
@@ -113,7 +116,6 @@ export class FinanceFileService {
     const workbookPath = result.filePaths[0];
     const loaded = await this.loadWorkbook(workbookPath);
     this.data = loaded;
-    this.revision = await this.revisions.capture(workbookPath);
     await this.settingsService.update({ workbookFormat: "excel", workbookPath, numbersMirrorPath: undefined });
     return { canceled: false, path: workbookPath };
   }
@@ -123,12 +125,10 @@ export class FinanceFileService {
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
       this.data = await this.loadWorkbook(settings.workbookPath);
-      this.revision = await this.revisions.capture(settings.workbookPath);
     }
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
     const next = applyFinanceCommand(this.data, command);
-    await this.repository.save(settings.workbookPath, next);
-    this.revision = await this.revisions.capture(settings.workbookPath);
+    this.revision = await this.repository.save(settings.workbookPath, next, this.revision);
     this.data = next;
     await this.updateMirror(settings, false);
     return this.snapshot();
@@ -140,12 +140,10 @@ export class FinanceFileService {
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
       this.data = await this.loadWorkbook(settings.workbookPath);
-      this.revision = await this.revisions.capture(settings.workbookPath);
     }
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
     const next = applyFinanceCommands(this.data, commands);
-    await this.repository.save(settings.workbookPath, next);
-    this.revision = await this.revisions.capture(settings.workbookPath);
+    this.revision = await this.repository.save(settings.workbookPath, next, this.revision);
     this.data = next;
     await this.updateMirror(settings, false);
     return this.snapshot();
@@ -156,7 +154,6 @@ export class FinanceFileService {
     if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
     if (!this.data) {
       this.data = await this.loadWorkbook(settings.workbookPath);
-      this.revision = await this.revisions.capture(settings.workbookPath);
     }
     const nextYear = this.data.meta.activeYear + 1;
     const extension = settings.workbookFormat === "numbers" ? "numbers" : "xlsx";
@@ -173,12 +170,12 @@ export class FinanceFileService {
       : selected;
     await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
     const next = createRolloverFinanceData(this.data, nextYear);
-    await this.repository.save(newWorkbookPath, next);
-    this.revision = await this.revisions.capture(newWorkbookPath);
+    const nextRevision = await this.repository.save(newWorkbookPath, next);
     const oldDisplayPath = displayPath(settings) ?? settings.workbookPath;
     const mirrorPath = settings.workbookFormat === "numbers" ? selected : undefined;
     const nextSettings = await this.settingsService.update({ workbookPath: newWorkbookPath, numbersMirrorPath: mirrorPath });
     this.data = next;
+    this.revision = nextRevision;
     await this.updateMirror(nextSettings, true);
     return { canceled: false, archivedPath: oldDisplayPath, newWorkbookPath: displayPath(nextSettings), year: nextYear };
   }
@@ -191,8 +188,19 @@ export class FinanceFileService {
     return true;
   }
 
+  async recoverStaleLock(): Promise<boolean> {
+    const settings = await this.settingsService.get();
+    if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
+    const recovered = await this.repository.recoverStaleLock(settings.workbookPath);
+    this.data = undefined;
+    this.revision = undefined;
+    this.warningCode = undefined;
+    return recovered;
+  }
+
   private async loadWorkbook(filePath: string): Promise<FinanceData> {
     const loaded = await this.repository.loadWithUuidRepair(filePath);
+    this.revision = loaded.revision;
     this.warningCode = loaded.ambiguousInvestmentLinks > 0
       ? "INVESTMENT_TRANSACTION_LINKS_AMBIGUOUS"
       : loaded.repairedInvestmentLinks > 0
