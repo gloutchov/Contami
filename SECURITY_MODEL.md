@@ -1,6 +1,6 @@
 # ContaMì — Modello di sicurezza / Security model
 
-Versione del documento / Document version: 2026-08-03 · Applicazione / Application: 1.11.1
+Versione del documento / Document version: 2026-08-05 · Applicazione / Application: 1.12.0
 
 ## Italiano
 
@@ -37,10 +37,10 @@ Non sono risolvibili dall’app, da soli, un sistema operativo compromesso, malw
 
 - Electron usa `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity: true` e `allowRunningInsecureContent: false`.
 - Il preload espone un oggetto congelato con soli metodi ContaMì; non espone `ipcRenderer`, Node.js o primitive filesystem generiche.
-- I canali IPC sono una allowlist centralizzata. Ogni richiesta deve provenire dal frame principale e dall’URL già caricato nella finestra autorizzata; tuple, arità e payload sono validati con Zod e gli errori sono redatti.
+- I canali IPC sono una allowlist centralizzata. Ogni richiesta deve provenire dal frame principale e dall’URL già caricato nella finestra autorizzata; tuple, arità e payload sono validati con Zod e gli errori sono redatti. Il recupero M10 non accetta argomenti o percorsi e può rimuovere soltanto il lock già scaduto del workbook configurato.
 - Il renderer non sceglie né invia percorsi file: creazione, apertura e destinazione dei template passano dai dialoghi nativi nel main process. Per i template il renderer invia soltanto tipo e lingua validati e riceve soltanto annullamento e nome del file, mai il percorso completo.
 - Main, preload, dominio, persistenza, configurazione e renderer sono moduli separati.
-- È ammessa una sola istanza dell’app, riducendo scritture concorrenti tra processi ContaMì.
+- È ammessa una sola istanza dell’app. Durante il commit, un lock cooperativo per workbook impedisce inoltre a processi o copie ContaMì distinti di salvare contemporaneamente la stessa revisione.
 
 ### 5. Rete, navigazione e contenuti attivi
 
@@ -86,16 +86,17 @@ Il preflight limita deterministicamente l’espansione ZIP ma non sostituisce la
 - Il nuovo workbook viene scritto in un file temporaneo nella stessa cartella.
 - ContaMì lo rilegge e verifica fogli critici prima di sostituire il file attivo.
 - La sostituzione usa rename e un file di rollback quando la piattaforma non consente la sovrascrittura diretta.
-- Prima della sostituzione viene creata una copia in `.contami-backups`; sono mantenuti gli ultimi 10 backup `.xlsx`.
+- Prima della sostituzione viene creata una copia in `.contami-backups`; sono mantenuti gli ultimi 10 backup `.xlsx`. L’impronta SHA-256 del backup deve coincidere con la revisione caricata, altrimenti il backup incompleto viene rimosso e il commit viene bloccato.
 - La riparazione automatica degli UUID modifica in posto soltanto le celle necessarie e il timestamp tecnico, scrive un temporaneo, rilegge le celle corrette, crea un backup e usa la stessa sostituzione con rollback. Un file già corretto non viene riscritto alla riapertura.
 - La migrazione di schema e la riconciliazione dei movimenti patrimoniali possono aggiungere campi o righe mancanti e quindi riscrivono il workbook canonico tramite il normale salvataggio temporaneo, rilettura, backup e sostituzione con rollback. Sono idempotenti: un workbook già migrato e riconciliato non viene riscritto; corrispondenze multiple o conflittuali vengono soltanto segnalate.
 - Un cambio tariffa è una sola trasformazione di dominio: prima del salvataggio valida importo, decorrenza mensile, unicità e invarianza delle tariffe già confermate; modifica in posto soltanto pianificazioni interessate e relativi record collegati. Il renderer mostra un conteggio calcolato sulla copia validata, mentre il main ricontrolla la revisione del workbook e riusa temporaneo, rilettura, backup e rollback. Annullare l’anteprima non invia comandi e non scrive file.
 - Anche il salvataggio Automobile+finanziamento attraversa un unico comando IPC tipizzato e una sola trasformazione `FinanceData`; non introduce percorsi, canali o capacità del renderer. Un errore di validazione lascia invariata la copia autorevole e quindi non avvia alcun salvataggio parziale.
-- Dimensione e timestamp del file vengono catturati dopo apertura/salvataggio. Se cambiano esternamente, il successivo salvataggio viene bloccato e l’utente deve riaprire il workbook.
+- Dimensione, timestamp e impronta SHA-256 vengono catturati tramite un handle locale stabile dopo apertura e salvataggio. Il contenuto viene ricontrollato prima del backup e ancora immediatamente prima della sostituzione; qualunque differenza, anche a dimensione e timestamp invariati, blocca il commit e richiede la riapertura del workbook.
+- Il commit usa un sidecar `.<nome-workbook>.contami.lock` creato in modo esclusivo e limitato a 4 KiB. Contiene soltanto versione, UUID casuali del proprietario/lease e tempi di acquisizione/scadenza, mai il percorso completo o dati finanziari. La lease dura cinque minuti ed è verificata prima delle mutazioni: un lock attivo blocca un secondo writer, uno scaduto richiede conferma esplicita nel renderer prima che il main rimuova esclusivamente quel sidecar e ricarichi il workbook. Lock malformati recenti sono trattati come attivi; diventano recuperabili soltanto dopo la stessa finestra temporale.
 - Il passaggio d’anno crea un nuovo file e non elimina, sposta o rende inaccessibile il precedente.
 - Se all’avvio il percorso ricordato non esiste più (`ENOENT`), ContaMì non crea né sovrascrive file: rimuove soltanto il collegamento obsoleto dalle preferenze, usa uno stato vuoto in memoria e richiede di aprire o creare esplicitamente un workbook. Errori di schema, struttura ZIP o limiti non vengono confusi con un file mancante: il percorso resta nelle preferenze, il file non viene modificato e la UI entra in stato non configurato con un messaggio di recupero, impedendo che lo stato vuoto possa essere salvato sopra il file rifiutato.
 
-Il controllo di conflitto riduce ma non elimina una gara nel brevissimo intervallo tra verifica e rename. I backup rendono recuperabile la versione esterna eventualmente sostituita. I programmi esterni non rispettano un lock ContaMì, quindi evitare modifiche simultanee.
+Il secondo hash restringe ma non elimina una gara nel brevissimo intervallo tra l’ultima verifica e `rename`: i programmi esterni non rispettano il lock cooperativo ContaMì. Evitare quindi modifiche simultanee in Excel/Numbers. Il backup della revisione verificata e il rollback restano il percorso di recupero.
 
 ### 8. Adapter Numbers
 
@@ -140,7 +141,8 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 ### 13. Verifiche implementate
 
 - unit test per comandi, catalogo tasse e relativi vincoli, saldi separati di conti/Casse, trasferimenti interni neutri, compatibilità metodo-conto, aggregazioni di consumi/condominio/automobili, finanziamento Automobile atomico e univoco, classificazione/ciclo di vita delle rate, indicatori di perdita investimenti/pensioni, competenza/incasso delle rate di affitto, variazioni tariffarie future e storico confermato, rollover, migrazione v1–v8→v9, propagazione del conto e sincronizzazione bidirezionale/cancellazione di Versamenti/Liquidazioni;
-- integrazione round-trip workbook e controllo file modificato esternamente;
+- integrazione round-trip workbook, hash con dimensione/timestamp invariati, destinazione creata in concorrenza e controllo file modificato esternamente;
+- gare controllate tra writer, modifica nella finestra pre-`rename`, lock attivo/scaduto/malformato e recupero esplicito dopo crash;
 - preflight ZIP a lettura limitata con limiti separati per file, entry, directory centrale, espansione e rapporto; corpus sintetico per troncamenti, duplicati, percorsi anomali, archivi annidati, metadati incoerenti e mutazioni con seed riproducibile; rifiuto integrato prima di ExcelJS e regressione dei workbook v1/v2 migrabili;
 - integrazione del recupero all’avvio quando il workbook ricordato è stato spostato o cancellato;
 - test impostazioni atomiche e validate;
@@ -168,7 +170,6 @@ Rischi residui: alcune catene transitive di `exceljs` ed `electron-builder` incl
 
 ### 15. Miglioramenti pianificati
 
-- M10: lock cooperativo e hash del contenuto per una protezione più forte dalle modifiche concorrenti;
 - M11: rimozione di `style-src 'unsafe-inline'` dalla CSP.
 
 La cifratura applicativa non è pianificata: resta una decisione futura senza milestone o versione assegnata. Sarà rivalutata soltanto se una soluzione standard conserverà interoperabilità e recupero con Excel e Numbers; nel frattempo sono raccomandati FileVault/BitLocker, permessi del filesystem e backup protetti.
@@ -195,10 +196,10 @@ Threats considered include malformed `.xlsx` input, a compromised renderer attem
 
 - Electron enables context isolation, disabled Node integration, sandboxing, web security, and no insecure content.
 - The preload exposes only a frozen, minimal ContaMì API—never raw IPC, Node.js, or generic filesystem methods.
-- IPC uses a centralized allowlist. Every call must originate from the authorized window's main frame and currently loaded URL; Zod validates argument tuples, arity, and payloads, and errors are redacted.
+- IPC uses a centralized allowlist. Every call must originate from the authorized window's main frame and currently loaded URL; Zod validates argument tuples, arity, and payloads, and errors are redacted. M10 recovery accepts no argument or path and can remove only the configured workbook’s already-expired lock.
 - File paths come only from native main-process dialogs. For templates, the renderer sends only a validated type and language and receives only cancellation state and file name, never the complete path.
 - Main, preload, domain, persistence, settings, and renderer remain separate modules.
-- A single-instance lock reduces concurrent ContaMì writers.
+- A single application instance is allowed. During commit, a per-workbook cooperative lock also prevents separate ContaMì processes or copies from saving the same revision concurrently.
 
 ### 4. Network and active content
 
@@ -232,7 +233,9 @@ M9 evaluated moving the whole parser into a terminable worker/process. That woul
 
 ### 6. Saves, backups, and conflicts
 
-ContaMì writes a same-directory temporary workbook, reopens it to verify critical sheets, creates an adjacent backup, and then replaces the active file with rollback behavior. It retains 10 backups. Schema migration uses the same verified, backed-up replacement. Size and modification time detect external changes and block the next save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
+ContaMì writes a same-directory temporary workbook and reopens it to verify critical sheets. It then creates an adjacent backup whose SHA-256 fingerprint must match the loaded revision, rechecks that revision immediately before replacement, and replaces the active file with rollback behavior. It retains 10 backups. Schema migration uses the same guarded replacement. Size, modification time, and SHA-256 detect external changes—including same-size, same-timestamp edits—and block the save until the workbook is reopened. Year rollover creates a new file and never deletes or moves the previous one.
+
+The commit uses an exclusively created, 4-KiB-bounded `.<workbook-name>.contami.lock` sidecar. It contains only a version, random owner/lease UUIDs, and acquisition/expiry times—never the complete path or financial data. Its five-minute lease is checked before mutations. An active lock blocks another writer; an expired lock requires explicit renderer confirmation before main removes only that sidecar and reloads the workbook. Recent malformed locks are treated as active and become recoverable only after the same lease window.
 
 Automatic UUID repair changes only the required cells and technical timestamp in place, writes a temporary file, rereads the repaired cells, creates a backup, and uses the same rollback-capable replacement. Reopening an already repaired workbook does not rewrite it.
 
@@ -244,7 +247,7 @@ Saving a Vehicle with financing likewise uses one typed IPC command and one `Fin
 
 If the remembered path no longer exists at startup (`ENOENT`), ContaMì creates or overwrites no file: it removes only the stale preference, uses an empty in-memory state, and requires the user to explicitly open or create a workbook. Schema, ZIP-structure, and resource-limit failures are not treated as missing files: the path remains in preferences, the file is unchanged, and the UI enters an unconfigured recovery state, preventing empty data from being saved over the rejected file.
 
-A narrow race remains between conflict check and rename. External spreadsheet apps do not honor a ContaMì lock; avoid simultaneous edits. Backups provide recovery.
+The second hash narrows but cannot eliminate the very small race between the last check and `rename`, because external spreadsheet apps do not honor ContaMì’s cooperative lock. Avoid simultaneous Excel/Numbers edits. The verified-revision backup and rollback remain the recovery path.
 
 ### 7. Numbers adapter
 
@@ -270,13 +273,13 @@ Residual risks: transitive `exceljs` and `electron-builder` chains still contain
 
 ### 11. Tests and recovery
 
-Implemented checks cover domain aggregation (including separate account/cash-register balances, neutral internal transfers, payment-method compatibility, utilities, condominium, vehicles, atomic and unique vehicle financing, installment classification/lifecycle, confirmed-only liquidity, and rent due/receipt allocation), future-only recurring rate changes and confirmed-history invariance, configurable-tax CRUD and constraints, investment/private-pension loss indicators and separation without double counting, reserved pension-type protection and rollover, v1–v8→v9 migration with conservative account/due-date propagation and unchanged base rates, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing/unsafe-workbook startup recovery, external-edit detection, validated atomic settings, strict IPC tuples, bounded-read ZIP preflight limits, a fully synthetic corpus for truncation, zip bombs, duplicates, traversal, nesting, encryption, ZIP64, inconsistent metadata and data descriptors, reproducible seeded mutations, adapter rejection before ExcelJS, v1/v2 migration regression, structural and round-trip verification of all eight v2 templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, Node.js-baseline consistency across `engines`, direct dependencies, CI, and documentation, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
+Implemented checks cover domain aggregation (including separate account/cash-register balances, neutral internal transfers, payment-method compatibility, utilities, condominium, vehicles, atomic and unique vehicle financing, installment classification/lifecycle, confirmed-only liquidity, and rent due/receipt allocation), future-only recurring rate changes and confirmed-history invariance, configurable-tax CRUD and constraints, investment/private-pension loss indicators and separation without double counting, reserved pension-type protection and rollover, v1–v8→v9 migration with conservative account/due-date propagation and unchanged base rates, bidirectional record synchronization and deletion, idempotent Contribution/Liquidation reconciliation with ambiguous cases, workbook round-trip, missing/unsafe-workbook startup recovery, SHA-256 external-edit detection with preserved size/timestamp, overlapping-writer races, pre-rename interference, active/stale/malformed locks and explicit crash recovery, validated atomic settings, strict IPC tuples, bounded-read ZIP preflight limits, a fully synthetic corpus for truncation, zip bombs, duplicates, traversal, nesting, encryption, ZIP64, inconsistent metadata and data descriptors, reproducible seeded mutations, adapter rejection before ExcelJS, v1/v2 migration regression, structural and round-trip verification of all eight v2 templates (catalog modes, named ranges, protected sheets, 5,000-row limit, no formulas/links, and path-redacting dialog), dialog focus containment/restoration, reduced motion, a synthetic large-dataset performance budget, Node.js-baseline consistency across `engines`, direct dependencies, CI, and documentation, builds, dependency audit, reproducible Playwright UI flows in both languages/themes at 1080 px, actual `app.asar` inspection, unpacked and installed-package smoke tests with removal, independent workbook rendering, and CI rejection of private sources/workbooks/keys.
 
 For recovery: close all workbook users, preserve a copy of the suspect file, restore from `.contami-backups` or the prior-year workbook, verify installer checksums, and never attach real financial files to public issues—use synthetic reproduction data.
 
 ### 12. Planned improvements
 
-M10 covers stronger cooperative locking and content hashing; M11 removes `style-src 'unsafe-inline'` from the CSP.
+M11 removes `style-src 'unsafe-inline'` from the CSP.
 
 Application-level encryption is not planned and has no assigned milestone or version. It may be reconsidered only if a standard solution preserves direct Excel/Numbers interoperability and recovery. FileVault/BitLocker, filesystem permissions, and protected backups remain the recommended controls.
 
