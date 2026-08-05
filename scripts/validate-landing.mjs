@@ -3,7 +3,7 @@ import path from "node:path";
 import vm from "node:vm";
 
 const root = process.cwd();
-const landingRoot = path.join(root, "landing");
+const landingRoot = path.join(root, "docs");
 const assetsRoot = path.join(landingRoot, "assets");
 const html = await readFile(path.join(landingRoot, "index.html"), "utf8");
 const script = await readFile(path.join(landingRoot, "app.js"), "utf8");
@@ -12,7 +12,7 @@ const styles = await readFile(path.join(landingRoot, "styles.css"), "utf8");
 const failures = [];
 const fail = (message) => failures.push(message);
 
-for (const required of ["index.html", "styles.css", "app.js", "README.md", "assets/contami-icon.png"]) {
+for (const required of ["index.html", "styles.css", "app.js", ".nojekyll", "assets/contami-icon.png"]) {
   await access(path.join(landingRoot, required));
 }
 

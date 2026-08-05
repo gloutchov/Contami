@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const landingRoot = resolve(fileURLToPath(new URL("../landing/", import.meta.url)));
+const landingRoot = resolve(fileURLToPath(new URL("../docs/", import.meta.url)));
 const port = Number.parseInt(process.env.LANDING_PORT ?? "4174", 10);
 const projectPath = "/Contami";
 const contentTypes = new Map([

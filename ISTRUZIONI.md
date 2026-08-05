@@ -197,7 +197,7 @@ Puoi generare i template anche senza workbook: saranno presenti i valori di sist
 
 Per importare, apri prima il workbook di destinazione, scegli **Ignora**, **Crea nuove copie** o **Aggiorna** per le sole corrispondenze esatte, quindi premi **Importa file compilato**. L’anteprima mostra righe valide, rifiutate, conflitti, operazioni previste, importi aggregati ed errori con riga e colonna. Nessun dato viene scritto finché non scegli **Conferma importazione**; chiudere l’anteprima lascia il workbook invariato. La conferma esegue un solo salvataggio con controllo delle modifiche esterne e backup recuperabile.
 
-Non rinominare il foglio o le intestazioni e non aggiungere formule, macro, link esterni, oggetti incorporati o altri fogli: questi elementi vengono rifiutati. Correggi il file e ripeti l’anteprima se una riga segnala un riferimento mancante o ambiguo. La specifica completa è in [docs/import-template-spec.md](docs/import-template-spec.md) e la guida agli errori è in [docs/import-guide.md](docs/import-guide.md).
+Non rinominare il foglio o le intestazioni e non aggiungere formule, macro, link esterni, oggetti incorporati o altri fogli: questi elementi vengono rifiutati. Correggi il file e ripeti l’anteprima se una riga segnala un riferimento mancante o ambiguo. La specifica completa è in [documents/import-template-spec.md](documents/import-template-spec.md) e la guida agli errori è in [documents/import-guide.md](documents/import-guide.md).
 
 ## 14. Lingua, tema e preferenze
 
