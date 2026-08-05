@@ -1,4 +1,23 @@
+# Foreword
+
+I am not an expert at writing code. At least, that is how I see myself. But neither am I someone who discovered that ChatGPT can build apps and immediately set out to have it create the must-have application everyone has wanted forever.
+
+ContaMì grew out of a practical need. Until now, I kept track of my personal finances in a spreadsheet, which forced me to enter the same transaction repeatedly across several sheets so that I could also manage expenses shared with my family, as well as other activities that could affect more than one of the areas I monitor. To avoid all this, I decided to build an application.
+I believe there are already many applications of this kind, but I wanted to be able to import my old data and, at any time, review everything in Excel or Numbers as well. So, instead of a database, I used an Excel file as the data store.
+
+ContaMì does exactly that. It manages personal finances and minimizes data-entry time by automatically filling in all the required records.
+
+ContaMì can manage multiple bank accounts and multiple cash registers. In addition to normal transactions, it can manage investments, pension funds, a primary residence, and any additional rental properties. It keeps track of recurring expenses as well as shared expenses, such as costs split with a partner. It also has a section that tracks vehicle expenses and, if desired, compares one vehicle with others, including previous ones, to provide useful benchmarks.
+
+The application was built entirely with AI assistance. The interface is simple and, although it handles many different kinds of data, it offers a consistent approach to reading and entering information, reducing the time users need to learn how it works.
+
+Is it perfect?
+Let us say that it works, and I have not noticed any obvious bugs. At present, the project is maintained with builds verified locally on macOS and Windows, keeping declared support aligned with support that has actually been tested. A professional developer might find many flaws, and perhaps some vulnerability I have missed. I leave them the burden and the honor of fixing what my inexperienced eyes have failed to spot. It remains, in every sense, an app built through vibe coding.
+
+
 # ContaMì — User manual
+
+> This app was built through vibe coding with Codex CLI. It should currently be regarded as a functional alpha. It may need optimization, orphaned-code cleanup, security improvements, and much more...
 
 ## 1. What ContaMì is
 
