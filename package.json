@@ -1,7 +1,7 @@
 {
   "name": "contami",
   "productName": "ContaMì",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "description": "Finanze personali local-first con un foglio di calcolo come fonte dati durevole.",
   "license": "Apache-2.0",
   "author": "ContaMì contributors",
@@ -26,6 +26,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:landing": "node scripts/validate-landing.mjs",
+    "test:csp": "node scripts/validate-renderer-csp.mjs",
     "test:landing:e2e": "playwright test --config playwright.landing.config.ts",
     "test:e2e:install": "playwright install chromium",
     "test:package:inspect": "node scripts/inspect-packaged.mjs",
@@ -35,7 +36,7 @@
     "pack": "npm run build && electron-builder --dir",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:win": "npm run build && electron-builder --win --publish never",
-    "preflight": "npm run check:node-baseline && npm run test:landing && npm run lint && npm run typecheck && npm test && npm run build"
+    "preflight": "npm run check:node-baseline && npm run test:landing && npm run lint && npm run typecheck && npm test && npm run build && npm run test:csp"
   },
   "build": {
     "appId": "it.contami.desktop",
@@ -94,7 +95,6 @@
     "lucide-react": "^1.27.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "recharts": "^3.10.1",
     "zod": "^4.4.3"
   },
   "overrides": {

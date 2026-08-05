@@ -27,6 +27,7 @@ ContaMì/
 ├── scripts/
 │   ├── build-electron.mjs             # build separata main + preload
 │   ├── check-node-baseline.mjs         # coerenza baseline Node, dipendenze, CI e documentazione
+│   ├── validate-renderer-csp.mjs       # CSP prod, assenza style inline e verifica app.asar
 │   ├── serve-landing.mjs                # preview HTTP locale limitata alla sola landing
 │   ├── validate-landing.mjs             # i18n, asset, CSP, percorsi Pages e budget media
 │   ├── after-pack.mjs                  # chiude eccezioni di rete nel bundle macOS
@@ -39,7 +40,8 @@ ContaMì/
 ├── sources/                            # input privati locali, esclusi da Git/build
 ├── src/
 │   ├── config/
-│   │   └── appConfig.ts                # limiti e parametri applicativi centrali
+│   │   ├── appConfig.ts                # limiti e parametri applicativi centrali
+│   │   └── rendererCsp.ts              # direttive CSP separate sviluppo/produzione
 │   ├── domain/
 │   │   ├── accounts.ts                # saldi di conti/Casse, compatibilità metodi e trasferimenti interni
 │   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
@@ -87,9 +89,11 @@ ContaMì/
 │   ├── renderer/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
+│   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, animati e con tooltip, senza attributi style
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
-│   │   │   └── RecurringRateChangesEditor.tsx # cronologia, anteprima e conferma tariffa
+│   │   │   ├── RecurringRateChangesEditor.tsx # cronologia, anteprima e conferma tariffa
+│   │   │   └── TrendBars.tsx           # barre SVG proporzionali compatibili con CSP rigorosa
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── AccountForm.tsx     # conti ordinari e Casse con alimentazione predefinita
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
@@ -155,6 +159,7 @@ ContaMì/
 │       ├── annualHistory.test.ts        # aggregati utenze e automobili
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
+│       ├── strictCsp.test.tsx            # policy prod/dev, scanner e grafici SVG dinamici
 │       ├── investments.test.ts          # separazione pensioni, aggregati e vincoli raccoglitore
 │       ├── investmentTransactionSync.test.ts # sincronizzazione, riparazione e casi ambigui
 │       ├── importTemplates.test.ts       # contratti e chiavi gerarchiche degli otto template

@@ -16,7 +16,6 @@ export function ThemeProvider({ theme, capabilities, children }: PropsWithChildr
   const resolved = theme === "system" ? systemTheme : theme;
   useEffect(() => {
     document.documentElement.dataset.theme = resolved;
-    document.documentElement.style.colorScheme = resolved;
   }, [resolved]);
   return children;
 }
