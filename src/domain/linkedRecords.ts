@@ -11,6 +11,11 @@ export interface SharedExpenseSplit {
   settled: boolean;
 }
 
+export interface AutomaticSharedExpense {
+  paidBy: SharedExpense["paidBy"];
+  settled: boolean;
+}
+
 const nowIso = () => new Date().toISOString();
 const randomUUID = () => globalThis.crypto.randomUUID();
 
@@ -229,6 +234,35 @@ export function upsertPropertyExpenseWithLinks(data: FinanceData, value: Propert
   }
 }
 
+function removeDetachedSharedExpense(data: FinanceData, transaction?: Transaction): void {
+  if (!transaction) return;
+  data.sharedExpenses = data.sharedExpenses.filter((item) => item.id !== transaction.sharedExpenseId && item.transactionId !== transaction.id);
+}
+
+function syncAutomaticSharedExpense(data: FinanceData, transaction: Transaction, shared?: AutomaticSharedExpense): void {
+  if (shared) {
+    upsertTransactionWithLinks(data, {
+      ...transaction,
+      shared: true,
+      sharedPaidBy: shared.paidBy,
+      sharedSettled: shared.settled,
+    });
+  } else if (transaction.shared || transaction.sharedExpenseId) {
+    upsertTransactionWithLinks(data, { ...transaction, shared: false });
+  }
+}
+
+export function upsertPropertyEntryWithAutomaticSharedExpense(data: FinanceData, value: PropertyEntry, shared?: AutomaticSharedExpense): void {
+  const previousTransaction = data.transactions.find((item) => item.id === value.transactionId || item.propertyEntryId === value.id);
+  upsertPropertyEntryWithLinks(data, value);
+  const transaction = data.transactions.find((item) => item.id === value.transactionId || item.propertyEntryId === value.id);
+  if (!transaction) {
+    removeDetachedSharedExpense(data, previousTransaction);
+    return;
+  }
+  syncAutomaticSharedExpense(data, transaction, shared);
+}
+
 export function upsertInvestmentEntryWithLinks(data: FinanceData, value: InvestmentEntry): void {
   const previous = data.investmentEntries.find((item) => item.id === value.id);
   replaceOrAdd(data.investmentEntries, value);
@@ -271,6 +305,17 @@ export function upsertVehicleEntryWithLinks(data: FinanceData, value: VehicleEnt
     entry.transactionId = undefined;
     replaceOrAdd(data.vehicleEntries, entry);
   }
+}
+
+export function upsertVehicleEntryWithAutomaticSharedExpense(data: FinanceData, value: VehicleEntry, shared?: AutomaticSharedExpense): void {
+  const previousTransaction = data.transactions.find((item) => item.id === value.transactionId || item.vehicleEntryId === value.id);
+  upsertVehicleEntryWithLinks(data, value);
+  const transaction = data.transactions.find((item) => item.id === value.transactionId || item.vehicleEntryId === value.id);
+  if (!transaction) {
+    removeDetachedSharedExpense(data, previousTransaction);
+    return;
+  }
+  syncAutomaticSharedExpense(data, transaction, shared);
 }
 
 function periodicRecurring(data: FinanceData, investment: Investment, existing?: RecurringItem): RecurringItem | undefined {

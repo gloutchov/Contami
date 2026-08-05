@@ -293,6 +293,52 @@ describe("linked finance records", () => {
     expect(data.sharedExpenses).toHaveLength(0);
   });
 
+  it("automatically splits a generic property expense and removes the link when disabled", () => {
+    let data = createEmptyFinanceData(2026);
+    const propertyId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addProperty", value: {
+      id: propertyId, name: "Synthetic home", kind: "apartment", usage: "residence",
+      ownershipShare: 1, purchasePrice: 200_000, active: true, notes: "",
+    } });
+
+    data = applyFinanceCommand(data, { type: "addPropertyEntryWithSharedExpense", value: {
+      entry: {
+        id: entryId, propertyId, date: "2026-07-10", kind: "expense", category: "Home",
+        categoryId: data.categories[3].id, description: "Synthetic shared property expense", amount: 101.01,
+        paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id, notes: "",
+      },
+      shared: { paidBy: "partner", settled: false },
+    } });
+
+    expect(data.transactions).toHaveLength(1);
+    expect(data.transactions[0]).toMatchObject({ propertyId, propertyEntryId: entryId, shared: true, sharedPaidBy: "partner" });
+    expect(data.sharedExpenses).toHaveLength(1);
+    expect(data.sharedExpenses[0]).toMatchObject({ amount: 101.01, ownerShare: 50.51, partnerShare: 50.5, paidBy: "partner" });
+
+    data = applyFinanceCommand(data, { type: "updatePropertyEntryWithSharedExpense", value: {
+      entry: { ...data.propertyEntries[0], description: "Private property expense" },
+    } });
+    expect(data.transactions[0]).toMatchObject({ description: "Private property expense", shared: false });
+    expect(data.transactions[0].sharedExpenseId).toBeUndefined();
+    expect(data.sharedExpenses).toHaveLength(0);
+
+    data = applyFinanceCommand(data, { type: "updatePropertyEntryWithSharedExpense", value: {
+      entry: data.propertyEntries[0],
+      shared: { paidBy: "owner", settled: false },
+    } });
+    data = applyFinanceCommand(data, { type: "updatePropertyEntryWithSharedExpense", value: {
+      entry: {
+        ...data.propertyEntries[0], kind: "valuation", amount: 250_000,
+        categoryId: undefined, paymentMethodId: undefined, accountId: undefined,
+      },
+    } });
+    expect(data.propertyEntries[0]).toMatchObject({ kind: "valuation", amount: 250_000 });
+    expect(data.propertyEntries[0].transactionId).toBeUndefined();
+    expect(data.transactions).toHaveLength(0);
+    expect(data.sharedExpenses).toHaveLength(0);
+  });
+
   it("turns a periodic investment into one recurrence and planned yearly transactions", () => {
     let data = createEmptyFinanceData(2026);
     const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
@@ -508,5 +554,42 @@ describe("linked finance records", () => {
 
     data = applyFinanceCommand(data, { type: "updateVehicleEntry", value: { ...data.vehicleEntries[0], amount: 60 } });
     expect(data.transactions[0].amount).toBe(60);
+  });
+
+  it("automatically splits a vehicle cost and keeps all three records linked", () => {
+    let data = createEmptyFinanceData(2026);
+    const vehicleId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addVehicle", value: {
+      id: vehicleId, name: "Synthetic car", manufacturer: "Example", model: "Two", fuelType: "hybrid", active: true, notes: "",
+    } });
+
+    data = applyFinanceCommand(data, { type: "addVehicleEntryWithSharedExpense", value: {
+      entry: {
+        id: entryId, vehicleId, date: "2026-07-11", kind: "insurance", description: "Synthetic shared insurance",
+        amount: 80, categoryId: data.categories.find((item) => item.nameEn === "Transport")!.id,
+        paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id, notes: "",
+      },
+      shared: { paidBy: "owner", settled: false },
+    } });
+
+    const transactionId = data.vehicleEntries[0].transactionId!;
+    const sharedExpenseId = data.transactions[0].sharedExpenseId!;
+    expect(data.transactions[0]).toMatchObject({ id: transactionId, vehicleId, vehicleEntryId: entryId, shared: true, sharedExpenseId });
+    expect(data.sharedExpenses[0]).toMatchObject({ id: sharedExpenseId, transactionId, ownerShare: 40, partnerShare: 40 });
+
+    data = applyFinanceCommand(data, { type: "updateVehicleEntryWithSharedExpense", value: {
+      entry: { ...data.vehicleEntries[0], amount: 100 },
+      shared: { paidBy: "partner", settled: false },
+    } });
+    expect(data.sharedExpenses[0]).toMatchObject({ id: sharedExpenseId, amount: 100, ownerShare: 50, partnerShare: 50, paidBy: "partner" });
+    expect(data.transactions[0]).toMatchObject({ sharedPaidBy: "partner" });
+
+    data = applyFinanceCommand(data, { type: "updateVehicleEntryWithSharedExpense", value: {
+      entry: data.vehicleEntries[0],
+    } });
+    expect(data.sharedExpenses).toHaveLength(0);
+    expect(data.transactions[0]).toMatchObject({ shared: false });
+    expect(data.transactions[0].sharedExpenseId).toBeUndefined();
   });
 });

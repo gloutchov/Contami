@@ -94,7 +94,7 @@ Linking a transaction to a property, investment, or shared expense creates/updat
 
 Use **New property** for name, type, use (residence, rental, or other), address, area, ownership share, cadastral value, purchase date/price, and notes. A rental can also define expected rent and due day.
 
-Open a property and choose **New entry** for income, expense, valuation, or consumption. A valuation accepts either the total value or a per-square-metre value calculated against the property floor area. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too.
+Open a property and choose **New entry** for income, expense, valuation, or consumption. A valuation accepts either the total value or a per-square-metre value calculated against the property floor area. Monetary entries use the same categories and payment methods as Transactions and are mirrored there automatically; the reverse direction works too. For an Expense, select **Split automatically in half** and choose who paid to create the linked Shared Expense without re-entering the movement. This is separate from **Common expense**, which includes an item in the common property-expense summary.
 
 Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity accepts F1, F2, F3, or combined F2+F3 readings; gas and water accept cubic metres. The **Taxes** catalog starts with TV licence, IMU, and TARI but can be changed under Settings. Each tax can apply to all properties, the residence only, or rental properties only and can define 1–24 instalments. A tax can be included in the common property-expense summary through its dedicated checkbox. Separately, every cost is mirrored to Transactions and can optionally create a Shared expense between people with payer and split details.
 
@@ -108,7 +108,7 @@ In the same form, enable **Manage financing** and enter installment amount, freq
 
 **Close** and **Reopen** act on both the vehicle and its plan, removing or regenerating planned occurrences only. A vehicle with confirmed records cannot be permanently deleted: close it to preserve its history. Disabling financing removes an unused plan or closes it while retaining confirmed installments.
 
-**New cost / reading** records fuel, installments, road tax, insurance, tyres, routine maintenance, repairs/extraordinary maintenance, valuations, and other costs. Every cost requires date, description, category, and payment method and is mirrored to Transactions. Fuel entries can also store odometer, distance, litres, and price per litre.
+**New cost / reading** records fuel, installments, road tax, insurance, tyres, routine maintenance, repairs/extraordinary maintenance, valuations, and other costs. Every cost requires date, description, category, and payment method and is mirrored to Transactions. For every non-valuation entry, select **Split automatically in half** and choose who paid: ContaMì keeps exactly one linked Vehicle entry, Transaction, and Shared Expense. Fuel entries can also store odometer, distance, litres, and price per litre.
 
 The dashboard shows current-year costs, fuel, and distance. Each vehicle card shows lifetime ownership costs; opening it shows the category breakdown, combinable description/month filters with a filtered total, and yearly comparison. The comparison chart places vehicle names on the horizontal axis and cost per kilometre on the vertical axis, combining detailed current-vehicle records with prior-vehicle actuals.
 
@@ -151,7 +151,7 @@ For non-installment recurring items, ContaMì generates **planned** transactions
 
 ## 11. Shared expenses
 
-Create a shared expense in its dedicated view or select **Shared expense** on a Transaction. Both routes maintain one linked pair. The default split is 50/50; the dedicated form can adjust the two shares.
+Create a shared expense in its dedicated view, select **Shared expense** on a Transaction, or choose **Split automatically in half** while entering a Property or Vehicle expense. Every route keeps exactly one record in each linked view. The default split is 50/50; the dedicated form can adjust the two shares.
 
 - When you paid, a positive balance is owed to you by the partner.
 - When the partner paid, a negative balance is what you owe.

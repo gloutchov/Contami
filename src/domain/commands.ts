@@ -27,6 +27,26 @@ const sharedSplitSchema = z.object({
   paidBy: z.enum(["owner", "partner"]),
   settled: z.boolean(),
 });
+const automaticSharedExpenseSchema = z.object({
+  paidBy: z.enum(["owner", "partner"]),
+  settled: z.boolean(),
+});
+const propertyEntryWithSharedExpenseSchema = z.object({
+  entry: propertyEntrySchema,
+  shared: automaticSharedExpenseSchema.optional(),
+}).superRefine((value, context) => {
+  if (value.shared && (value.entry.kind !== "expense" || value.entry.amount <= 0)) {
+    context.addIssue({ code: "custom", message: "An automatically shared property entry must be a positive expense", path: ["entry", "amount"] });
+  }
+});
+const vehicleEntryWithSharedExpenseSchema = z.object({
+  entry: vehicleEntrySchema,
+  shared: automaticSharedExpenseSchema.optional(),
+}).superRefine((value, context) => {
+  if (value.shared && (value.entry.kind === "valuation" || value.entry.amount <= 0)) {
+    context.addIssue({ code: "custom", message: "An automatically shared vehicle entry must be a positive expense", path: ["entry", "amount"] });
+  }
+});
 const propertyExpenseBundleSchema = z.object({
   entry: propertyEntrySchema,
   shared: sharedSplitSchema.optional(),
@@ -97,6 +117,8 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("updateProperty"), value: propertySchema }),
   z.object({ type: z.literal("addPropertyEntry"), value: propertyEntrySchema }),
   z.object({ type: z.literal("updatePropertyEntry"), value: propertyEntrySchema }),
+  z.object({ type: z.literal("addPropertyEntryWithSharedExpense"), value: propertyEntryWithSharedExpenseSchema }),
+  z.object({ type: z.literal("updatePropertyEntryWithSharedExpense"), value: propertyEntryWithSharedExpenseSchema }),
   z.object({ type: z.literal("addPropertyRentRecurring"), value: propertyRentRecurringBundleSchema }),
   z.object({ type: z.literal("addPropertyExpense"), value: propertyExpenseBundleSchema }),
   z.object({ type: z.literal("updatePropertyExpense"), value: propertyExpenseBundleSchema }),
@@ -118,6 +140,8 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("updateVehicleWithInstallment"), value: vehicleWithInstallmentSchema }),
   z.object({ type: z.literal("addVehicleEntry"), value: vehicleEntrySchema }),
   z.object({ type: z.literal("updateVehicleEntry"), value: vehicleEntrySchema }),
+  z.object({ type: z.literal("addVehicleEntryWithSharedExpense"), value: vehicleEntryWithSharedExpenseSchema }),
+  z.object({ type: z.literal("updateVehicleEntryWithSharedExpense"), value: vehicleEntryWithSharedExpenseSchema }),
   z.object({ type: z.literal("addCategory"), value: categorySchema }),
   z.object({ type: z.literal("updateCategory"), value: categorySchema }),
   z.object({ type: z.literal("addPaymentMethod"), value: paymentMethodSchema }),

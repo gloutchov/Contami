@@ -45,13 +45,13 @@ ContaMì/
 │   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
-│   │   ├── commands.ts                 # comandi validati e tipi azione
+│   │   ├── commands.ts                 # comandi validati, inclusi salvataggi atomici con divisione a metà
 │   │   ├── finance.ts                  # aggregazioni, KPI, saldi filtrati separati Conto/Cassa e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── investmentTransactionSync.ts # coppie movimento/Transazione e riconciliazione idempotente
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
-│   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale e ciclo di vita delle rate
+│   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale, divisione condivisa e ciclo di vita delle rate
 │   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
@@ -94,6 +94,7 @@ ContaMì/
 │   │   │   ├── AccountForm.tsx     # conti ordinari e Casse con alimentazione predefinita
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
+│   │   │   ├── PropertyForms.tsx   # immobili e registrazioni generiche, incluse spese condivise automatiche
 │   │   │   ├── PropertyExpenseForms.tsx # utenze/tasse, consumi e quote condivise
 │   │   │   ├── CatalogForms.tsx     # categorie, metodi, tipi investimento e tasse configurabili
 │   │   │   └── VehicleForms.tsx     # anagrafica automobile e costi/consumi
@@ -128,6 +129,7 @@ ContaMì/
 │   ├── e2e/
 │   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   │   ├── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
+│   │   ├── shared-linked-entries.spec.ts # spese Immobili/Automobile divise a metà e record collegati
 │   │   └── vehicle-installments.spec.ts # creazione, modifica e riapertura finanziamento Automobile
 │   ├── landing/
 │   │   └── landing.spec.ts             # IT/EN, temi, demo video, focus e mobile della landing
