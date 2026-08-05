@@ -8,10 +8,12 @@ afterEach(cleanup);
 
 describe("property compact chart layout", () => {
   it("keeps every year label rendered as the chart x-axis", () => {
-    render(<TrendBars points={Array.from({ length: 14 }, (_, index) => ({ year: 2014 + index, value: index * 100 + 10 }))} format={(value) => `${value}`} />);
+    const { container } = render(<TrendBars points={Array.from({ length: 14 }, (_, index) => ({ year: 2014 + index, value: index * 100 + 10 }))} format={(value) => `${value}`} />);
 
     expect(screen.getByText("2014")).toBeInTheDocument();
     expect(screen.getByText("2027")).toBeInTheDocument();
+    expect(container.querySelectorAll("svg.trend-track")).toHaveLength(14);
+    expect(container.querySelectorAll("[style]")).toHaveLength(0);
   });
 
   it("reserves vertical space for labels while allowing horizontal scrolling only", () => {
@@ -23,6 +25,9 @@ describe("property compact chart layout", () => {
     expect(css).toContain("overflow-y: visible;");
     expect(css).toContain("padding: 4px 0 22px;");
     expect(css).toContain("grid-template-rows: 24px 122px 22px;");
-    expect(css).toContain(".trend-track { height: 122px;");
+    expect(css).toContain(".trend-track { width: 100%; height: 122px;");
+    expect(css).toContain(".trend-fill { vector-effect: non-scaling-stroke;");
+    expect(css).toContain("animation: financial-chart-grow-y 720ms");
+    expect(css).toContain("@keyframes financial-chart-grow-y");
   });
 });

@@ -1,8 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { buildRendererContentSecurityPolicy } from "./src/config/rendererCsp";
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ command }) => ({
+  plugins: [
+    react(),
+    {
+      name: "contami-renderer-csp",
+      transformIndexHtml(html) {
+        const environment = command === "serve" ? "development" : "production";
+        return html.replace("__CONTAMI_RENDERER_CSP__", buildRendererContentSecurityPolicy(environment));
+      },
+    },
+  ],
   base: "./",
   build: {
     outDir: "dist",
@@ -13,4 +23,4 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
-});
+}));
