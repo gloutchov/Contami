@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { access, copyFile, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { APP_CONFIG } from "../../config/appConfig";
@@ -9,6 +9,12 @@ import { migrateFinanceData } from "../../domain/migrations";
 import { financeDataSchema, type FinanceData } from "../../domain/models";
 import { repairOperationalData } from "../../domain/operationalDataRepair";
 import { assertUniqueRecordIds, repairDuplicateRecordIds } from "../../domain/uuidRepair";
+import { WorkbookLockManager } from "./WorkbookLockManager";
+import {
+  WorkbookRevisionGuard,
+  type WorkbookRevision,
+  type WorkbookRevisionState,
+} from "./WorkbookRevisionGuard";
 import { preflightXlsxWorkbook } from "./XlsxWorkbookPreflight";
 import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, type WorkbookTableDefinition } from "./workbookSchema";
 
@@ -159,6 +165,11 @@ function addSchemaSheet(workbook: ExcelJS.Workbook): void {
 }
 
 export class ExcelWorkbookRepository {
+  constructor(
+    private readonly revisions = new WorkbookRevisionGuard(),
+    private readonly locks = new WorkbookLockManager(),
+  ) {}
+
   async load(filePath: string): Promise<FinanceData> {
     return (await this.loadWithUuidRepair(filePath)).data;
   }
@@ -173,8 +184,10 @@ export class ExcelWorkbookRepository {
     unresolvedTransactionAccounts: number;
     closedInstallmentPlans: number;
     migratedSchema: boolean;
+    revision: WorkbookRevision;
   }> {
     assertWorkbookPath(filePath);
+    const openedRevision = await this.revisions.capture(filePath);
     await preflightXlsxWorkbook(filePath);
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
@@ -251,15 +264,17 @@ export class ExcelWorkbookRepository {
     const repaired = repairDuplicateRecordIds(migrated);
     const investmentReconciliation = reconcileInvestmentTransactions(repaired.data);
     const operationalRepair = repairOperationalData(investmentReconciliation.data);
+    await this.revisions.assertUnchanged(openedRevision, filePath);
+    let revision = openedRevision;
     if (schemaVersion !== WORKBOOK_SCHEMA_VERSION
       || investmentReconciliation.repairs.length > 0
       || operationalRepair.repairedTransactionAccounts > 0
       || operationalRepair.closedInstallmentPlans > 0) {
       operationalRepair.data.meta.updatedAt = new Date().toISOString();
-      await this.save(filePath, operationalRepair.data);
+      revision = await this.save(filePath, operationalRepair.data, openedRevision);
     } else if (repaired.repairs.length > 0) {
       repaired.data.meta.updatedAt = new Date().toISOString();
-      await this.persistUuidRepairs(filePath, workbook, definitions, physicalRows, migrated, repaired.data);
+      revision = await this.persistUuidRepairs(filePath, workbook, definitions, physicalRows, migrated, repaired.data, openedRevision);
     }
     return {
       data: operationalRepair.data,
@@ -271,14 +286,16 @@ export class ExcelWorkbookRepository {
       unresolvedTransactionAccounts: operationalRepair.unresolvedTransactionAccounts,
       closedInstallmentPlans: operationalRepair.closedInstallmentPlans,
       migratedSchema: schemaVersion !== WORKBOOK_SCHEMA_VERSION,
+      revision,
     };
   }
 
-  async save(filePath: string, data: FinanceData): Promise<void> {
+  async save(filePath: string, data: FinanceData, expectedRevision?: WorkbookRevision): Promise<WorkbookRevision> {
     assertWorkbookPath(filePath);
     const validated = financeDataSchema.parse(data);
     assertUniqueRecordIds(validated);
     await mkdir(path.dirname(filePath), { recursive: true });
+    const expectedState = expectedRevision ?? await this.revisions.captureState(filePath);
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "ContaMì";
     workbook.company = "ContaMì";
@@ -309,15 +326,31 @@ export class ExcelWorkbookRepository {
       configureDataSheet(sheet, definition);
     }
     const temporary = `${filePath}.tmp-${randomUUID()}.xlsx`;
-    await workbook.xlsx.writeFile(temporary);
-    const verification = new ExcelJS.Workbook();
-    await verification.xlsx.readFile(temporary);
-    if (!verification.getWorksheet("_Meta") || !verification.getWorksheet("Transactions")) {
+    let lease;
+    try {
+      await workbook.xlsx.writeFile(temporary);
+      const verification = new ExcelJS.Workbook();
+      await verification.xlsx.readFile(temporary);
+      if (!verification.getWorksheet("_Meta") || !verification.getWorksheet("Transactions")) {
+        throw new Error("WORKBOOK_VERIFICATION_FAILED");
+      }
+      lease = await this.locks.acquire(filePath);
+      await lease.assertOwned();
+      await this.revisions.assertState(expectedState, filePath);
+      await this.createBackup(filePath, expectedState);
+      await lease.assertOwned();
+      await this.revisions.assertState(expectedState, filePath);
+      await this.replace(filePath, temporary);
+      return await this.revisions.capture(filePath);
+    } finally {
+      await lease?.release();
       await rm(temporary, { force: true });
-      throw new Error("WORKBOOK_VERIFICATION_FAILED");
     }
-    await this.createBackup(filePath);
-    await this.replace(filePath, temporary);
+  }
+
+  async recoverStaleLock(filePath: string): Promise<boolean> {
+    assertWorkbookPath(filePath);
+    return this.locks.recoverStale(filePath);
   }
 
   private async persistUuidRepairs(
@@ -327,7 +360,8 @@ export class ExcelWorkbookRepository {
     physicalRows: Map<WorkbookTableDefinition["key"], number[]>,
     previous: FinanceData,
     next: FinanceData,
-  ): Promise<void> {
+    expectedRevision: WorkbookRevision,
+  ): Promise<WorkbookRevision> {
     const changedCells: Array<{ sheet: string; row: number; column: number; value: unknown }> = [];
     for (const definition of definitions) {
       const sheet = workbook.getWorksheet(definition.sheet);
@@ -365,6 +399,7 @@ export class ExcelWorkbookRepository {
     workbook.modified = new Date(next.meta.updatedAt);
 
     const temporary = `${filePath}.tmp-${randomUUID()}.xlsx`;
+    let lease;
     try {
       await workbook.xlsx.writeFile(temporary);
       const verification = new ExcelJS.Workbook();
@@ -376,25 +411,44 @@ export class ExcelWorkbookRepository {
         const value = readCellValue(verification.getWorksheet(changed.sheet)?.getRow(changed.row).getCell(changed.column).value);
         if (!Object.is(value, changed.value)) throw new Error("WORKBOOK_VERIFICATION_FAILED");
       }
-      await this.createBackup(filePath);
+      lease = await this.locks.acquire(filePath);
+      await lease.assertOwned();
+      await this.revisions.assertUnchanged(expectedRevision, filePath);
+      await this.createBackup(filePath, expectedRevision);
+      await lease.assertOwned();
+      await this.revisions.assertUnchanged(expectedRevision, filePath);
       await this.replace(filePath, temporary);
-    } catch (error) {
+      return await this.revisions.capture(filePath);
+    } finally {
+      await lease?.release();
       await rm(temporary, { force: true });
-      throw error;
     }
   }
 
-  private async createBackup(filePath: string): Promise<void> {
-    try {
-      await access(filePath);
-    } catch {
-      return;
-    }
+  private async createBackup(filePath: string, expected: WorkbookRevisionState): Promise<void> {
+    if ("missing" in expected) return;
     const backupDirectory = path.join(path.dirname(filePath), ".contami-backups");
     await mkdir(backupDirectory, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    await copyFile(filePath, path.join(backupDirectory, `${path.basename(filePath, ".xlsx")}-${stamp}.xlsx`));
-    const files = (await readdir(backupDirectory)).filter((file) => file.endsWith(".xlsx")).sort().reverse();
+    const backupStem = path.basename(filePath, ".xlsx");
+    const backupPath = path.join(backupDirectory, `${backupStem}-${stamp}-${randomUUID()}.xlsx`);
+    try {
+      await copyFile(filePath, backupPath);
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+        throw new Error("WORKBOOK_CHANGED_EXTERNALLY", { cause: error });
+      }
+      throw error;
+    }
+    const backupRevision = await this.revisions.capture(backupPath);
+    if (backupRevision.sha256 !== expected.sha256) {
+      await rm(backupPath, { force: true });
+      throw new Error("WORKBOOK_CHANGED_EXTERNALLY");
+    }
+    const files = (await readdir(backupDirectory))
+      .filter((file) => file.startsWith(`${backupStem}-`) && file.endsWith(".xlsx"))
+      .sort()
+      .reverse();
     for (const old of files.slice(APP_CONFIG.workbook.backupLimit)) await rm(path.join(backupDirectory, old), { force: true });
   }
 

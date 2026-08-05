@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.11.1 — conferma diretta delle ricorrenze non-affitto / direct non-rent recurrence confirmation** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.12.0 — integrità e concorrenza dei salvataggi / save integrity and concurrency** · Licenza / License: **Apache-2.0**
 
 Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `landing/` tramite GitHub Pages.
 
@@ -29,7 +29,7 @@ Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contam
 - Otto template Excel versionati e bilingui, generabili da Impostazioni anche senza workbook aperto, con intestazioni stabili, campi guidati e menu a discesa per preparare l’importazione di dati precedenti.
 - Importazione guidata degli otto template con preflight di sicurezza, anteprima ed errori per riga/colonna, strategie esplicite per i duplicati e conferma atomica con backup.
 - Passaggio d’anno guidato: il file precedente resta intatto, mentre il nuovo conserva anagrafiche attive, saldi di apertura, ultime valutazioni e consuntivi annuali dettagliati per immobili/utenze, investimenti/comparti e automobili.
-- Salvataggio locale verificato, sostituzione atomica, fino a 10 backup e blocco se il file è stato modificato da un’altra app.
+- Salvataggio locale verificato con impronta SHA-256, lock cooperativo a scadenza, doppio controllo immediatamente prima della sostituzione, fino a 10 backup verificati e blocco se il file è stato modificato da un’altra app.
 - Riparazione automatica e conservativa degli UUID duplicati introdotti da modifiche manuali al workbook: nessuna registrazione viene eliminata e la versione precedente resta nel backup.
 - Avvio recuperabile se il workbook configurato è stato spostato o cancellato: l’app torna allo stato non configurato e permette di aprire o creare un file.
 - Nessun account, cloud, telemetria o richiesta di rete durante l’uso normale.
@@ -53,7 +53,7 @@ Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contam
 - Eight versioned bilingual Excel templates generated from Settings, even without an open workbook, with stable headers, guided fields, and drop-down lists for preparing legacy-data imports.
 - Guided import for all eight templates with security preflight, row/column preview errors, explicit duplicate strategies, and atomic confirmation with backup.
 - Guided year rollover: the previous file stays untouched while the new one carries active registries, opening balances, latest valuations, and detailed annual actuals for properties/utilities, investments/compartments, and vehicles.
-- Verified local saves, atomic replacement, up to 10 backups, and conflict protection when another app changes the file.
+- Verified local saves with a SHA-256 revision, expiring cooperative lock, a second check immediately before replacement, up to 10 verified backups, and conflict protection when another app changes the file.
 - Automatic, conservative repair of duplicate UUIDs introduced by manual workbook edits: no record is deleted, and the previous version remains available in the backup.
 - Recoverable startup when the configured workbook was moved or deleted: the app returns to its unconfigured state and lets the user open or create a file.
 - No account, cloud, telemetry, or network request during normal use.

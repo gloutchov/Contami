@@ -204,7 +204,9 @@ Before passing a file to the Excel parser, ContaMì checks its ZIP structure wit
 
 Truncated, encrypted, or ZIP64 archives, duplicate or overlapping entries, abnormal paths, inconsistent local/central metadata, unsupported compression, nested archives, macros, ActiveX, embedded objects, and external links are rejected before parsing. Rejection does not modify the file, and its message contains no path or financial content.
 
-Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file.
+Before replacing an existing workbook, ContaMì creates a backup in the adjacent hidden `.contami-backups` folder and retains the latest 10. It first writes and verifies a temporary file, then replaces the active file. A backup is accepted only when its SHA-256 fingerprint matches the loaded revision.
+
+On opening and after every save, ContaMì captures the workbook’s size, modification time, and SHA-256 fingerprint. It checks them twice before commit, with the final check immediately after backup; even an external edit that preserves size and timestamp blocks the save. During this phase, a small cooperative lock with random identifiers and a five-minute expiry is created beside the workbook; it contains no path or financial data. Two overlapping ContaMì saves therefore cannot both replace the same revision. Excel and Numbers do not honor this lock, so continue to avoid concurrent edits.
 
 If a manual edit creates duplicate UUIDs in workbook tables, ContaMì keeps the first occurrence and assigns new UUIDs to later occurrences when the file is reopened. No row or financial information is deleted, and unambiguous links are realigned. The repair changes only the required cells, is verified before replacement, and preserves the previous version in `.contami-backups`. The app displays a notice after performing this repair.
 
@@ -217,6 +219,10 @@ ContaMì still opens and returns to the **Not configured** state without creatin
 ### “Another app changed the workbook”
 
 Close Excel/Numbers and use **Open existing workbook** to reload the on-disk version. ContaMì blocks the save instead of overwriting external changes.
+
+### Active or expired save lock
+
+An active lock means another ContaMì operation is completing its commit; wait and try again. If a crash leaves the lock expired, ContaMì asks for confirmation on the next attempt before removing only the lock file and retrying the operation. Confirm only after closing other instances or copies of the app; the workbook and backups are not deleted. Do not manually remove an active lock.
 
 ### Numbers mirror is not updating
 

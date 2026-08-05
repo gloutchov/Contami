@@ -130,7 +130,9 @@ function demoData(): FinanceData {
   return reconcileInvestmentTransactions(data).data;
 }
 function createDevelopmentApi(): ContaMiApi {
-  const missingWorkbookScenario = new URLSearchParams(window.location.search).get("qa") === "missing-workbook";
+  const qaScenario = new URLSearchParams(window.location.search).get("qa");
+  const missingWorkbookScenario = qaScenario === "missing-workbook";
+  let staleLockScenario = qaScenario === "stale-lock";
   let settings: AppSettings = { language: "system", theme: "system", workbookFormat: "excel" };
   let data = missingWorkbookScenario ? createEmptyFinanceData(new Date().getFullYear()) : demoData();
   let configured = !missingWorkbookScenario;
@@ -143,9 +145,14 @@ function createDevelopmentApi(): ContaMiApi {
     getSnapshot: async () => snapshot(),
     createWorkbook: async () => { configured = true; warningCode = undefined; return { canceled: false, path: "ContaMi-demo.xlsx" }; },
     openWorkbook: async () => { configured = true; warningCode = undefined; return { canceled: false, path: "ContaMi-demo.xlsx" }; },
-    execute: async (command) => { data = applyFinanceCommand(data, command); return snapshot(); },
+    execute: async (command) => {
+      if (staleLockScenario) throw new Error("WORKBOOK_LOCK_STALE");
+      data = applyFinanceCommand(data, command);
+      return snapshot();
+    },
     rolloverYear: async () => ({ canceled: false, year: data.meta.activeYear + 1, newWorkbookPath: "ContaMi-next.xlsx" }),
     revealWorkbook: async () => true,
+    recoverStaleWorkbookLock: async () => { staleLockScenario = false; return true; },
     generateImportTemplate: async (type) => ({ canceled: false, fileName: `ContaMi-template-${type.replaceAll("_", "-")}-v2.xlsx` }),
     previewImport: async () => ({
       canceled: false,
