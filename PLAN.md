@@ -23,7 +23,7 @@ Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il n
 
 La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
 
-**Stato corrente:** la roadmap è conclusa. Tutte le milestone elencate sono completate o rilasciate; non risultano milestone assegnate o aperte. L’ultima release desktop è `v1.13.0`, mentre M23 segue un versionamento web separato e la sua revisione pubblicata più recente è `landing-v1.0.1`. Le sezioni **Attività pianificate** conservano il perimetro originario delle milestone e non rappresentano lavoro ancora da eseguire.
+**Stato corrente:** la roadmap è stata riaperta il 2026-08-08 con M24, implementata e verificata localmente sul branch dedicato e assegnata al checkpoint desktop `1.14.0`. L’ultima release desktop pubblicata resta `v1.13.0`, mentre M23 segue un versionamento web separato e la sua revisione pubblicata più recente è `landing-v1.0.1`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
 
 | Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
@@ -56,8 +56,9 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | Patch spese condivise Immobili/Automobile | `patch/1.12.1-shared-property-vehicle-expenses` | `1.12.1` | Rilasciata; CI/release macOS e Windows verdi |
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.13.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | M23 — Landing page bilingue | `milestone/23-landing-page` | web `landing-v1.0.1` | Completata e pubblicata; Pages da `main/docs` verdi |
+| M24 — Saldi filtrati e totali odierni | `milestone/24-transaction-balance-summaries` | `1.14.0` | Implementata e verificata localmente; CI/release non ancora eseguite |
 
-**Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1`; non è assegnata una release desktop `v1.14.0`.
+**Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1`; M24 assegna ora il successivo checkpoint desktop `1.14.0`, non ancora pubblicato.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -753,6 +754,32 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Adeguamento sorgente Pages 2026-08-05:** sul branch `patch/landing-v1.0.1-docs-source` la landing è stata spostata integralmente da `landing/` a `docs/`, con `.nojekyll`; i tre documenti tecnici preesistenti e le note di manutenzione sono stati separati in `documents/`. Il workflow Pages personalizzato è stato rimosso in favore della modalità GitHub **Deploy from a branch**, configurata su `main` + `/docs`; validazione statica e Playwright restano nella CI multipiattaforma. Gate locali Windows verdi con Node.js `24.18.1`: baseline Node, validazione dei nove set bilingui, lint, typecheck, build renderer/Electron, 197 test Vitest, controllo documentale, `npm audit` con 0 vulnerabilità e 7 test Playwright dedicati alla landing in IT/EN e chiaro/scuro, inclusi media, tastiera, mobile e apertura diretta da `docs/index.html`. Il commit `aa5b880` è stato integrato tramite PR `#57` nel merge commit `5fb4314`; CI verdi sul branch (`31014448725`), sulla PR (`31014481205`), su `main` (`31014785080`) e sul tag annotato `landing-v1.0.1` (`31015096299`). La pubblicazione Pages da `main/docs` è verde (`31015833448`) ed è stata riconfermata dopo M11 (`31016224632`); il tag web non ha avviato la Release desktop. Con la successiva chiusura di M10 e M11, la previsione desktop `v1.14.0` è stata ritirata: M23 è completa come release web separata e l’ultima release dell’app resta `v1.13.0`.
 
+## M24 — Saldi filtrati puri e totali odierni separati
+
+**Obiettivo:** rendere immediatamente confrontabili sia il risultato economico del sottoinsieme filtrato sia la situazione assoluta di Conto e Cassa alla data odierna, evitando che i saldi iniziali alterino il significato di un filtro.
+
+**Comportamento previsto**
+
+- Senza filtri attivi, i KPI **Saldo Conto** e **Saldo Cassa** comprendono i rispettivi saldi iniziali e tutti gli effetti delle righe dell’anno mostrate dalla vista, incluse le pianificazioni come già previsto dai KPI superiori.
+- Quando è attivo almeno uno tra testo, tipo, categoria, metodo di pagamento o mese, gli stessi KPI escludono ogni saldo iniziale e mostrano il netto puro delle sole righe corrispondenti.
+- **Entrate** e **Uscite** filtrate continuano a usare lo stesso insieme visibile e i trasferimenti interni restano attribuiti in modo opposto a Conto e Cassa.
+- **Totali alla data odierna** usa sempre tutte le Transazioni confermate dall’inizio dell’anno fino a oggi, senza dipendere dai filtri, dalle righe future o dalle pianificazioni.
+- La fascia odierna espone due righe distinte, Conto e Cassa, ciascuna con entrate, uscite e saldo comprensivo dei saldi iniziali disponibili entro la data odierna.
+- La trasformazione resta nel dominio puro; non cambiano schema workbook, migrazioni, persistenza, IPC, preload, rete o capacità del renderer.
+
+**Criteri di accettazione**
+
+- Applicando qualunque filtro, il saldo mostrato coincide con entrate meno uscite del solo sottoinsieme e non incorpora saldi iniziali di Conto o Cassa.
+- Azzerando tutti i filtri, i saldi iniziali tornano inclusi nei KPI e sono indicati nel dettaglio del riquadro.
+- Modificare o azzerare i filtri non cambia nessuno dei sei valori odierni; i due saldi odierni si riconciliano con saldo iniziale più movimenti confermati attribuiti al rispettivo gruppo.
+- Italiano/inglese, tema chiaro/scuro e larghezza minima 1080 px restano leggibili, senza overflow e con gruppi accessibili separati.
+
+**Test richiesti:** unit test di dominio per inclusione/esclusione esplicita dei saldi iniziali; regressione renderer su filtro attivo/azzerato e invarianza dei totali odierni; suite completa; Playwright CLI IT/EN, chiaro/scuro e 1080 px con dati sintetici; lint, typecheck, build, controllo documentale e `npm audit`.
+
+**Documentazione:** `PLAN.md`, README, manuali IT/EN, quick start, MAP e SECURITY_MODEL; versione applicativa sorgente `1.14.0`. Nessun workbook privato, screenshot allegato o dato reale viene copiato in test, fixture o artifact.
+
+**Esito locale 2026-08-08:** creato il branch `milestone/24-transaction-balance-summaries` dalla `main` pulita e portata la versione sorgente a `1.14.0`. Il dominio espone la scelta esplicita di includere il saldo iniziale nel saldo calcolato; la vista la disattiva quando esiste almeno un filtro e usa invece tutte le righe non filtrate, confermate e comprese tra inizio anno e data odierna per i due riepiloghi assoluti Conto/Cassa. Aggiunte stringhe IT/EN, layout accessibile e regressioni sintetiche di dominio e renderer; README, manuali, quick start, MAP e modello di sicurezza sono allineati. Durante il gate `npm audit` ha segnalato due nuove vulnerabilità high transitive, risolte con i soli aggiornamenti compatibili `js-yaml 4.3.1` e `nanoid 3.3.18`; l’audit finale è a 0 vulnerabilità. Gate locale verde su Node.js `24.18.1`: lint, typecheck, 202 test Vitest, build renderer/Electron, controllo documentale, CSP rigorosa e 9 test Playwright automatici. Il collaudo Playwright CLI con dati sintetici ha verificato filtro Carta+agosto, reset, invarianza dei sei totali odierni, IT/chiaro ed EN/scuro a 1080 px, assenza di overflow orizzontale ed errori/warning console. Non sono stati usati né modificati workbook o screenshot privati. Restano da eseguire CI macOS/Windows, packaging, checksum e release prima di pubblicare `v1.14.0`.
+
 ## Patch grafici, menu release e integrità UUID
 
 **Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
@@ -825,6 +852,12 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - Tutte le milestone elencate nella tabella sono completate o rilasciate; non esistono milestone correnti assegnate o aperte.
 - La sequenza desktop termina con M11 e `v1.13.0`; M23 è stata pubblicata separatamente tramite `landing-v1.0.0`, corretta con `landing-v1.0.1` e distribuita da `main/docs` mediante GitHub Pages.
 - Il precedente checkpoint desktop `v1.14.0` non è più previsto. Ogni ulteriore sviluppo funzionale richiederà una nuova milestone e un nuovo checkpoint esplicitamente aggiunti a questo piano.
+
+## Riapertura roadmap — 2026-08-08
+
+- La richiesta di distinguere il netto filtrato dai saldi assoluti ha aperto M24 sul branch `milestone/24-transaction-balance-summaries` e assegnato il nuovo checkpoint desktop `1.14.0`.
+- M24 non altera workbook, dati persistenti o confini di sicurezza: interviene sulle trasformazioni pure dei riepiloghi, sulla vista Transazioni, sulle traduzioni, sui test e sulla documentazione.
+- `v1.13.0` resta l’ultima release desktop pubblicata fino al completamento di CI, packaging, checksum e release di M24.
 
 ## Decisione futura — Cifratura portabile
 

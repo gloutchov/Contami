@@ -108,6 +108,11 @@ describe("finance domain", () => {
     expect(transactionAccountTotals(data, cashOnly, "cashRegister", { includePlanned: true })).toEqual({
       inflows: 0, outflows: 20, net: -20, openingBalance: 50, balance: 30,
     });
+    expect(transactionAccountTotals(data, cashOnly, "cashRegister", {
+      includePlanned: true, includeOpeningBalance: false,
+    })).toEqual({
+      inflows: 0, outflows: 20, net: -20, openingBalance: 50, balance: -20,
+    });
     expect(transactionAccountTotals(data, data.transactions, "account", { includePlanned: true })).toEqual({
       inflows: 200, outflows: 140, net: 60, openingBalance: 1_000, balance: 1_060,
     });
