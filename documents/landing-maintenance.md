@@ -9,6 +9,8 @@ Static, bilingual GitHub Pages site for ContaMì. It uses only relative paths an
 - Source GIF files remain local and are ignored by Git because they are large production sources rather than deployable assets.
 - Every capture must use synthetic data and must be reviewed for financial values, names and workbook paths before commit.
 
+The shared brand icon has one canonical source: `assets/icon.png`. It must remain an 8-bit RGBA PNG with fully transparent corners. `docs/assets/contami-icon.png` is a byte-identical public copy, while the macOS application and DMG packaging also use the canonical source. Run `npm run test:landing` after changing either file; the validation rejects opaque corners or copies that have drifted apart.
+
 To refresh an MP4 from its GIF source:
 
 ```powershell
