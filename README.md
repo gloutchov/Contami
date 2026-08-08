@@ -6,7 +6,7 @@ ContaMì è un’app desktop local-first per gestire finanze personali articolat
 
 ContaMì is a local-first desktop app for managing detailed personal finances while keeping a readable spreadsheet as the durable data source. It is bilingual (Italian/English), follows the system theme, and targets macOS and Windows.
 
-> Stato / Status: **1.14.0 — riepiloghi Transazioni coerenti / consistent Transaction summaries** · Licenza / License: **Apache-2.0**
+> Stato / Status: **1.14.1 — icone trasparenti / transparent icons** · Licenza / License: **Apache-2.0**
 
 Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici, accesso all’ultima release e collegamento diretto al manuale nella lingua selezionata. La pubblicazione avviene dal solo contenuto di `docs/` tramite GitHub Pages configurato su `main` + `/docs`.
 
