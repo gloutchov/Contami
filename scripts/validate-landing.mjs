@@ -29,6 +29,12 @@ if (/https?:\/\/(?:fonts\.|cdn\.|unpkg\.|jsdelivr\.)/i.test(`${html}\n${styles}\
 }
 if (/\.gif\b/i.test(`${html}\n${styles}\n${script}`)) fail("Published landing code must use optimized video rather than GIF sources");
 if (/(?:src|poster|href)=["']\/(?!\/)/i.test(html)) fail("Project Pages assets and links must not use root-absolute paths");
+for (const manualHref of [
+  "https://github.com/gloutchov/Contami/blob/main/ISTRUZIONI.md",
+  "https://github.com/gloutchov/Contami/blob/main/INSTRUCTIONS.md",
+]) {
+  if (!`${html}\n${script}`.includes(manualHref)) fail(`Landing page is missing localized manual link: ${manualHref}`);
+}
 
 const normalizedScript = script.replace(/\r\n?/g, "\n");
 const translationSource = normalizedScript.match(/const translations = (\{[\s\S]*?\n\});\n\nconst LANGUAGE_STORAGE_KEY/);
@@ -81,7 +87,7 @@ for (const selector of ["prefers-color-scheme: dark", "prefers-reduced-motion: r
 }
 if (!styles.includes(".reveal-ready .reveal")) fail("Landing content must remain visible when JavaScript is unavailable");
 if (!styles.includes("--app-content-ratio: 1280 / 752")) fail("Landing media must crop the captured desktop chrome consistently");
-for (const behavior of ["navigator.language", "localStorage", "aria-pressed", "themeQuery.addEventListener"]) {
+for (const behavior of ["navigator.language", "localStorage", "aria-pressed", "themeQuery.addEventListener", "MANUAL_HREFS[currentLanguage]"]) {
   if (!script.includes(behavior)) fail(`Landing script is missing required language/theme behavior: ${behavior}`);
 }
 

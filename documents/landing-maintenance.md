@@ -30,3 +30,5 @@ Run `npm run test:landing` for the static contract and `npm run test:landing:e2e
 ## GitHub Pages
 
 The public site lives entirely under `docs/`. In the repository settings, select **Pages → Deploy from a branch → main → /docs**. The `.nojekyll` marker keeps the deployment static; no repository-managed Pages workflow is required. Treat every file under `docs/` as public. Technical specifications and maintenance notes belong under `documents/` instead.
+
+Files stored at the repository root are not served inside the Project Pages path. Links from the landing to `ISTRUZIONI.md` and `INSTRUCTIONS.md` must therefore use their absolute GitHub `blob/main` URLs; `docs/app.js` selects the matching manual whenever the landing language changes.
