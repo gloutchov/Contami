@@ -15,8 +15,8 @@ ContaMì/
 │   └── logo.png                       # logo GitHub e riferimento visivo / brand logo
 ├── docs/
 │   ├── assets/                        # icona, screenshot sintetici e demo MP4 ottimizzate IT/EN
-│   ├── app.js                         # rilevamento lingua, override manuale e media tema/lingua
-│   ├── index.html                     # landing statica semantica e CSP senza dipendenze remote
+│   ├── app.js                         # lingua, override, link manuale localizzato e media tema/lingua
+│   ├── index.html                     # landing statica, CTA GitHub/manuale e CSP senza dipendenze remote
 │   ├── styles.css                     # layout editoriale responsive, chiaro/scuro e reduced motion
 │   └── .nojekyll                      # pubblicazione statica GitHub Pages da main + /docs
 ├── documents/
