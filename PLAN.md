@@ -23,7 +23,7 @@ Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il n
 
 La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
 
-**Stato corrente:** la roadmap è stata riaperta il 2026-08-08 con M24, ora completata e pubblicata come release desktop `v1.14.0`. M23 segue un versionamento web separato e la revisione pubblicata più recente è `landing-v1.0.2`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
+**Stato corrente:** la roadmap è stata riaperta il 2026-08-08 con M24, completata e pubblicata come release desktop `v1.14.0`. La patch sorgente `1.14.1` corregge la trasparenza dell’icona condivisa; la corrispondente revisione web candidata è `landing-v1.0.3`, successiva all’ultima pubblicata `landing-v1.0.2`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
 
 | Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
@@ -57,6 +57,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M11 — CSP senza stili inline | `milestone/11-strict-csp` | `1.13.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | M23 — Landing page bilingue | `milestone/23-landing-page` | web `landing-v1.0.1` | Completata e pubblicata; Pages da `main/docs` verdi |
 | M24 — Saldi filtrati e totali odierni | `milestone/24-transaction-balance-summaries` | `1.14.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
+| Patch trasparenza icona | `patch/1.14.1-transparent-icons` | desktop `1.14.1` / web `landing-v1.0.3` | Completata localmente; pubblicazione da verificare |
 
 **Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1`.
 
@@ -783,6 +784,21 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 **Esito locale 2026-08-08:** creato il branch `milestone/24-transaction-balance-summaries` dalla `main` pulita e portata la versione sorgente a `1.14.0`. Il dominio espone la scelta esplicita di includere il saldo iniziale nel saldo calcolato; la vista la disattiva quando esiste almeno un filtro e usa invece tutte le righe non filtrate, confermate e comprese tra inizio anno e data odierna per i due riepiloghi assoluti Conto/Cassa. Aggiunte stringhe IT/EN, layout accessibile e regressioni sintetiche di dominio e renderer; README, manuali, quick start, MAP e modello di sicurezza sono allineati. Durante il gate `npm audit` ha segnalato due nuove vulnerabilità high transitive, risolte con i soli aggiornamenti compatibili `js-yaml 4.3.1` e `nanoid 3.3.18`; l’audit finale è a 0 vulnerabilità. Gate locale verde su Node.js `24.18.1`: lint, typecheck, 202 test Vitest, build renderer/Electron, controllo documentale, CSP rigorosa e 9 test Playwright automatici. Il collaudo Playwright CLI con dati sintetici ha verificato filtro Carta+agosto, reset, invarianza dei sei totali odierni, IT/chiaro ed EN/scuro a 1080 px, assenza di overflow orizzontale ed errori/warning console. Non sono stati usati né modificati workbook o screenshot privati. Al termine del gate locale restavano da eseguire CI macOS/Windows, packaging, checksum e release, successivamente completati come registrato di seguito.
 
 **Pubblicazione 2026-08-08:** commit funzionale `9970652`, PR `#61` e merge commit `556bad1`. CI macOS/Windows verdi sul branch (`31254922399`), sulla PR (`31254932709`), su `main` (`31255066780`) e sul tag annotato `v1.14.0` (`31255255530`); Pages da `main/docs` verde (`31255066437`). Il workflow Release `31255255533` ha completato preflight, packaging, ispezione e smoke installato su macOS e Windows, pubblicando sei artifact applicativi non firmati e `SHA256SUMS.txt`. I sei checksum del file sono stati riconciliati con i digest SHA-256 calcolati da GitHub. M24 e la release desktop `v1.14.0` sono completate.
+
+## Patch 1.14.1 / landing-v1.0.3 — Trasparenza dell’icona
+
+**Obiettivo:** eliminare gli angoli neri visibili quando l’icona ContaMì viene mostrata senza la maschera applicata dal sistema operativo, in particolare nella landing pubblica e nel DMG macOS.
+
+**Comportamento previsto**
+
+- `assets/icon.png` resta la sorgente canonica condivisa dal packaging macOS e conserva dimensioni e contenuto grafico, ma usa un canale alpha reale con angoli completamente trasparenti.
+- `docs/assets/contami-icon.png` resta una copia byte-identica della sorgente canonica, così favicon, testata e footer della landing non possono divergere dall’icona distribuita.
+- L’ICO Windows già trasparente e l’aspetto dell’icona dell’app restano invariati.
+- La validazione statica decodifica il PNG senza dipendenze esterne, verifica formato RGBA, dimensioni, centro opaco, quattro angoli trasparenti e identità tra copia pubblica e sorgente.
+
+**Test richiesti:** validazione landing, lint, typecheck, suite Vitest, build, controllo documentale, `npm audit`, Playwright landing IT/EN chiaro/scuro e packaging DMG macOS con ispezione dell’asset generato.
+
+**Esito locale 2026-08-08:** sostituito il PNG RGB opaco condiviso da landing e packaging macOS con una versione RGBA delle stesse dimensioni e con angoli trasparenti; l’ICO Windows, già corretto, è rimasto invariato. La validazione statica rifiuta ora copie landing diverse dalla sorgente canonica, PNG senza RGBA, dimensioni inattese, centro non opaco o uno dei quattro angoli non trasparente. Gate locale verde su Node.js `24.18.1`: lint, typecheck, 202 test Vitest, build renderer/Electron, controllo di 15 documenti, `npm audit` con 0 vulnerabilità e 7 test Playwright della landing. Il collaudo Playwright CLI ha verificato IT/chiaro ed EN/scuro a 1080 px senza spigoli neri, warning console o richieste remote. Dopo un’installazione pulita delle dipendenze per rimuovere copie locali duplicate dentro `node_modules`, il packaging macOS ARM64 non firmato ha prodotto ZIP e DMG; il volume montato in sola lettura contiene una copia byte-identica del PNG canonico e usa lo stesso `icon.icns` trasparente per volume e applicazione, con angoli alpha zero nella variante 1024 px.
 
 ## Patch grafici, menu release e integrità UUID
 
