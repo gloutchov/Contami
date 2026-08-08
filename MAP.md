@@ -48,7 +48,7 @@ ContaMì/
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
 │   │   ├── commands.ts                 # comandi validati, inclusi salvataggi atomici con divisione a metà
-│   │   ├── finance.ts                  # aggregazioni, KPI, saldi filtrati separati Conto/Cassa e applicazione comandi
+│   │   ├── finance.ts                  # aggregazioni, KPI, saldi filtrati/ad oggi separati Conto/Cassa e applicazione comandi
 │   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
 │   │   ├── investmentTransactionSync.ts # coppie movimento/Transazione e riconciliazione idempotente
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
@@ -114,7 +114,7 @@ ContaMì/
 │   │   │   └── vehicleHistory.ts       # serie annuali, vita intera e confronto costo/km per vettura
 │   │   ├── views/                      # dashboard e liste tematiche lazy-loaded
 │   │   │   ├── OverviewView.tsx     # patrimonio, liquidità e saldo complessivo delle Casse
-│   │   │   ├── TransactionsView.tsx # filtri e due file di KPI separati tra conti e Casse
+│   │   │   ├── TransactionsView.tsx # saldi filtrati puri e riepiloghi ad oggi separati tra conti e Casse
 │   │   │   ├── InvestmentsView.tsx  # portafoglio privo delle pensioni integrative
 │   │   │   ├── PensionsView.tsx     # dashboard pensioni, comparti, dettagli e CRUD
 │   │   │   └── VehiclesView.tsx     # dashboard automobili, confronto e registrazioni

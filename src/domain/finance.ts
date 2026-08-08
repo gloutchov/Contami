@@ -553,7 +553,7 @@ export function transactionAccountTotals(
   data: FinanceData,
   items: readonly FinanceData["transactions"][number][],
   group: TransactionAccountGroup,
-  options: { includePlanned?: boolean; openingThroughDate?: string } = {},
+  options: { includePlanned?: boolean; includeOpeningBalance?: boolean; openingThroughDate?: string } = {},
 ): TransactionAccountTotals {
   const accounts = new Map(data.accounts.map((account) => [account.id, account]));
   const openingBalance = data.accounts
@@ -571,7 +571,8 @@ export function transactionAccountTotals(
     }
   }
   const net = inflows - outflows;
-  return { inflows, outflows, net, openingBalance, balance: openingBalance + net };
+  const balance = (options.includeOpeningBalance === false ? 0 : openingBalance) + net;
+  return { inflows, outflows, net, openingBalance, balance };
 }
 
 export function computeDashboard(data: FinanceData): DashboardMetrics {

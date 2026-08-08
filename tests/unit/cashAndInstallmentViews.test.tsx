@@ -12,14 +12,22 @@ const renderIt = (component: React.ReactNode) =>
   render(<I18nProvider language="it">{component}</I18nProvider>);
 
 describe("cash and installment views", () => {
-  it("separates account and cash-register balances and warns about unassigned rows", () => {
+  it("uses pure filtered balances while keeping unfiltered account and cash-register totals as of today", () => {
     const data = createEmptyFinanceData(2026);
     const accountId = crypto.randomUUID();
+    const cashRegisterId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
-    data.accounts.push({
-      id: accountId, name: "Conto sintetico", kind: "bank", currency: "EUR",
-      openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
-    });
+    const cashPaymentMethodId = data.paymentMethods.find((item) => item.kind === "cash")!.id;
+    data.accounts.push(
+      {
+        id: accountId, name: "Conto sintetico", kind: "bank", currency: "EUR",
+        openingBalance: 1_000, active: true, openedAt: "2026-01-01", notes: "",
+      },
+      {
+        id: cashRegisterId, name: "Cassa sintetica", kind: "cash", currency: "EUR",
+        openingBalance: 40, active: true, openedAt: "2026-01-01", notes: "",
+      },
+    );
     data.transactions.push(
       {
         id: crypto.randomUUID(), date: "2026-02-01", description: "Entrata sintetica",
@@ -33,6 +41,12 @@ describe("cash and installment views", () => {
         paymentMethodId: data.paymentMethods[0].id, kind: "expense", amount: 50,
         currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
       },
+      {
+        id: crypto.randomUUID(), date: "2026-02-03", description: "Uscita sintetica in contanti",
+        categoryId: data.categories.find((item) => item.kind === "expense")!.id,
+        paymentMethodId: cashPaymentMethodId, accountId: cashRegisterId, kind: "expense", amount: 10,
+        currency: "EUR", notes: "", createdAt: timestamp, updatedAt: timestamp,
+      },
     );
 
     renderIt(<TransactionsView data={data} onSave={vi.fn()} />);
@@ -41,10 +55,27 @@ describe("cash and installment views", () => {
     expect(accountBalanceCard).toHaveTextContent(/1250,00/);
     expect(accountBalanceCard).toHaveTextContent(/Saldo iniziale incluso:.*1000,00/);
     const cashRegisterBalanceCard = screen.getByText("Saldo Cassa (filtrato)").closest("article")!;
-    expect(cashRegisterBalanceCard).toHaveTextContent(/0,00/);
-    expect(cashRegisterBalanceCard).toHaveTextContent(/Saldo iniziale incluso:.*0,00/);
+    expect(cashRegisterBalanceCard).toHaveTextContent(/30,00/);
+    expect(cashRegisterBalanceCard).toHaveTextContent(/Saldo iniziale incluso:.*40,00/);
     expect(screen.getByRole("status")).toHaveTextContent("1 Transazioni");
-    expect(screen.getByText("Liquidità:", { exact: false }).parentElement).toHaveTextContent(/1250,00/);
+
+    const todayTotals = screen.getByLabelText("Totali alla data odierna");
+    const accountToday = within(todayTotals).getByRole("group", { name: "Conto" });
+    const cashRegisterToday = within(todayTotals).getByRole("group", { name: "Cassa" });
+    expect(accountToday).toHaveTextContent(/Flussi in entrata:.*250,00/);
+    expect(accountToday).toHaveTextContent(/Flussi in uscita:.*0,00/);
+    expect(accountToday).toHaveTextContent(/Saldo:.*1250,00/);
+    expect(cashRegisterToday).toHaveTextContent(/Flussi in entrata:.*0,00/);
+    expect(cashRegisterToday).toHaveTextContent(/Flussi in uscita:.*10,00/);
+    expect(cashRegisterToday).toHaveTextContent(/Saldo:.*30,00/);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Tipo" }), { target: { value: "income" } });
+    expect(accountBalanceCard).toHaveTextContent(/250,00/);
+    expect(accountBalanceCard).toHaveTextContent("Solo movimenti filtrati; saldo iniziale escluso.");
+    expect(cashRegisterBalanceCard).toHaveTextContent(/0,00/);
+    expect(cashRegisterBalanceCard).toHaveTextContent("Solo movimenti filtrati; saldo iniziale escluso.");
+    expect(accountToday).toHaveTextContent(/Saldo:.*1250,00/);
+    expect(cashRegisterToday).toHaveTextContent(/Saldo:.*30,00/);
   });
 
   it("exposes the remaining installment plans in an accessible tooltip", () => {
