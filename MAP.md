@@ -11,10 +11,10 @@ ContaMì/
 │       └── release.yml                # pacchetti, checksum e release / packages and release
 ├── assets/
 │   ├── icon.ico                       # icona Windows / Windows icon
-│   ├── icon.png                       # icona macOS e UI / macOS and UI icon
+│   ├── icon.png                       # icona RGBA canonica per macOS, UI e landing
 │   └── logo.png                       # logo GitHub e riferimento visivo / brand logo
 ├── docs/
-│   ├── assets/                        # icona, screenshot sintetici e demo MP4 ottimizzate IT/EN
+│   ├── assets/                        # copia icona canonica, screenshot sintetici e demo MP4 IT/EN
 │   ├── app.js                         # lingua, override, link manuale localizzato e media tema/lingua
 │   ├── index.html                     # landing statica, CTA GitHub/manuale e CSP senza dipendenze remote
 │   ├── styles.css                     # layout editoriale responsive, chiaro/scuro e reduced motion
