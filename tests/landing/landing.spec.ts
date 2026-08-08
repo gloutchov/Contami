@@ -39,6 +39,10 @@ test("landing detects non-Italian locales and exposes the main conversion path",
     "https://github.com/gloutchov/Contami/releases/latest",
   );
   await expect(page.getByRole("link", { name: "View on GitHub" }).first()).toHaveAttribute("href", "https://github.com/gloutchov/Contami");
+  await expect(page.getByRole("link", { name: "Read the user guide" }).first()).toHaveAttribute(
+    "href",
+    "https://github.com/gloutchov/Contami/blob/main/INSTRUCTIONS.md",
+  );
   await expect(page.locator("#hero-image")).toHaveAttribute("src", /panoramica_whi_english\.png$/);
   expect(consoleErrors).toEqual([]);
   expect(remoteRequests).toEqual([]);
@@ -52,6 +56,10 @@ test("landing detects Italian, follows dark mode, and loads localized media", as
   await expect(page.locator("#hero-image")).toHaveAttribute("src", /panoramica_blk\.png$/);
   await expect(page.locator('video[data-media-key="transazioni"]')).toHaveAttribute("src", /transazioni\.mp4$/);
   await expect(page.locator('video[data-media-key="transazioni"]')).toHaveAttribute("poster", /transazioni_blk\.png$/);
+  await expect(page.getByRole("link", { name: "Leggi le istruzioni" }).first()).toHaveAttribute(
+    "href",
+    "https://github.com/gloutchov/Contami/blob/main/ISTRUZIONI.md",
+  );
   expect(consoleErrors).toEqual([]);
   expect(remoteRequests).toEqual([]);
   await context.close();
@@ -80,11 +88,14 @@ test("manual language choice persists and keeps dictionaries equivalent", async 
   await page.getByRole("button", { name: "IT" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "it");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Le tue finanze");
+  await expect(page.getByRole("link", { name: "Leggi le istruzioni" }).first()).toHaveAttribute("href", /ISTRUZIONI\.md$/);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "it");
+  await expect(page.getByRole("link", { name: "Leggi le istruzioni" }).first()).toHaveAttribute("href", /ISTRUZIONI\.md$/);
 
   await page.getByRole("button", { name: "EN" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("link", { name: "Read the user guide" }).first()).toHaveAttribute("href", /INSTRUCTIONS\.md$/);
   await context.close();
 });
 
@@ -142,6 +153,27 @@ test("media previews crop the captured desktop chrome without changing the asset
   expect(Math.abs(heroComposition[0].top - heroComposition[1].top)).toBeLessThan(100);
   expect(heroComposition[1].height).toBeGreaterThan(heroComposition[0].height * 0.85);
   expect(heroComposition[2]).not.toBe("none");
+  const heroFooter = page.locator(".hero-footer");
+  const heroActions = heroFooter.locator(".hero-actions a");
+  await expect(heroActions).toHaveText(["Download latest release", "Read the user guide", "View on GitHub"]);
+  const heroFooterLayout = await heroFooter.evaluate((element) => {
+    const facts = element.querySelector(".hero-facts")?.getBoundingClientRect();
+    const actions = element.querySelector(".hero-actions")?.getBoundingClientRect();
+    const buttons = [...element.querySelectorAll(".hero-actions a")].map((button) => button.getBoundingClientRect());
+    return {
+      display: getComputedStyle(element).display,
+      factsRight: facts?.right ?? Number.POSITIVE_INFINITY,
+      actionsLeft: actions?.left ?? Number.NEGATIVE_INFINITY,
+      buttonTops: buttons.map((button) => Math.round(button.top)),
+      buttonLefts: buttons.map((button) => button.left),
+      buttonRights: buttons.map((button) => button.right),
+    };
+  });
+  expect(heroFooterLayout.display).toBe("grid");
+  expect(heroFooterLayout.factsRight).toBeLessThan(heroFooterLayout.actionsLeft);
+  expect(new Set(heroFooterLayout.buttonTops).size).toBe(1);
+  expect(heroFooterLayout.buttonRights[0]).toBeLessThan(heroFooterLayout.buttonLefts[1]);
+  expect(heroFooterLayout.buttonRights[1]).toBeLessThan(heroFooterLayout.buttonLefts[2]);
   const desktopWidth = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,

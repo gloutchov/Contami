@@ -15,7 +15,7 @@ const translations = {
       titleAccent: "truly yours.",
       lead: "Understand and manage your financial life without accounts, cloud services or telemetry. Your workbook stays on your computer.",
     },
-    actions: { download: "Download latest release", github: "View on GitHub" },
+    actions: { download: "Download latest release", github: "View on GitHub", manual: "Read the user guide" },
     facts: { priceLabel: "Price", priceValue: "Free", platformLabel: "Platforms", platformValue: "macOS · Windows", licenseLabel: "License" },
     media: {
       overviewAlt: "ContaMì overview in light theme",
@@ -74,7 +74,7 @@ const translations = {
     },
     download: {
       eyebrow: "Free · open source · local-first", title: "Take back control of your finances.",
-      body: "Download the latest release for macOS or Windows, or inspect every line of code on GitHub.",
+      body: "Download the latest release for macOS or Windows, read the user guide, or inspect every line of code on GitHub.",
     },
     footer: { license: "Released under the Apache 2.0 License" },
   },
@@ -92,7 +92,7 @@ const translations = {
       titleAccent: "davvero tue.",
       lead: "Comprendi e gestisci la tua vita finanziaria senza account, servizi cloud o telemetria. Il workbook resta sul tuo computer.",
     },
-    actions: { download: "Scarica l’ultima release", github: "Esplora su GitHub" },
+    actions: { download: "Scarica l’ultima release", github: "Esplora su GitHub", manual: "Leggi le istruzioni" },
     facts: { priceLabel: "Prezzo", priceValue: "Gratis", platformLabel: "Piattaforme", platformValue: "macOS · Windows", licenseLabel: "Licenza" },
     media: {
       overviewAlt: "Panoramica di ContaMì in tema chiaro",
@@ -151,13 +151,17 @@ const translations = {
     },
     download: {
       eyebrow: "Gratis · open source · local-first", title: "Riprendi il controllo delle tue finanze.",
-      body: "Scarica l’ultima release per macOS o Windows, oppure controlla ogni riga di codice su GitHub.",
+      body: "Scarica l’ultima release per macOS o Windows, leggi le istruzioni oppure controlla ogni riga di codice su GitHub.",
     },
     footer: { license: "Rilasciata con licenza Apache 2.0" },
   },
 };
 
 const LANGUAGE_STORAGE_KEY = "contami-landing-language";
+const MANUAL_HREFS = {
+  en: "https://github.com/gloutchov/Contami/blob/main/INSTRUCTIONS.md",
+  it: "https://github.com/gloutchov/Contami/blob/main/ISTRUZIONI.md",
+};
 const themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let currentLanguage = "en";
 
@@ -235,6 +239,9 @@ function applyLanguage(language, persist = false) {
   });
   document.querySelectorAll("[data-language]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.language === currentLanguage));
+  });
+  document.querySelectorAll("[data-manual-link]").forEach((link) => {
+    link.setAttribute("href", MANUAL_HREFS[currentLanguage]);
   });
   if (persist) saveLanguage(currentLanguage);
   updateMedia();

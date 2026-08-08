@@ -26,7 +26,7 @@ The captures and comparison composites are local QA artifacts under ignored `out
 - The site crops the uniform Windows title/menu strip from every poster and video at render time, preserving the original media files. The hero adds no macOS controls: its application-only crop aligns with the main headline, expands on wide screens and uses CSS perspective, depth edge and shadow without converting the PNG to another format.
 - At `390 × 844`, content stacks into one column with no horizontal overflow; screenshots and controls remain inside the viewport.
 - System language selects Italian only for locales starting with `it`; every other locale starts in English. IT/EN manual selection persists locally.
-- Header anchors, release and repository links, skip link and language buttons are keyboard-usable.
+- Header anchors, release, repository and localized manual links, skip link and language buttons are keyboard-usable.
 - Local MP4 demonstrations load on demand; starting a second demo pauses the previous one.
 - `prefers-reduced-motion` removes reveal transitions and leaves every section visible.
 
@@ -35,5 +35,17 @@ The captures and comparison composites are local QA artifacts under ignored `out
 `npm run test:landing:e2e` passed 7/7 Chromium checks covering EN fallback, Italian detection, light/dark localized media, persisted manual language selection, direct-file preview, platform-neutral media cropping, local video playback, single-video behavior, keyboard focus, mobile overflow, console errors and remote requests. Console errors: 0. Remote runtime requests: 0.
 
 All 36 localized/theme PNG posters and representative frames from all 18 optimized MP4 demonstrations were reviewed together in local contact sheets. They show only the app’s synthetic demonstration dataset; no personal names, private workbook paths or user financial data were found. The contact sheets remain ignored local QA artifacts.
+
+## Localized manual-link patch
+
+Date: 2026-08-08
+Branch: `patch/landing-v1.0.2-manual-links`
+
+- Hero and final download band now expose a third CTA alongside release and repository.
+- English resolves to `INSTRUCTIONS.md`; Italian resolves to `ISTRUZIONI.md` immediately on language selection and after persisted reload.
+- Playwright CLI verified the localized links and final download band in EN/light and IT/dark at `1080 × 900`.
+- Local QA captures are stored under ignored `output/playwright/` as `landing-manual-en-light-1080.png`, `landing-manual-it-dark-1080.png` and `landing-manual-it-dark-download-1080.png`.
+- The hero places price, platforms and license beside a single desktop CTA row ordered Download, Instructions and GitHub; below 981 px the footer becomes a responsive single-column region. The revised geometry was checked in IT/light at `1080 × 900`, EN/dark at `1080 × 900` and `1536 × 1024`, and mobile at `390 × 844`, with zero horizontal overflow and zero console errors/warnings.
+- Static landing validation, 7/7 landing E2E tests, the complete project preflight, documentation hygiene and `npm audit` all passed. No private media or workbook data was used.
 
 final result: passed

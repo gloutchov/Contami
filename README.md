@@ -8,7 +8,7 @@ ContaMì is a local-first desktop app for managing detailed personal finances wh
 
 > Stato / Status: **1.14.0 — riepiloghi Transazioni coerenti / consistent Transaction summaries** · Licenza / License: **Apache-2.0**
 
-Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici e accesso all’ultima release. La pubblicazione avviene dal solo contenuto di `docs/` tramite GitHub Pages configurato su `main` + `/docs`.
+Sito / Website: [gloutchov.github.io/Contami](https://gloutchov.github.io/Contami/) — presentazione bilingue, funzioni, dettagli tecnici, accesso all’ultima release e collegamento diretto al manuale nella lingua selezionata. La pubblicazione avviene dal solo contenuto di `docs/` tramite GitHub Pages configurato su `main` + `/docs`.
 
 ## Funzioni principali / Key features
 
