@@ -270,7 +270,7 @@ describe("v0.8 review forms", () => {
     const imu = data.taxTypes.find((item) => item.name === "IMU")!;
     data.properties.push({ id: propertyId, name: "Casa", kind: "apartment", usage: "residence", areaSqm: 100, ownershipShare: 1, purchasePrice: 0, active: true, notes: "" });
     const user = userEvent.setup();
-    renderIt(<PropertiesView data={data} onSave={async () => undefined} />);
+    renderIt(<PropertiesView data={data} onSave={async () => undefined} onGenerateReport={async () => ({ canceled: true })} />);
 
     await user.click(screen.getByRole("button", { name: "Utenze" }));
     const utilitySelect = screen.getByLabelText("Utenza");

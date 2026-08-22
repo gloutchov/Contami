@@ -178,6 +178,9 @@ function createDevelopmentApi(): ContaMiApi {
       actions: { create: 2, update: 0, skip: 1 },
     }),
     discardImport: async () => true,
+    generatePropertyReport: async (request) => request.action === "save-pdf"
+      ? ({ canceled: false, fileName: `ContaMi-report-demo-${request.scope}.pdf` })
+      : ({ canceled: false }),
   };
 }
 

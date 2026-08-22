@@ -81,6 +81,14 @@ export class FinanceFileService {
     return this.numbersMirror.isAvailable();
   }
 
+  async dataForReport(): Promise<FinanceData> {
+    const settings = await this.settingsService.get();
+    if (!settings.workbookPath) throw new Error("WORKBOOK_NOT_CONFIGURED");
+    if (!this.data) this.data = await this.loadWorkbook(settings.workbookPath);
+    await this.revisions.assertUnchanged(this.revision, settings.workbookPath);
+    return structuredClone(this.data);
+  }
+
   async createWorkbook(format: AppSettings["workbookFormat"]): Promise<WorkbookChoiceResult> {
     if (format === "numbers" && !(await this.numbersMirror.isAvailable())) throw new Error("NUMBERS_NOT_AVAILABLE");
     const extension = format === "numbers" ? "numbers" : "xlsx";
