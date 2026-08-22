@@ -119,6 +119,14 @@ Use **Utilities** for Electricity, Gas, Water, and Phone/Internet. Electricity a
 
 Details can be filtered across all twelve months of the active year and by description, with matching subtotals. The **Common property expenses** summary provides the same combinable filters and recalculates its total from visible rows only. A residence shows electricity, gas, and water quantities and costs, condominium, Phone/Internet, and TV licence, plus separate yearly consumption and spending charts. Every property plots commercial values on the actual valuation dates; rentals plot income and expenses on actual receipt dates. Their **Rent instalments** table instead follows the due date/period and distinguishes Paid, Paid late, Overdue, and Awaiting payment: a June rent received in July remains assigned to June and does not settle July. Planned rent rows stay out of ordinary property entries and subtotals; if still overdue at year rollover, they retain their original due period. When adding a new rental-property income entry with the Rent category, you can also create the monthly recurring rent and link the current instalment to it.
 
+### Owner reports
+
+Open the property details and choose **Property report**. Select **Current year** or **Full history**, enter the two owners’ names, and choose **Print** or **Save PDF**. Names are used only in the document and are not saved to the workbook; percentages come from the property’s ownership share and its complement.
+
+The report separates actual income and expenses, forecast expenses, projected total, and cent-reconciled owner shares. It includes annual cost trends, condominium movements and totals, electricity/gas/water costs and consumption, Phone/Internet cost, and market value. Current-year tables are monthly; full-history tables are yearly. Closed years use the aggregate actuals preserved by rollover, while the active year also shows the individual records still available. Forecasts include only planned expenses linked to the property from today through 31 December.
+
+Printing uses the system dialog. **Save PDF** opens a native dialog and does not add the document to the workbook or its backups. The report contains financial data; store and share it with the same care as the ContaMì workbook.
+
 ## 7. Vehicles
 
 Use **New vehicle** to record its name, make, model, fuel type, and purchase/sale dates and prices. Disposed vehicles remain available for historical comparisons.
