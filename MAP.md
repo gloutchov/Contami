@@ -56,6 +56,7 @@ ContaMì/
 │   │   ├── linkedRecords.ts            # sincronizzazione bidirezionale, divisione condivisa e ciclo di vita delle rate
 │   │   ├── operationalDataRepair.ts     # riparazione conservativa conti mancanti e piani rateali conclusi
 │   │   ├── propertyMetrics.ts          # classificazione utenze/condominio per immobili
+│   │   ├── propertyReport.ts           # aggregazioni mensili/annuali, previsioni e quote dei report immobili
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
 │   │   ├── recurringRates.ts           # tariffa per decorrenza, anteprima e protezione dello storico
 │   │   ├── vehicleInstallments.ts      # unicità, ciclo di vita e protezione dello storico dei finanziamenti auto
@@ -64,6 +65,8 @@ ContaMì/
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
 │   │   └── rollover.ts                 # passaggio d’anno, rate residue e affitti insoluti
 │   ├── infrastructure/
+│   │   ├── pdf/
+│   │   │   └── PropertyReportDocument.ts # documento HTML/CSS locale e vettoriale per stampa/PDF
 │   │   ├── settings/
 │   │   │   └── SettingsService.ts      # preferenze locali atomiche
 │   │   └── spreadsheet/
@@ -83,7 +86,8 @@ ContaMì/
 │   │   └── services/
 │   │       ├── FinanceFileService.ts    # casi d’uso file, save e rollover
 │   │       ├── ImportDataService.ts      # dialogo, anteprima opaca, conferma e scadenza
-│   │       └── ImportTemplateService.ts # dialogo nativo e generazione template isolata
+│   │       ├── ImportTemplateService.ts # dialogo nativo e generazione template isolata
+│   │       └── PropertyReportService.ts # stampa/PDF locale, dialogo nativo e scrittura verificata
 │   ├── preload/
 │   │   └── index.ts                    # bridge minimo e congelato verso la UI
 │   ├── renderer/
@@ -92,6 +96,7 @@ ContaMì/
 │   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, animati e con tooltip, senza attributi style
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
+│   │   │   ├── PropertyReportDialog.tsx # periodo e nomi effimeri dei proprietari, stampa/salvataggio
 │   │   │   ├── RecurringRateChangesEditor.tsx # cronologia, anteprima e conferma tariffa
 │   │   │   └── TrendBars.tsx           # barre SVG proporzionali compatibili con CSP rigorosa
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
@@ -125,7 +130,8 @@ ContaMì/
 │   ├── shared/
 │   │   ├── contracts.ts                # contratti tipizzati main/preload/renderer
 │   │   ├── ipc.ts                      # nomi canali IPC consentiti
-│   │   └── ipcValidation.ts            # tuple e limiti degli argomenti IPC
+│   │   ├── ipcValidation.ts            # tuple e limiti degli argomenti IPC
+│   │   └── propertyReportContracts.ts  # richiesta/report result validati e testi documento IT/EN
 │   └── test/setup.ts                   # ambiente comune Vitest
 ├── tests/
 │   ├── helpers/
@@ -133,16 +139,18 @@ ContaMì/
 │   ├── e2e/
 │   │   ├── accessibility.spec.ts       # IT/EN, chiaro/scuro, focus e layout a 1080 px
 │   │   ├── cash-registers.spec.ts      # Casse, trasferimenti, KPI separati e indicatori di perdita
+│   │   ├── property-reports.spec.ts    # report immobili IT/EN, chiaro/scuro, periodo e azioni
 │   │   ├── shared-linked-entries.spec.ts # spese Immobili/Automobile divise a metà e record collegati
 │   │   └── vehicle-installments.spec.ts # creazione, modifica e riapertura finanziamento Automobile
 │   ├── landing/
 │   │   └── landing.spec.ts             # IT/EN, temi, demo video, focus e mobile della landing
 │   ├── integration/
-│   │   ├── finance-file-service.test.ts # recupero avvio senza workbook configurato
+│   │   ├── finance-file-service.test.ts # recupero avvio e copia report con revisione verificata
 │   │   ├── import-template-generator.test.ts # struttura, liste e limite dei template
 │   │   ├── import-template-parser.test.ts # otto import, sicurezza, riferimenti e duplicati
 │   │   ├── import-data-service.test.ts # anteprima/annullamento/conferma senza percorsi
 │   │   ├── import-template-service.test.ts # dialogo e mancata esposizione del percorso
+│   │   ├── property-report-service.test.ts # dialogo, stampa/PDF, verifica e percorso redatto
 │   │   ├── revision-guard.test.ts      # hash e blocco modifiche concorrenti
 │   │   ├── settings.test.ts            # preferenze validate e atomiche
 │   │   ├── workbook-preflight.test.ts  # rifiuto prima di ExcelJS e compatibilità v1/v2
@@ -156,6 +164,8 @@ ContaMì/
 │       ├── dialogAccessibility.test.tsx # focus trap, ripristino focus e nomi accessibili
 │       ├── ipcValidation.test.ts         # payload e arità dei canali privilegiati
 │       ├── performance.test.ts           # budget dashboard su dataset sintetico ampio
+│       ├── propertyReport.test.ts         # periodi, quote, previsioni, limiti, HTML ed escaping
+│       ├── propertyReportDialog.test.tsx  # dialogo bilingue, azioni e stati disabilitati
 │       ├── annualHistory.test.ts        # aggregati utenze e automobili
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
