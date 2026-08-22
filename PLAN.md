@@ -58,11 +58,11 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M23 — Landing page bilingue | `milestone/23-landing-page` | web `landing-v1.0.1` | Completata e pubblicata; Pages da `main/docs` verdi |
 | M24 — Saldi filtrati e totali odierni | `milestone/24-transaction-balance-summaries` | `1.14.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | Patch trasparenza icona | `patch/1.14.1-transparent-icons` | desktop `1.14.1` / web `landing-v1.0.3` | Rilasciata; CI/release macOS e Windows e Pages verdi |
-| M25 — Report immobili per proprietari | `milestone/25-property-owner-reports` | `1.15.0` | Implementazione e CI macOS/Windows completate; release da eseguire |
+| M25 — Report immobili per proprietari | `milestone/25-property-owner-reports` | `1.15.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 
-**Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0` → trasparenza icona `v1.14.1`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1` → `landing-v1.0.2` → `landing-v1.0.3`.
+**Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0` → trasparenza icona `v1.14.1` → report immobili per proprietari `v1.15.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1` → `landing-v1.0.2` → `landing-v1.0.3`.
 
-**Checkpoint desktop aperto:** report immobili per proprietari `v1.15.0`.
+**Checkpoint desktop aperto:** nessuno.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -840,7 +840,9 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Esito locale 2026-08-22:** implementati trasformazione di dominio, documento HTML/CSS bilingue, finestra Electron isolata, stampa, salvataggio PDF atomico, canale IPC ristretto, dialogo renderer e documentazione. La verifica con soli dati sintetici ha superato `npm run lint`, `npm run typecheck`, 215 test Vitest in 43 file, `npm run build`, `node scripts/check-required-docs.mjs`, `npm audit` con zero vulnerabilità e tutti gli 11 test Playwright a 1080 px. Il workflow Playwright CLI ha controllato manualmente IT/EN e chiaro/scuro. Due PDF A4 sintetici, corrente IT e storico EN, sono stati estratti e ispezionati pagina per pagina: entrambi hanno tre pagine, nessun JavaScript e nessuna pagina bianca residua. Restano intenzionalmente esterni a questo esito locale packaging su macOS/Windows, ispezione `app.asar`, smoke degli artifact, firma, tag e pubblicazione della release.
 
-**CI 2026-08-22:** aperta la PR `#71`; le esecuzioni CI `32589415924` e `32589445725`, attivate rispettivamente da push e pull request, hanno completato con esito verde i job Quality su macOS e Windows, inclusi preflight, Playwright applicazione/landing e audit. Packaging, ispezione/smoke degli artifact, checksum, merge, tag e release restano intenzionalmente non eseguiti.
+**CI 2026-08-22:** aperta la PR `#71`; le esecuzioni definitive `32589662261` e `32589664386`, attivate rispettivamente da push e pull request sull'ultimo commit del branch, hanno completato con esito verde i job Quality su macOS e Windows, inclusi preflight, Playwright applicazione/landing e audit.
+
+**Pubblicazione 2026-08-23:** la PR `#71` è stata integrata in `main` dal merge commit `f8db441`; la CI `32601241937` è verde su macOS e Windows e Pages `32601241838` è completato. Il tag annotato `v1.15.0` punta allo stesso merge e la relativa CI `32601428740` è verde su entrambe le piattaforme. Il workflow Release `32601428746` ha completato preflight, packaging, ispezione di `app.asar`, smoke del pacchetto e smoke installato su macOS ARM64/x64 e Windows x64, pubblicando sei artifact applicativi non firmati più `SHA256SUMS.txt`. Tutti i sei digest ricalcolati dai file pubblicati coincidono con il manifesto e tutti i sette file, manifesto incluso, coincidono con i digest SHA-256 registrati da GitHub. M25 e la release desktop `v1.15.0` sono completate.
 
 ## Patch grafici, menu release e integrità UUID
 
@@ -926,6 +928,7 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - La richiesta di un resoconto immobili destinato al comproprietario ha aperto M25 sul branch `milestone/25-property-owner-reports` e assegnato il checkpoint desktop `1.15.0`.
 - M25 riusa registrazioni, consuntivi annuali e quota di proprietà dello schema v9: non richiede migrazioni e non modifica il workbook durante stampa o esportazione.
 - La generazione resta interamente locale; PDF e stampa attraversano un nuovo canale IPC ristretto e validato, senza esporre percorsi, HTML o dati finanziari grezzi oltre il renderer già autorizzato.
+- M25 è stata integrata dalla PR `#71` e pubblicata come release desktop `v1.15.0` dopo il completamento di CI, packaging, smoke e verifica dei checksum su macOS e Windows.
 
 ## Decisione futura — Cifratura portabile
 
