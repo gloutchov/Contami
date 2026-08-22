@@ -23,7 +23,7 @@ Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il n
 
 La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
 
-**Stato corrente:** la roadmap è stata riaperta il 2026-08-08 con M24, completata e pubblicata come release desktop `v1.14.0`. La successiva patch `v1.14.1` corregge la trasparenza dell’icona condivisa ed è pubblicata insieme alla revisione web `landing-v1.0.3`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
+**Stato corrente:** la roadmap è stata riaperta il 2026-08-22 con M25 sul branch `milestone/25-property-owner-reports`. La milestone introduce report immobili bilingui, stampabili o salvabili localmente in PDF, e assegna il checkpoint desktop `v1.15.0`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
 
 | Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
@@ -58,8 +58,11 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M23 — Landing page bilingue | `milestone/23-landing-page` | web `landing-v1.0.1` | Completata e pubblicata; Pages da `main/docs` verdi |
 | M24 — Saldi filtrati e totali odierni | `milestone/24-transaction-balance-summaries` | `1.14.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | Patch trasparenza icona | `patch/1.14.1-transparent-icons` | desktop `1.14.1` / web `landing-v1.0.3` | Rilasciata; CI/release macOS e Windows e Pages verdi |
+| M25 — Report immobili per proprietari | `milestone/25-property-owner-reports` | `1.15.0` | Implementazione e CI macOS/Windows completate; release da eseguire |
 
 **Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0` → trasparenza icona `v1.14.1`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1` → `landing-v1.0.2` → `landing-v1.0.3`.
+
+**Checkpoint desktop aperto:** report immobili per proprietari `v1.15.0`.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -802,6 +805,43 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Pubblicazione 2026-08-08:** i commit `eb94ba6` e `c594dff` sono stati integrati con fast-forward in `main`; la CI `31264986444` è verde su macOS e Windows e il deploy Pages `31264985917` è completato. I tag annotati `v1.14.1` e `landing-v1.0.3` puntano a `c594dff`. Il workflow Release `31265133645` ha completato preflight, packaging, ispezione e smoke del pacchetto e dell'installazione su entrambe le piattaforme, pubblicando sei artifact applicativi non firmati e `SHA256SUMS.txt`. I sei checksum del manifesto coincidono riga per riga con i digest SHA-256 calcolati da GitHub sugli asset pubblicati.
 
+## M25 — Report immobili per proprietari
+
+**Obiettivo:** produrre per ogni immobile un resoconto bilingue, chiaro e riconciliabile con il workbook, stampabile tramite il dialogo di sistema o salvabile localmente in PDF per la condivisione con il comproprietario.
+
+**Comportamento previsto**
+
+- Dalla scheda del singolo immobile l’utente sceglie **Anno corrente** oppure **Intera storia**, indica i nomi dei due proprietari e avvia **Stampa** o **Salva PDF**. Le quote percentuali derivano sempre da `ownershipShare` e dal suo complemento, senza duplicare o modificare i dati autorevoli.
+- Il report è diviso in sezioni autonome: immobile e periodo, sintesi entrate/uscite, ripartizione per proprietario, andamento dei costi, movimenti di condominio, utenze, previsioni fino a fine anno, valore di mercato e movimenti economici inclusi.
+- Per l’anno corrente entrate, uscite, condominio, costi/consumi di elettricità, gas, telefono/internet e acqua e valore di mercato sono raggruppati mese per mese. Il valore di mercato mensile usa l’ultima valutazione disponibile alla fine del mese e non inventa variazioni future.
+- Per l’intera storia le stesse grandezze sono raggruppate anno per anno, riusando i consuntivi `Property History` per gli anni archiviati e le registrazioni confermate per l’anno attivo. Il documento distingue esplicitamente aggregati storici e righe puntuali ancora disponibili.
+- Le spese previste comprendono soltanto Transazioni `expense` pianificate e collegate all’immobile, con scadenza dalla data locale odierna al 31 dicembre dell’anno attivo; righe confermate, entrate e movimenti non collegati sono esclusi. Il totale previsto resta separato dal consuntivo e confluisce anche nel totale proiettato di fine anno.
+- Totale consuntivo, totale previsto e totale proiettato mostrano al centesimo la quota personale e quella del comproprietario. Importi e percentuali restano riconciliabili con i totali di sezione.
+- Il PDF usa solo HTML/CSS e grafica vettoriale generati localmente, senza script, font o asset remoti. Ogni testo proveniente dal workbook o dal modulo viene sottoposto a escaping; il renderer invia soltanto UUID immobile, periodo, lingua, azione e nomi limitati, mai percorsi.
+- Il percorso PDF viene scelto esclusivamente da un dialogo nativo nel main process; al renderer torna soltanto annullamento o nome base del file. La stampa usa il dialogo di sistema e lo stesso documento già validato. Nessun report viene inserito nel workbook, nei backup o nei log.
+- Per mantenere un budget esplicito, ciascuna tabella di dettaglio include al massimo 2.000 righe ordinate cronologicamente e segnala l’eventuale troncamento; aggregazioni e totali continuano a usare l’intero insieme validato.
+- Non cambiano schema workbook, migrazioni o adapter Excel/Numbers. Il dominio espone soltanto trasformazioni pure; servizio PDF, IPC/preload e renderer restano separati.
+
+**Criteri di accettazione**
+
+- Con dati sintetici, i totali di entrate, uscite, condominio, utenze, consumi, previsioni e quote coincidono con le righe/aggregati origine, senza doppio conteggio delle coppie Property Entry↔Transaction.
+- Anno corrente produce dodici periodi mensili; intera storia produce un periodo per ogni anno disponibile e non perde i consuntivi ereditati dal rollover.
+- Elettricità usa kWh, gas e acqua m³, telefono/internet il solo costo; periodi privi di dati restano leggibili e non vengono rappresentati come misurazioni inventate.
+- Il valore di mercato usa acquisto, valutazioni e valori annuali disponibili in ordine temporale; la quota patrimoniale dei proprietari resta distinta dal valore totale dell’immobile.
+- Stampa e salvataggio PDF funzionano su macOS e Windows, mantengono intestazione, piè di pagina, numeri pagina, tabelle e grafici leggibili e non espongono percorsi al renderer.
+- Dialogo, stati caricamento/disabilitato/errore, focus tastiera e azioni sono leggibili in IT/EN, tema chiaro/scuro e a larghezza minima 1080 px.
+- Nessun workbook, report o dato privato entra in Git, test, screenshot, log o artifact.
+
+**Test richiesti:** unit test delle aggregazioni mensili/annuali, quote, carry-forward del valore, consuntivi storici, previsioni e limiti; test HTML per escaping e sezioni IT/EN; test IPC e servizio main per dialoghi, nomi file redatti, stampa/salvataggio e cancellazione; rendering di PDF sintetici con estrazione testo e ispezione visuale delle pagine; test renderer e Playwright CLI IT/EN, chiaro/scuro e 1080 px; lint, typecheck, suite completa, build, controllo documentale e `npm audit`.
+
+**Documentazione:** `PLAN.md`, README, manuali IT/EN, quick start, MAP e SECURITY_MODEL; versione applicativa sorgente `1.15.0`. La milestone non autorizza pubblicazione di report reali né modifica dei dati utente.
+
+**Avvio 2026-08-22:** creato il branch `milestone/25-property-owner-reports` dalla `main` pulita `v1.14.1`. Il perimetro è read-only rispetto al workbook e non introduce rete, telemetria, servizi remoti o persistenza di nomi dei proprietari.
+
+**Esito locale 2026-08-22:** implementati trasformazione di dominio, documento HTML/CSS bilingue, finestra Electron isolata, stampa, salvataggio PDF atomico, canale IPC ristretto, dialogo renderer e documentazione. La verifica con soli dati sintetici ha superato `npm run lint`, `npm run typecheck`, 215 test Vitest in 43 file, `npm run build`, `node scripts/check-required-docs.mjs`, `npm audit` con zero vulnerabilità e tutti gli 11 test Playwright a 1080 px. Il workflow Playwright CLI ha controllato manualmente IT/EN e chiaro/scuro. Due PDF A4 sintetici, corrente IT e storico EN, sono stati estratti e ispezionati pagina per pagina: entrambi hanno tre pagine, nessun JavaScript e nessuna pagina bianca residua. Restano intenzionalmente esterni a questo esito locale packaging su macOS/Windows, ispezione `app.asar`, smoke degli artifact, firma, tag e pubblicazione della release.
+
+**CI 2026-08-22:** aperta la PR `#71`; le esecuzioni CI `32589415924` e `32589445725`, attivate rispettivamente da push e pull request, hanno completato con esito verde i job Quality su macOS e Windows, inclusi preflight, Playwright applicazione/landing e audit. Packaging, ispezione/smoke degli artifact, checksum, merge, tag e release restano intenzionalmente non eseguiti.
+
 ## Patch grafici, menu release e integrità UUID
 
 **Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
@@ -880,6 +920,12 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - La richiesta di distinguere il netto filtrato dai saldi assoluti ha aperto M24 sul branch `milestone/24-transaction-balance-summaries` e assegnato il nuovo checkpoint desktop `1.14.0`.
 - M24 non altera workbook, dati persistenti o confini di sicurezza: interviene sulle trasformazioni pure dei riepiloghi, sulla vista Transazioni, sulle traduzioni, sui test e sulla documentazione.
 - M24 è stata integrata dalla PR `#61` e pubblicata come release desktop `v1.14.0` dopo il completamento di CI, packaging, smoke e verifica dei checksum su macOS e Windows.
+
+## Riapertura roadmap — 2026-08-22
+
+- La richiesta di un resoconto immobili destinato al comproprietario ha aperto M25 sul branch `milestone/25-property-owner-reports` e assegnato il checkpoint desktop `1.15.0`.
+- M25 riusa registrazioni, consuntivi annuali e quota di proprietà dello schema v9: non richiede migrazioni e non modifica il workbook durante stampa o esportazione.
+- La generazione resta interamente locale; PDF e stampa attraversano un nuovo canale IPC ristretto e validato, senza esporre percorsi, HTML o dati finanziari grezzi oltre il renderer già autorizzato.
 
 ## Decisione futura — Cifratura portabile
 

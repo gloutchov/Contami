@@ -6,6 +6,7 @@ import {
   importPreviewIdIpcArgumentsSchema,
   importTemplateGenerateIpcArgumentsSchema,
   noIpcArgumentsSchema,
+  propertyReportIpcArgumentsSchema,
   settingsUpdateIpcArgumentsSchema,
   workbookCreateIpcArgumentsSchema,
 } from "../../src/shared/ipcValidation";
@@ -70,5 +71,23 @@ describe("IPC argument validation", () => {
     expect(importPreviewIdIpcArgumentsSchema.safeParse([previewId]).success).toBe(true);
     expect(importPreviewIdIpcArgumentsSchema.safeParse([previewId, { commands: [] }]).success).toBe(false);
     expect(importPreviewIdIpcArgumentsSchema.safeParse(["C:\\private.xlsx"]).success).toBe(false);
+  });
+
+  it("accepts only bounded property-report requests and never accepts a destination path", () => {
+    const request = {
+      propertyId: crypto.randomUUID(),
+      scope: "current-year",
+      language: "it",
+      action: "save-pdf",
+      ownerName: "Synthetic owner",
+      coOwnerName: "Synthetic co-owner",
+    } as const;
+    expect(propertyReportIpcArgumentsSchema.safeParse([request]).success).toBe(true);
+    expect(propertyReportIpcArgumentsSchema.safeParse([{ ...request, scope: "quarter" }]).success).toBe(false);
+    expect(propertyReportIpcArgumentsSchema.safeParse([{ ...request, language: "fr" }]).success).toBe(false);
+    expect(propertyReportIpcArgumentsSchema.safeParse([{ ...request, action: "export-html" }]).success).toBe(false);
+    expect(propertyReportIpcArgumentsSchema.safeParse([{ ...request, ownerName: "x".repeat(121) }]).success).toBe(false);
+    expect(propertyReportIpcArgumentsSchema.safeParse([{ ...request, filePath: "/private/report.pdf" }]).success).toBe(false);
+    expect(propertyReportIpcArgumentsSchema.safeParse([request, "/private/report.pdf"]).success).toBe(false);
   });
 });

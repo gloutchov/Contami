@@ -132,6 +132,14 @@ Per entrate e spese, **Categoria** usa le stesse categorie delle Transazioni e r
 
 Il dettaglio può essere filtrato su tutti i dodici mesi dell’anno attivo e per descrizione e mostra i relativi parziali. Anche il riepilogo **Spese comuni degli immobili** dispone degli stessi filtri combinabili e ricalcola il totale sulle sole righe visibili. Per la residenza include consumi e costi di luce, gas e acqua, spese condominiali, Telefono/Internet e Canone TV, con grafici annuali separati per quantità e spesa. Tutti gli immobili mostrano l’andamento del valore commerciale sulle date effettive delle valutazioni; quelli affittati mostrano consuntivi e un grafico entrate/uscite basato sugli incassi effettivi. La tabella **Rate di affitto** usa invece la scadenza/competenza e distingue Pagata, Pagata in ritardo, Insoluta e Da incassare: un canone di giugno ricevuto a luglio resta quindi attribuito a giugno e non salda luglio. Le rate previste non compaiono tra le normali registrazioni immobiliari né nei relativi parziali; se restano insolute al passaggio d’anno, conservano la competenza originaria. Nella nuova registrazione di un immobile in affitto, scegliendo Entrata e categoria Affitti puoi creare anche la ricorrenza mensile collegata alla rata corrente. Gli indicatori monetari riconoscono le voci tramite categoria o descrizione.
 
+### Report per i proprietari
+
+Apri il dettaglio dell’immobile e scegli **Report immobile**. Puoi preparare il documento per l’**Anno corrente** oppure per l’**Intera storia**, indicare i nomi dei due proprietari e scegliere **Stampa** o **Salva PDF**. I nomi servono soltanto al documento e non vengono salvati nel workbook; le percentuali derivano dalla quota di proprietà dell’immobile e dal suo complemento.
+
+Il report separa entrate, uscite, spese consuntive e previste, totale proiettato e quote al centesimo. Include andamento annuale dei costi, movimenti e totali del condominio, costi/consumi di elettricità, gas e acqua, costo di Telefono/Internet e valore di mercato. Nell’anno corrente le tabelle sono mese per mese; nell’intera storia sono anno per anno. Gli anni chiusi usano i consuntivi aggregati conservati dal rollover, mentre l’anno attivo mostra anche le registrazioni puntuali disponibili. Le previsioni includono esclusivamente le uscite pianificate collegate all’immobile dalla data odierna al 31 dicembre.
+
+La stampa usa il dialogo del sistema. **Salva PDF** apre un dialogo nativo e non aggiunge il documento al workbook o ai backup. Il report contiene dati finanziari: conservalo e condividilo con la stessa attenzione riservata al foglio ContaMì.
+
 ## 7. Automobile
 
 Usa **Nuova automobile** per registrare nome, marca, modello, alimentazione, date e prezzi di acquisto/vendita. Le vetture dismesse restano disponibili per i confronti storici.
