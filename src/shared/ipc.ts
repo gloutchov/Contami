@@ -13,4 +13,5 @@ export const IPC = {
   importPreview: "import:preview",
   importConfirm: "import:confirm",
   importDiscard: "import:discard",
+  propertyReportGenerate: "property-report:generate",
 } as const;
