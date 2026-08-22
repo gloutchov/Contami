@@ -1,7 +1,8 @@
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Pencil, Plus, ReceiptText, Trash2, Zap } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, FileText, Pencil, Plus, ReceiptText, Trash2, Zap } from "lucide-react";
 import { useState } from "react";
 import type { FinanceCommand } from "../../domain/commands";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
+import type { PropertyReportRequest, PropertyReportResult } from "../../shared/propertyReportContracts";
 import { propertyHasOverdueRent } from "../../domain/rent";
 import { DetailDialog } from "../components/DetailDialog";
 import { EntryFilters } from "../components/EntryFilters";
@@ -9,6 +10,7 @@ import { EmptyState } from "../components/EmptyState";
 import { KpiCard } from "../components/KpiCard";
 import { PageHeader } from "../components/PageHeader";
 import { PropertyDetail } from "../components/PropertyDetail";
+import { PropertyReportDialog } from "../components/PropertyReportDialog";
 import { PropertyEntryForm, PropertyForm } from "../forms/PropertyForms";
 import { PropertyExpenseForm } from "../forms/PropertyExpenseForms";
 import { useI18n } from "../i18n/I18nContext";
@@ -16,7 +18,7 @@ import { filterDatedEntries } from "../utils/detailFilters";
 import { formatCurrency, formatDate, todayIso } from "../utils/format";
 import { runUiAction } from "../utils/save";
 
-export function PropertiesView({ data, onSave }: { data: FinanceData; onSave: (command: FinanceCommand) => Promise<void> }) {
+export function PropertiesView({ data, onSave, onGenerateReport }: { data: FinanceData; onSave: (command: FinanceCommand) => Promise<void>; onGenerateReport: (request: PropertyReportRequest) => Promise<PropertyReportResult> }) {
   const { t, language } = useI18n();
   const [editingProperty, setEditingProperty] = useState<Property | null | undefined>();
   const [editingEntry, setEditingEntry] = useState<PropertyEntry | null | undefined>();
@@ -24,6 +26,7 @@ export function PropertiesView({ data, onSave }: { data: FinanceData; onSave: (c
   const [propertyExpenseMode, setPropertyExpenseMode] = useState<"utility" | "tax">("utility");
   const [entryPropertyId, setEntryPropertyId] = useState<string>();
   const [selected, setSelected] = useState<Property>();
+  const [reportProperty, setReportProperty] = useState<Property>();
   const [commonExpenseSearch, setCommonExpenseSearch] = useState("");
   const [commonExpenseMonth, setCommonExpenseMonth] = useState("");
   const latestValue = (id: string) => [...data.propertyEntries].filter((item) => item.propertyId === id && item.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0]?.amount;
@@ -59,11 +62,12 @@ export function PropertiesView({ data, onSave }: { data: FinanceData; onSave: (c
         {filteredCommonExpenses.length ? <table className="data-table"><thead><tr><th>{t("date")}</th><th>{t("property")}</th><th>{t("description")}</th><th>{t("amount")}</th></tr></thead><tbody>{filteredCommonExpenses.map((item) => <tr key={item.id}><td>{formatDate(item.date, language)}</td><td>{data.properties.find((property) => property.id === item.propertyId)?.name}</td><td>{item.description}</td><td>{formatCurrency(item.amount, language)}</td></tr>)}</tbody></table> : <p className="empty-inline">{t("noFilteredEntries")}</p>}
       </> : <p className="empty-inline">{t("noCommonExpenses")}</p>}
     </section>
-    {selected && <DetailDialog title={selected.name} onClose={() => setSelected(undefined)} actions={<><button className="secondary-button" onClick={() => { openPropertyExpense("utility", selected.id); setSelected(undefined); }}>{t("utilities")}</button><button className="secondary-button" onClick={() => { openPropertyExpense("tax", selected.id); setSelected(undefined); }}>{t("propertyTaxes")}</button><button className="secondary-button" onClick={() => { setEditingProperty(selected); setSelected(undefined); }}>{t("editProperty")}</button><button className="primary-button" onClick={() => { openNewEntry(selected.id); setSelected(undefined); }}>{t("newPropertyEntry")}</button></>}>
+    {selected && <DetailDialog title={selected.name} onClose={() => setSelected(undefined)} actions={<><button className="secondary-button" onClick={() => { setReportProperty(selected); setSelected(undefined); }}><FileText size={16}/>{t("propertyReport")}</button><button className="secondary-button" onClick={() => { openPropertyExpense("utility", selected.id); setSelected(undefined); }}>{t("utilities")}</button><button className="secondary-button" onClick={() => { openPropertyExpense("tax", selected.id); setSelected(undefined); }}>{t("propertyTaxes")}</button><button className="secondary-button" onClick={() => { setEditingProperty(selected); setSelected(undefined); }}>{t("editProperty")}</button><button className="primary-button" onClick={() => { openNewEntry(selected.id); setSelected(undefined); }}>{t("newPropertyEntry")}</button></>}>
       <PropertyDetail data={data} property={selected} onEditEntry={editPropertyEntry} onDeleteEntry={(id) => remove("propertyEntry", id)} />
     </DetailDialog>}
     {editingProperty !== undefined && <PropertyForm value={editingProperty ?? undefined} onClose={() => setEditingProperty(undefined)} onSave={onSave} />}
     {editingEntry !== undefined && <PropertyEntryForm data={data} value={editingEntry ?? undefined} initialPropertyId={entryPropertyId} onClose={() => { setEditingEntry(undefined); setEntryPropertyId(undefined); }} onSave={onSave} />}
     {editingPropertyExpense !== undefined && <PropertyExpenseForm data={data} mode={propertyExpenseMode} value={editingPropertyExpense ?? undefined} initialPropertyId={entryPropertyId} onClose={() => { setEditingPropertyExpense(undefined); setEntryPropertyId(undefined); }} onSave={onSave} />}
+    {reportProperty && <PropertyReportDialog property={reportProperty} onClose={() => setReportProperty(undefined)} onGenerate={onGenerateReport} />}
   </>;
 }

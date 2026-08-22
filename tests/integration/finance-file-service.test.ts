@@ -25,6 +25,36 @@ const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
 
 describe("FinanceFileService startup recovery", () => {
+  it("returns detached report data and rejects an externally changed workbook", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-report-data-"));
+    directories.push(directory);
+    const workbookPath = path.join(directory, "finance.xlsx");
+    const settings = new SettingsService(directory);
+    const repository = new ExcelWorkbookRepository();
+    const data = createEmptyFinanceData(2026);
+    data.properties.push({
+      id: crypto.randomUUID(), name: "Synthetic report property", kind: "apartment", usage: "residence",
+      ownershipShare: 0.5, purchasePrice: 200_000, active: true, notes: "",
+    });
+    await repository.save(workbookPath, data);
+    await settings.update({ workbookFormat: "excel", workbookPath });
+    const service = new FinanceFileService(
+      {} as never,
+      settings,
+      repository,
+      new NumbersMirrorService(path.join(directory, "numbers-mirror.applescript")),
+    );
+    await service.snapshot();
+
+    const reportData = await service.dataForReport();
+    reportData.properties[0]!.name = "Changed only in detached copy";
+    expect((await service.snapshot()).data.properties[0]!.name).toBe("Synthetic report property");
+
+    const workbook = await readFile(workbookPath);
+    await writeFile(workbookPath, Buffer.concat([workbook, Buffer.from([0])]));
+    await expect(service.dataForReport()).rejects.toThrow("WORKBOOK_CHANGED_EXTERNALLY");
+  });
+
   it("starts unconfigured when the remembered workbook no longer exists", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-missing-workbook-"));
     directories.push(directory);

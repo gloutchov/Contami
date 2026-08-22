@@ -1,5 +1,8 @@
+import { propertyReportTranslations } from "../../shared/propertyReportContracts";
+
 export const translations = {
   it: {
+    ...propertyReportTranslations.it,
     appName: "ContaMì",
     appTagline: "Le tue finanze, finalmente semplici.",
     mainNavigation: "Navigazione principale",
@@ -527,6 +530,7 @@ export const translations = {
     lifetimeCosts: "Costi complessivi della vettura",
   },
   en: {
+    ...propertyReportTranslations.en,
     appName: "ContaMì",
     appTagline: "Your finances, finally simple.",
     mainNavigation: "Main navigation",

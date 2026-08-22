@@ -3,6 +3,7 @@ import { financeCommandSchema } from "../domain/commands";
 import { importTemplateTypeSchema } from "../domain/importTemplates";
 import { importDuplicateStrategySchema } from "../domain/imports";
 import { appSettingsSchema } from "./contracts";
+import { propertyReportRequestSchema } from "./propertyReportContracts";
 
 export const noIpcArgumentsSchema = z.tuple([]);
 export const settingsUpdateIpcArgumentsSchema = z.tuple([
@@ -13,4 +14,4 @@ export const financeExecuteIpcArgumentsSchema = z.tuple([financeCommandSchema]);
 export const importTemplateGenerateIpcArgumentsSchema = z.tuple([importTemplateTypeSchema, z.enum(["it", "en"])]);
 export const importPreviewIpcArgumentsSchema = z.tuple([importDuplicateStrategySchema, z.enum(["it", "en"])]);
 export const importPreviewIdIpcArgumentsSchema = z.tuple([z.string().uuid()]);
-
+export const propertyReportIpcArgumentsSchema = z.tuple([propertyReportRequestSchema]);
