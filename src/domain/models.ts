@@ -165,7 +165,7 @@ export const investmentEntrySchema = z.object({
   id,
   investmentId: id,
   date: isoDate,
-  kind: z.enum(["contribution", "withdrawal", "valuation"]),
+  kind: z.enum(["contribution", "withdrawal", "valuation", "contribution_correction", "withdrawal_correction"]),
   amount: money,
   description: text,
   categoryId: id.optional(),
@@ -174,7 +174,14 @@ export const investmentEntrySchema = z.object({
   transactionId: id.optional(),
   notes,
 }).superRefine((value, context) => {
-  if (value.kind !== "valuation" && (!value.paymentMethodId || !value.categoryId)) {
+  const correction = value.kind === "contribution_correction" || value.kind === "withdrawal_correction";
+  if (correction && value.amount <= 0) {
+    context.addIssue({ code: "custom", message: "An investment correction must be positive", path: ["amount"] });
+  }
+  if (correction && (value.categoryId || value.paymentMethodId || value.accountId || value.transactionId)) {
+    context.addIssue({ code: "custom", message: "An investment correction cannot carry transaction fields", path: ["transactionId"] });
+  }
+  if (!correction && value.kind !== "valuation" && (!value.paymentMethodId || !value.categoryId)) {
     context.addIssue({ code: "custom", message: "Category and payment method are required for investment movements", path: ["paymentMethodId"] });
   }
 });
@@ -318,7 +325,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(9),
+    schemaVersion: z.literal(10),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,

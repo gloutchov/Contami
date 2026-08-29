@@ -1,4 +1,5 @@
 import { financeDataSchema, type FinanceData, type InvestmentEntry, type Transaction } from "./models";
+import { isInvestmentCorrectionKind, isLinkedInvestmentMovementKind, type LinkedInvestmentMovementKind } from "./investments";
 
 export type InvestmentTransactionRepairKind =
   | "create_transaction"
@@ -35,7 +36,7 @@ function sameAmount(left: number, right: number): boolean {
   return Math.abs(left - right) <= 0.01;
 }
 
-export function investmentEntryKindForTransaction(transaction: Transaction): InvestmentEntry["kind"] | undefined {
+export function investmentEntryKindForTransaction(transaction: Transaction): LinkedInvestmentMovementKind | undefined {
   if (transaction.kind === "transfer") {
     if (transaction.cashFlowDirection === "outflow") return "contribution";
     if (transaction.cashFlowDirection === "inflow") return "withdrawal";
@@ -73,6 +74,7 @@ export function transactionFromInvestmentEntry(
   existing?: Transaction,
   options: ReconciliationOptions = {},
 ): Transaction {
+  if (!isLinkedInvestmentMovementKind(entry.kind)) throw new Error("INVALID_INVESTMENT_TRANSACTION_ENTRY");
   const idFactory = options.idFactory ?? defaultIdFactory;
   const now = (options.now ?? defaultNow)();
   return {
@@ -163,7 +165,7 @@ export function reconcileInvestmentTransactions(
   };
 
   for (const currentEntry of [...next.investmentEntries]) {
-    if (currentEntry.kind === "valuation" || currentEntry.amount <= 0) continue;
+    if (currentEntry.kind === "valuation" || isInvestmentCorrectionKind(currentEntry.kind) || currentEntry.amount <= 0) continue;
     if (!next.investments.some((item) => item.id === currentEntry.investmentId)) {
       ambiguousEntries += 1;
       continue;
@@ -216,7 +218,7 @@ export function reconcileInvestmentTransactions(
       ? next.investmentEntries.find((entry) => entry.id === currentTransaction.investmentEntryId)
       : undefined;
     if (explicitEntry) {
-      if (claimedEntryIds.has(explicitEntry.id) || explicitEntry.kind === "valuation" || transactionConflictsWithEntry(currentTransaction, explicitEntry)) {
+      if (claimedEntryIds.has(explicitEntry.id) || explicitEntry.kind === "valuation" || isInvestmentCorrectionKind(explicitEntry.kind) || transactionConflictsWithEntry(currentTransaction, explicitEntry)) {
         ambiguousTransactions += 1;
         continue;
       }
@@ -226,6 +228,7 @@ export function reconcileInvestmentTransactions(
     const exactCandidates = next.investmentEntries.filter((entry) =>
       !claimedEntryIds.has(entry.id)
       && entry.kind !== "valuation"
+      && !isInvestmentCorrectionKind(entry.kind)
       && !entry.transactionId
       && transactionMatchesEntry(currentTransaction, entry));
     if (exactCandidates.length > 1) {

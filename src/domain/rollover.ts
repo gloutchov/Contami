@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { accountBalance } from "./accounts";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
 import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
+import { isInvestmentCorrectionKind } from "./investments";
 import { recurrenceAnchorDay, syncRecurringLink, syncRecurringTransactions, upsertTransactionWithLinks } from "./linkedRecords";
 import type { FinanceData, InvestmentEntry, PropertyEntry, RecurringItem } from "./models";
 
@@ -98,6 +99,10 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
     const entry = latestEntry(current.investmentEntries, investment.id, "investmentId");
     if (entry) next.investmentEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: "Opening valuation / Valutazione iniziale" });
   }
+  const nextInvestmentIds = new Set(next.investments.map((item) => item.id));
+  next.investmentEntries.push(...structuredClone(current.investmentEntries.filter((entry) => (
+    nextInvestmentIds.has(entry.investmentId) && isInvestmentCorrectionKind(entry.kind)
+  ))));
   next.meta.updatedAt = new Date().toISOString();
   return next;
 }

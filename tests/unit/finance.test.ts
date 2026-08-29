@@ -40,6 +40,24 @@ describe("finance domain", () => {
     expect(computeDashboard(data).sharedBalance).toBe(30);
   });
 
+  it("exposes net worth excluding property value", () => {
+    const data = createEmptyFinanceData(2026);
+    data.accounts.push({
+      id: crypto.randomUUID(), name: "Synthetic account", kind: "bank", currency: "EUR",
+      openingBalance: 20_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.properties.push({
+      id: crypto.randomUUID(), name: "Synthetic home", kind: "apartment", usage: "residence",
+      ownershipShare: 0.5, purchasePrice: 200_000, active: true, notes: "",
+    });
+
+    expect(computeDashboard(data)).toMatchObject({
+      propertyValue: 100_000,
+      netWorth: 120_000,
+      netWorthExcludingProperties: 20_000,
+    });
+  });
+
   it("counts directed transfers in cash totals while keeping them outside income and expenses", () => {
     const data = createEmptyFinanceData(2026);
     const timestamp = new Date().toISOString();

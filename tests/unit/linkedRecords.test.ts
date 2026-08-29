@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { accountBalance } from "../../src/domain/accounts";
 import { applyFinanceCommand, computeDashboard, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
-import { portfolioValues } from "../../src/domain/investments";
+import { investmentInvestedCapital, investmentMovementTotals, investmentPositionValue, portfolioValues } from "../../src/domain/investments";
 import { rentInstallmentsForProperty } from "../../src/domain/rent";
 
 function createEmptyFinanceData(year: number) {
@@ -64,6 +65,77 @@ describe("linked finance records", () => {
     expect(data.investmentEntries[0].transactionId).toBe(data.transactions[0].id);
   });
 
+  it("keeps manual investment corrections outside Transactions and liquidity", () => {
+    let data = createEmptyFinanceData(2026);
+    data.accounts[0].openingBalance = 1_000;
+    const investmentId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: investmentId, name: "Synthetic inherited fund", kind: "fund", typeId: data.investmentTypes[1].id,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestmentEntry", value: {
+      id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "contribution", amount: 250,
+      description: "Actual contribution", categoryId: data.categories[8].id,
+      paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id, notes: "",
+    } });
+    const correctionId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addInvestmentCorrection", value: {
+      id: correctionId, investmentId, date: "2025-12-31", kind: "contribution_correction", amount: 40,
+      description: "Inherited contribution difference", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestmentCorrection", value: {
+      id: crypto.randomUUID(), investmentId, date: "2025-12-31", kind: "withdrawal_correction", amount: 10,
+      description: "Inherited liquidation difference", notes: "",
+    } });
+
+    expect(data.transactions).toHaveLength(1);
+    expect(accountBalance(data, data.accounts[0].id)).toBe(750);
+    expect(investmentPositionValue(data, data.investments[0])).toBe(250);
+    expect(investmentMovementTotals(data, investmentId)).toEqual({
+      initialCapital: 250, subsequentContributions: 40, liquidations: 10, balance: 280,
+    });
+
+    data = applyFinanceCommand(data, { type: "updateInvestmentCorrection", value: {
+      ...data.investmentEntries.find((item) => item.id === correctionId)!, amount: 55,
+    } });
+    expect(data.transactions).toHaveLength(1);
+    expect(accountBalance(data, data.accounts[0].id)).toBe(750);
+    expect(investmentMovementTotals(data, investmentId).subsequentContributions).toBe(55);
+  });
+
+  it("replaces repeated current-year corrections and reverses the linked cash-flow direction", () => {
+    let data = createEmptyFinanceData(2026);
+    data.accounts[0].openingBalance = 1_000;
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    data = applyFinanceCommand(data, { type: "addInvestment", value: {
+      id: investmentId, name: "Synthetic corrected fund", kind: "fund", typeId: data.investmentTypes[1].id,
+      provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "",
+    } });
+    data = applyFinanceCommand(data, { type: "addInvestmentEntry", value: {
+      id: entryId, investmentId, date: "2026-04-02", kind: "contribution", amount: 250,
+      description: "Synthetic contribution", categoryId: data.categories.find((item) => item.nameIt === "Investimenti")!.id,
+      paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id, notes: "",
+    } });
+    const transactionId = data.investmentEntries[0].transactionId;
+
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 275,
+    } });
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 100, kind: "withdrawal", description: "Synthetic liquidation",
+    } });
+
+    expect(data.investmentEntries).toHaveLength(1);
+    expect(data.transactions).toHaveLength(1);
+    expect(data.investmentEntries[0]).toMatchObject({ id: entryId, transactionId, amount: 100, kind: "withdrawal" });
+    expect(data.transactions[0]).toMatchObject({
+      id: transactionId, investmentEntryId: entryId, amount: 100, cashFlowDirection: "inflow",
+    });
+    expect(investmentInvestedCapital(data, investmentId)).toBe(0);
+    expect(accountBalance(data, data.accounts[0].id)).toBe(1_100);
+  });
+
   it("keeps contributions and withdrawals bidirectional for investments and pension compartments", () => {
     let data = createEmptyFinanceData(2026);
     const investmentId = crypto.randomUUID();
@@ -125,6 +197,83 @@ describe("linked finance records", () => {
     data = applyFinanceCommand(data, { type: "deleteEntity", entity: "investmentEntry", id: withdrawal.id });
     expect(data.investmentEntries.some((item) => item.id === withdrawal.id)).toBe(false);
     expect(data.transactions.some((item) => item.id === withdrawal.transactionId)).toBe(false);
+  });
+
+  it("updates a legacy historical investment movement in place without moving it into current cash flows", () => {
+    let data = createEmptyFinanceData(2026);
+    data.accounts[0].openingBalance = 1_000;
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const accountId = data.accounts[0].id;
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId, name: "Synthetic legacy fund", kind: "fund", typeId: data.investmentTypes[1].id,
+      provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId, investmentId, date: "2025-06-10", kind: "contribution", amount: 500,
+      description: "Synthetic historical contribution", categoryId, paymentMethodId, accountId, transactionId, notes: "",
+    });
+    data.transactions.push({
+      id: transactionId, date: "2025-06-10", description: "Synthetic historical contribution",
+      categoryId, paymentMethodId, accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 500,
+      currency: "EUR", investmentId, investmentEntryId: entryId, shared: false, planned: false,
+      sharedPaidBy: "owner", sharedSettled: false, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    data.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 525, contributions: 500, withdrawals: 0,
+    });
+
+    expect(accountBalance(data, accountId)).toBe(1_000);
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 450, description: "Corrected synthetic contribution",
+    } });
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 475,
+    } });
+    data = applyFinanceCommand(data, { type: "updateTransaction", value: {
+      ...data.transactions[0], amount: 480, description: "Corrected from Transactions",
+    } });
+
+    expect(data.investmentEntries).toHaveLength(1);
+    expect(data.transactions).toHaveLength(1);
+    expect(data.investmentEntries[0]).toMatchObject({ id: entryId, transactionId, amount: 480, description: "Corrected from Transactions" });
+    expect(data.transactions[0]).toMatchObject({ id: transactionId, investmentEntryId: entryId, amount: 480, cashFlowDirection: "outflow" });
+    expect(data.investmentAnnualSummaries[0]).toMatchObject({ contributions: 480, withdrawals: 0 });
+    expect(investmentInvestedCapital(data, investmentId)).toBe(480);
+    expect(accountBalance(data, accountId)).toBe(1_000);
+  });
+
+  it("does not allow a legacy movement to acquire a new invalid historical account date", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const accountId = data.accounts[0].id;
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId, name: "Synthetic legacy fund", kind: "fund", typeId: data.investmentTypes[1].id,
+      provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId, investmentId, date: "2025-06-10", kind: "contribution", amount: 500,
+      description: "Synthetic historical contribution", categoryId, paymentMethodId, accountId, transactionId, notes: "",
+    });
+    data.transactions.push({
+      id: transactionId, date: "2025-06-10", description: "Synthetic historical contribution",
+      categoryId, paymentMethodId, accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 500,
+      currency: "EUR", investmentId, investmentEntryId: entryId, shared: false, planned: false,
+      sharedPaidBy: "owner", sharedSettled: false, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    expect(() => applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], date: "2025-07-10", amount: 450,
+    } })).toThrow("ACCOUNT_REQUIRED");
   });
 
   it("confirms a periodic contribution in place without duplicating its movement", () => {

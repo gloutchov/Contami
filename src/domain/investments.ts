@@ -1,4 +1,60 @@
-import type { FinanceData, Investment } from "./models";
+import type { FinanceData, Investment, InvestmentEntry } from "./models";
+
+export type InvestmentCorrectionKind = "contribution_correction" | "withdrawal_correction";
+export type LinkedInvestmentMovementKind = "contribution" | "withdrawal";
+
+export function isInvestmentCorrectionKind(kind: InvestmentEntry["kind"]): kind is InvestmentCorrectionKind {
+  return kind === "contribution_correction" || kind === "withdrawal_correction";
+}
+
+export function isLinkedInvestmentMovementKind(kind: InvestmentEntry["kind"]): kind is LinkedInvestmentMovementKind {
+  return kind === "contribution" || kind === "withdrawal";
+}
+
+export function investmentEntryMovementKind(kind: InvestmentEntry["kind"]): LinkedInvestmentMovementKind | undefined {
+  if (kind === "contribution" || kind === "contribution_correction") return "contribution";
+  if (kind === "withdrawal" || kind === "withdrawal_correction") return "withdrawal";
+  return undefined;
+}
+
+function investmentValueEntryOrder(kind: InvestmentEntry["kind"]): number {
+  if (kind === "contribution") return 0;
+  if (kind === "withdrawal") return 1;
+  if (kind === "valuation") return 2;
+  return 3;
+}
+
+export interface InvestmentMovementEvent {
+  date: string;
+  kind: "contribution" | "withdrawal";
+  amount: number;
+  correction: boolean;
+  orderKey: string;
+}
+
+export interface InvestmentMovementTotals {
+  initialCapital: number;
+  subsequentContributions: number;
+  liquidations: number;
+  balance: number;
+}
+
+const emptyMovementTotals = (): InvestmentMovementTotals => ({
+  initialCapital: 0,
+  subsequentContributions: 0,
+  liquidations: 0,
+  balance: 0,
+});
+
+export function addInvestmentMovementTotals(
+  left: InvestmentMovementTotals,
+  right: InvestmentMovementTotals,
+): InvestmentMovementTotals {
+  const initialCapital = left.initialCapital + right.initialCapital;
+  const subsequentContributions = left.subsequentContributions + right.subsequentContributions;
+  const liquidations = left.liquidations + right.liquidations;
+  return { initialCapital, subsequentContributions, liquidations, balance: initialCapital + subsequentContributions - liquidations };
+}
 
 export function pensionInvestmentIds(data: FinanceData): Set<string> {
   const pensionTypeIds = new Set(data.investmentTypes.filter((type) => type.code === "pension").map((type) => type.id));
@@ -37,10 +93,69 @@ export function confirmedInvestmentEntries(data: FinanceData, investmentId?: str
     && (!entry.transactionId || !plannedTransactionIds.has(entry.transactionId)));
 }
 
+export function investmentMovementEvents(data: FinanceData, investmentId: string): InvestmentMovementEvent[] {
+  const annualByYear = new Map(data.investmentAnnualSummaries
+    .filter((item) => item.investmentId === investmentId)
+    .map((item) => [item.year, item]));
+  const detailed = confirmedInvestmentEntries(data, investmentId)
+    .filter((entry) => investmentEntryMovementKind(entry.kind));
+  const detailedKindsByYear = new Map<number, Set<LinkedInvestmentMovementKind>>();
+  for (const entry of detailed) {
+    if (isInvestmentCorrectionKind(entry.kind)) continue;
+    const kind = investmentEntryMovementKind(entry.kind);
+    if (!kind) continue;
+    const year = Number(entry.date.slice(0, 4));
+    const kinds = detailedKindsByYear.get(year) ?? new Set<LinkedInvestmentMovementKind>();
+    kinds.add(kind);
+    detailedKindsByYear.set(year, kinds);
+  }
+  const events: InvestmentMovementEvent[] = [];
+
+  for (const summary of annualByYear.values()) {
+    const date = `${summary.year}-12-31`;
+    const detailedKinds = detailedKindsByYear.get(summary.year);
+    if (summary.contributions > 0 && (summary.year < data.meta.activeYear || !detailedKinds?.has("contribution"))) {
+      events.push({ date, kind: "contribution", amount: summary.contributions, correction: false, orderKey: `0-summary-${summary.year}` });
+    }
+    if (summary.withdrawals > 0 && (summary.year < data.meta.activeYear || !detailedKinds?.has("withdrawal"))) {
+      events.push({ date, kind: "withdrawal", amount: summary.withdrawals, correction: false, orderKey: `1-summary-${summary.year}` });
+    }
+  }
+
+  for (const entry of detailed) {
+    const kind = investmentEntryMovementKind(entry.kind);
+    if (!kind) continue;
+    const correction = isInvestmentCorrectionKind(entry.kind);
+    const year = Number(entry.date.slice(0, 4));
+    const historicalSummary = year < data.meta.activeYear ? annualByYear.get(year) : undefined;
+    const summarizedAmount = kind === "contribution" ? historicalSummary?.contributions : historicalSummary?.withdrawals;
+    if (!correction && summarizedAmount !== undefined && summarizedAmount > 0) continue;
+    events.push({ date: entry.date, kind, amount: entry.amount, correction, orderKey: `${kind === "contribution" ? 0 : 1}-${correction ? 1 : 0}-entry-${entry.id}` });
+  }
+  return events.sort((left, right) => left.date.localeCompare(right.date) || left.orderKey.localeCompare(right.orderKey));
+}
+
+export function investmentMovementTotals(data: FinanceData, investmentId: string): InvestmentMovementTotals {
+  const totals = emptyMovementTotals();
+  let foundInitialContribution = false;
+  for (const event of investmentMovementEvents(data, investmentId)) {
+    if (event.kind === "withdrawal") {
+      totals.liquidations += event.amount;
+    } else if (!event.correction && !foundInitialContribution) {
+      totals.initialCapital = event.amount;
+      foundInitialContribution = true;
+    } else {
+      totals.subsequentContributions += event.amount;
+    }
+  }
+  totals.balance = totals.initialCapital + totals.subsequentContributions - totals.liquidations;
+  return totals;
+}
+
 export function latestInvestmentValue(data: FinanceData, investmentId: string): number {
-  const order = { contribution: 0, withdrawal: 1, valuation: 2 } as const;
   return confirmedInvestmentEntries(data, investmentId)
-    .sort((left, right) => left.date.localeCompare(right.date) || order[left.kind] - order[right.kind])
+    .filter((entry) => entry.kind === "contribution" || entry.kind === "withdrawal" || entry.kind === "valuation")
+    .sort((left, right) => left.date.localeCompare(right.date) || investmentValueEntryOrder(left.kind) - investmentValueEntryOrder(right.kind))
     .reduce((value, entry) => {
       if (entry.kind === "contribution") return value + entry.amount;
       if (entry.kind === "withdrawal") return Math.max(0, value - entry.amount);
@@ -48,12 +163,31 @@ export function latestInvestmentValue(data: FinanceData, investmentId: string): 
     }, 0);
 }
 
+export type InvestmentValueTrend = "up" | "down";
+
+export function investmentValuationTrend(data: FinanceData, investmentId: string): InvestmentValueTrend | undefined {
+  const valuations = confirmedInvestmentEntries(data, investmentId).filter((entry) => entry.kind === "valuation");
+  const valuationYears = new Set(valuations.map((entry) => Number(entry.date.slice(0, 4))));
+  const summaries = data.investmentAnnualSummaries
+    .filter((summary) => summary.investmentId === investmentId)
+    .filter((summary) => summary.year < data.meta.activeYear || !valuationYears.has(summary.year));
+  const summaryYears = new Set(summaries.map((summary) => summary.year));
+  const observations = [
+    ...summaries.map((summary) => ({ date: `${summary.year}-12-31`, orderKey: `0-summary-${summary.year}`, value: summary.closingValue })),
+    ...valuations
+      .filter((entry) => !summaryYears.has(Number(entry.date.slice(0, 4))))
+      .map((entry) => ({ date: entry.date, orderKey: `1-valuation-${entry.id}`, value: entry.amount })),
+  ].sort((left, right) => left.date.localeCompare(right.date) || left.orderKey.localeCompare(right.orderKey));
+  if (observations.length < 2) return undefined;
+  const previous = observations.at(-2)!.value;
+  const current = observations.at(-1)!.value;
+  if (current > previous + 0.005) return "up";
+  if (current < previous - 0.005) return "down";
+  return undefined;
+}
+
 export function investmentInvestedCapital(data: FinanceData, investmentId: string): number {
-  return Math.max(0, confirmedInvestmentEntries(data, investmentId).reduce((capital, entry) => {
-    if (entry.kind === "contribution") return capital + entry.amount;
-    if (entry.kind === "withdrawal") return capital - entry.amount;
-    return capital;
-  }, 0));
+  return Math.max(0, investmentMovementTotals(data, investmentId).balance);
 }
 
 export function investmentPositionValue(data: FinanceData, investment: Investment): number {
@@ -68,6 +202,16 @@ export function investmentPositionInvestedCapital(data: FinanceData, investment:
   return children.length
     ? children.filter((child) => child.active).reduce((sum, child) => sum + investmentPositionInvestedCapital(data, child), 0)
     : investmentInvestedCapital(data, investment.id);
+}
+
+export function investmentPositionMovementTotals(data: FinanceData, investment: Investment): InvestmentMovementTotals {
+  const children = investmentChildren(data, investment.id);
+  return children.length
+    ? children.filter((child) => child.active).reduce(
+      (totals, child) => addInvestmentMovementTotals(totals, investmentPositionMovementTotals(data, child)),
+      emptyMovementTotals(),
+    )
+    : investmentMovementTotals(data, investment.id);
 }
 
 export function investmentPositionIsLoss(data: FinanceData, investment: Investment): boolean {
@@ -108,14 +252,14 @@ export function portfolioValues(data: FinanceData): { investments: number; pensi
   const entriesByInvestment = new Map<string, typeof data.investmentEntries>();
   for (const entry of data.investmentEntries) {
     if (entry.transactionId && plannedTransactionIds.has(entry.transactionId)) continue;
+    if (isInvestmentCorrectionKind(entry.kind)) continue;
     const entries = entriesByInvestment.get(entry.investmentId) ?? [];
     entries.push(entry);
     entriesByInvestment.set(entry.investmentId, entries);
   }
-  const order = { contribution: 0, withdrawal: 1, valuation: 2 } as const;
   const valueByInvestment = new Map<string, number>();
   for (const [investmentId, entries] of entriesByInvestment) {
-    const value = entries.sort((left, right) => left.date.localeCompare(right.date) || order[left.kind] - order[right.kind])
+    const value = entries.sort((left, right) => left.date.localeCompare(right.date) || investmentValueEntryOrder(left.kind) - investmentValueEntryOrder(right.kind))
       .reduce((current, entry) => {
         if (entry.kind === "contribution") return current + entry.amount;
         if (entry.kind === "withdrawal") return Math.max(0, current - entry.amount);

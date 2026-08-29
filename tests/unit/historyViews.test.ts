@@ -97,6 +97,42 @@ describe("historical view helpers", () => {
     ]);
   });
 
+  it("uses closed-year investment summaries without double counting overlapping detail rows", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({ id: investmentId, name: "Synthetic fund", kind: "fund", typeId: data.investmentTypes[1].id, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" });
+    data.investmentAnnualSummaries.push({ investmentId, year: 2025, closingValue: 950, contributions: 1_000, withdrawals: 100 });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2025-06-10", kind: "contribution", amount: 999, description: "Historical detail already summarized", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "contribution", amount: 50, description: "Current contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-10", kind: "valuation", amount: 1_080, description: "Current value", notes: "" },
+    );
+
+    expect(investmentValueTimeline(data, investmentId)).toEqual([
+      { date: "2025-12-31", investedValue: 900, closingValue: 950 },
+      { date: "2026-01-10", investedValue: 950, closingValue: 1_000 },
+      { date: "2026-02-10", investedValue: 950, closingValue: 1_080 },
+    ]);
+  });
+
+  it("applies manual corrections to invested capital without changing the value timeline", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({ id: investmentId, name: "Synthetic inherited fund", kind: "fund", typeId: data.investmentTypes[1].id, provider: "", currency: "EUR", active: true, openedAt: "2026-01-01", notes: "" });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "contribution", amount: 100, description: "Actual contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "valuation", amount: 110, description: "Observed value", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-10", kind: "contribution_correction", amount: 25, description: "Inherited contribution difference", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-03-10", kind: "withdrawal_correction", amount: 5, description: "Inherited liquidation difference", notes: "" },
+    );
+
+    expect(investmentValueTimeline(data, investmentId)).toEqual([
+      { date: "2026-01-10", investedValue: 100, closingValue: 110 },
+      { date: "2026-02-10", investedValue: 125, closingValue: 110 },
+      { date: "2026-03-10", investedValue: 120, closingValue: 110 },
+    ]);
+  });
+
   it("shows prior-vehicle lifetime totals even without current-year entries", () => {
     const data = createEmptyFinanceData(2026);
     const vehicleId = crypto.randomUUID();

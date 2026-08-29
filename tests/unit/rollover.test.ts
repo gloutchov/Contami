@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
+import { investmentMovementTotals } from "../../src/domain/investments";
 import { createRolloverFinanceData } from "../../src/domain/rollover";
 
 describe("createRolloverFinanceData", () => {
@@ -169,6 +170,60 @@ describe("createRolloverFinanceData", () => {
     expect(next.propertyAnnualSummaries).toMatchObject([{ propertyId, year: 2026, electricityKwh: 1250 }]);
     expect(next.investmentAnnualSummaries).toMatchObject([{ investmentId, year: 2026, closingValue: 20_000 }]);
     expect(next.vehicleAnnualSummaries).toMatchObject([{ vehicleId, year: 2026, totalCosts: 60, fuelCosts: 60, distanceKm: 700, fuelLiters: 35, averageKmPerLiter: 20 }]);
+  });
+
+  it("uses the earliest annual investment aggregate as initial capital after rollover", () => {
+    const current = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    current.investments.push({
+      id: investmentId, name: "Synthetic fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    current.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "contribution", amount: 1_000, description: "Initial", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-04-10", kind: "contribution", amount: 200, description: "Later", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-08-10", kind: "withdrawal", amount: 100, description: "Partial liquidation", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-12-20", kind: "valuation", amount: 1_250, description: "Year end", notes: "" },
+    );
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.investmentAnnualSummaries).toMatchObject([{
+      investmentId, year: 2026, closingValue: 1_250, contributions: 1_200, withdrawals: 100,
+    }]);
+    expect(investmentMovementTotals(next, investmentId)).toEqual({
+      initialCapital: 1_200,
+      subsequentContributions: 0,
+      liquidations: 100,
+      balance: 1_100,
+    });
+  });
+
+  it("preserves corrections across rollover without turning them into annual movements", () => {
+    let current = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    current.investments.push({
+      id: investmentId, name: "Synthetic corrected fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2025-01-01", notes: "",
+    });
+    current.investmentEntries.push({
+      id: crypto.randomUUID(), investmentId, date: "2026-02-01", kind: "valuation", amount: 900,
+      description: "Year value", notes: "",
+    });
+    current = applyFinanceCommand(current, { type: "addInvestmentCorrection", value: {
+      id: crypto.randomUUID(), investmentId, date: "2024-12-31", kind: "contribution_correction", amount: 35,
+      description: "Inherited difference", notes: "",
+    } });
+
+    const next = createRolloverFinanceData(current, 2027);
+
+    expect(next.investmentEntries.filter((item) => item.kind === "contribution_correction")).toMatchObject([
+      { investmentId, date: "2024-12-31", amount: 35 },
+    ]);
+    expect(next.investmentEntries.find((item) => item.kind === "contribution_correction")).not.toHaveProperty("transactionId");
+    expect(next.transactions).toHaveLength(0);
+    expect(next.investmentAnnualSummaries[0]).toMatchObject({ investmentId, year: 2026, contributions: 0, withdrawals: 0 });
+    expect(investmentMovementTotals(next, investmentId).subsequentContributions).toBe(35);
   });
 
   it("carries only the unpaid installments into the next year", () => {

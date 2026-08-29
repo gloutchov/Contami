@@ -23,7 +23,7 @@ export function OverviewView({ snapshot, onCreate, onOpen }: { snapshot: Finance
     <PageHeader eyebrow={`${data.meta.activeYear}`} title={`${t("hello")} 👋`} subtitle={t("overviewSubtitle")} />
     {!snapshot.workbookConfigured && <section className="setup-banner"><div><h2>{t("setupTitle")}</h2><p>{t("setupBody")}</p></div><div className="actions"><button className="secondary-button" onClick={onOpen}>{t("openWorkbook")}</button><button className="primary-button" onClick={onCreate}>{t("createWorkbook")}</button></div></section>}
     <section className="kpi-grid">
-      <KpiCard label={t("netWorth")} value={formatCurrency(metrics.netWorth, language)} icon={PiggyBank} tone="mint" />
+      <KpiCard label={t("netWorth")} value={formatCurrency(metrics.netWorth, language)} icon={PiggyBank} tone="mint" detail={`${t("netWorthExcludingProperties")}: ${formatCurrency(metrics.netWorthExcludingProperties, language)}`} />
       <KpiCard label={t("liquidity")} value={formatCurrency(metrics.liquidBalance, language)} icon={WalletCards} tone="blue" />
       <KpiCard label={t("cashRegisterBalance")} value={formatCurrency(metrics.cashRegisterBalance, language)} icon={Banknote} tone="gold" />
       <KpiCard label={t("propertyValue")} value={formatCurrency(metrics.propertyValue, language)} icon={Building2} tone="gold" detail={`${t("income")}: ${formatCurrency(metrics.propertyIncome, language)} · ${t("expenses")}: ${formatCurrency(metrics.propertyExpenses, language)}`} />

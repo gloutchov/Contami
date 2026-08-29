@@ -1,5 +1,5 @@
 import { createInvestmentAnnualSummaries } from "../../domain/annualHistory";
-import { confirmedInvestmentEntries, investmentChildren } from "../../domain/investments";
+import { confirmedInvestmentEntries, investmentChildren, investmentMovementEvents, isInvestmentCorrectionKind } from "../../domain/investments";
 import type { FinanceData } from "../../domain/models";
 
 export interface InvestmentHistoryPoint {
@@ -52,31 +52,37 @@ export function investmentValueHistory(data: FinanceData, investmentId: string):
 }
 
 function ownTimeline(data: FinanceData, investmentId: string): InvestmentTimelinePoint[] {
-  const entries = confirmedInvestmentEntries(data, investmentId)
-    .sort((a, b) => a.date.localeCompare(b.date) || ({ contribution: 0, withdrawal: 1, valuation: 2 }[a.kind] - { contribution: 0, withdrawal: 1, valuation: 2 }[b.kind]));
-  const entryYears = new Set(entries.map((item) => Number(item.date.slice(0, 4))));
+  const entries = confirmedInvestmentEntries(data, investmentId);
+  const detailedMovementYears = new Set(entries
+    .filter((item) => item.kind !== "valuation" && !isInvestmentCorrectionKind(item.kind))
+    .map((item) => Number(item.date.slice(0, 4))));
+  const summaries = data.investmentAnnualSummaries
+    .filter((item) => item.investmentId === investmentId)
+    .filter((item) => item.year < data.meta.activeYear || !detailedMovementYears.has(item.year));
+  const summaryYears = new Set(summaries.map((item) => item.year));
   const events = [
-    ...data.investmentAnnualSummaries
-      .filter((item) => item.investmentId === investmentId && !entryYears.has(item.year))
-      .map((item) => ({ date: `${item.year}-12-31`, summary: item })),
-    ...entries.map((entry) => ({ date: entry.date, entry })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+    ...investmentMovementEvents(data, investmentId).map((movement) => ({ date: movement.date, orderKey: movement.orderKey, movement })),
+    ...summaries.map((summary) => ({ date: `${summary.year}-12-31`, orderKey: `2-summary-${summary.year}`, summary })),
+    ...entries
+      .filter((entry) => entry.kind === "valuation" && !summaryYears.has(Number(entry.date.slice(0, 4))))
+      .map((valuation) => ({ date: valuation.date, orderKey: `2-valuation-${valuation.id}`, valuation })),
+  ].sort((left, right) => left.date.localeCompare(right.date) || left.orderKey.localeCompare(right.orderKey));
   let investedValue = 0;
   let closingValue = 0;
   const points: InvestmentTimelinePoint[] = [];
   for (const date of [...new Set(events.map((item) => item.date))]) {
     for (const event of events.filter((item) => item.date === date)) {
       if ("summary" in event) {
-        investedValue = Math.max(0, investedValue + event.summary.contributions - event.summary.withdrawals);
-        closingValue = event.summary.closingValue;
-      } else if (event.entry.kind === "contribution") {
-        investedValue += event.entry.amount;
-        closingValue += event.entry.amount;
-      } else if (event.entry.kind === "withdrawal") {
-        investedValue = Math.max(0, investedValue - event.entry.amount);
-        closingValue = Math.max(0, closingValue - event.entry.amount);
+        closingValue = event.summary!.closingValue;
+      } else if ("valuation" in event) {
+        closingValue = event.valuation!.amount;
+      } else if (event.movement!.kind === "contribution") {
+        investedValue += event.movement!.amount;
+        if (!event.movement!.correction) closingValue += event.movement!.amount;
+      } else {
+        investedValue = Math.max(0, investedValue - event.movement!.amount);
+        if (!event.movement!.correction) closingValue = Math.max(0, closingValue - event.movement!.amount);
       }
-      else closingValue = event.entry.amount;
     }
     points.push({ date, investedValue, closingValue });
   }

@@ -15,6 +15,85 @@ function withoutId(value: object): Record<string, unknown> {
 }
 
 describe("ExcelWorkbookRepository", () => {
+  it("round-trips an in-place correction to a legacy historical investment movement", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-historical-investment-edit-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-historical-investment.xlsx");
+    let data = createEmptyFinanceData(2026);
+    const accountId = crypto.randomUUID();
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const categoryId = data.categories.find((item) => item.nameIt === "Investimenti")!.id;
+    const paymentMethodId = data.paymentMethods[0].id;
+    const timestamp = new Date().toISOString();
+    data.accounts.push({
+      id: accountId, name: "Synthetic current-year account", kind: "bank", currency: "EUR",
+      openingBalance: 2_000, active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.investments.push({
+      id: investmentId, name: "Synthetic legacy investment", kind: "fund", provider: "",
+      currency: "EUR", active: true, openedAt: "2025-01-01", notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId, investmentId, date: "2025-05-20", kind: "contribution", amount: 800,
+      description: "Synthetic historical contribution", categoryId, paymentMethodId, accountId, transactionId, notes: "",
+    });
+    data.transactions.push({
+      id: transactionId, date: "2025-05-20", description: "Synthetic historical contribution",
+      categoryId, paymentMethodId, accountId, kind: "transfer", cashFlowDirection: "outflow", amount: 800,
+      currency: "EUR", investmentId, investmentEntryId: entryId, shared: false, planned: false,
+      sharedPaidBy: "owner", sharedSettled: false, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+    data.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 820, contributions: 800, withdrawals: 0,
+    });
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+    data = await repository.load(filePath);
+
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 775, description: "Corrected synthetic contribution",
+    } });
+    await repository.save(filePath, data);
+    const loaded = await repository.load(filePath);
+
+    expect(loaded.investmentEntries).toHaveLength(1);
+    expect(loaded.transactions).toHaveLength(1);
+    expect(loaded.investmentEntries[0]).toMatchObject({ id: entryId, transactionId, amount: 775, date: "2025-05-20" });
+    expect(loaded.transactions[0]).toMatchObject({ id: transactionId, investmentEntryId: entryId, amount: 775, date: "2025-05-20" });
+    expect(loaded.investmentAnnualSummaries[0]).toMatchObject({ investmentId, year: 2025, contributions: 775, withdrawals: 0 });
+    expect(await readdir(path.join(directory, ".contami-backups"))).toHaveLength(1);
+  });
+
+  it("round-trips a manual investment correction without creating transaction links", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-investment-correction-")); directories.push(directory);
+    const filePath = path.join(directory, "ContaMi-investment-correction.xlsx");
+    let data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId, name: "Synthetic inherited fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2025-01-01", notes: "",
+    });
+    data = applyFinanceCommand(data, { type: "addInvestmentCorrection", value: {
+      id: crypto.randomUUID(), investmentId, date: "2025-12-31", kind: "contribution_correction", amount: 42,
+      description: "Synthetic imported difference", notes: "No cash movement",
+    } });
+
+    const repository = new ExcelWorkbookRepository();
+    await repository.save(filePath, data);
+    const loaded = await repository.load(filePath);
+
+    expect(loaded.meta.schemaVersion).toBe(10);
+    expect(loaded.investmentEntries).toMatchObject([{
+      investmentId, kind: "contribution_correction", amount: 42,
+    }]);
+    expect(loaded.investmentEntries[0]).not.toHaveProperty("categoryId");
+    expect(loaded.investmentEntries[0]).not.toHaveProperty("paymentMethodId");
+    expect(loaded.investmentEntries[0]).not.toHaveProperty("accountId");
+    expect(loaded.investmentEntries[0]).not.toHaveProperty("transactionId");
+    expect(loaded.transactions).toEqual([]);
+  });
+
   it("round-trips an atomic vehicle installment and its bidirectional planned records", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "contami-workbook-vehicle-installment-")); directories.push(directory);
     const filePath = path.join(directory, "ContaMi-vehicle-installment.xlsx");
@@ -147,7 +226,7 @@ describe("ExcelWorkbookRepository", () => {
     const migrated = await repository.loadWithUuidRepair(filePath);
 
     expect(migrated.migratedSchema).toBe(true);
-    expect(migrated.data.meta.schemaVersion).toBe(9);
+    expect(migrated.data.meta.schemaVersion).toBe(10);
     expect(migrated.data.recurringRateChanges).toEqual([]);
     expect(migrated.data.recurringItems[0]).toMatchObject({ id: recurringId, amount: 75 });
     expect(migrated.data.transactions.find((item) => item.id === transactionId)).toMatchObject({ amount: 75, planned: true });
@@ -195,7 +274,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
 
-    expect(migrated.meta.schemaVersion).toBe(9);
+    expect(migrated.meta.schemaVersion).toBe(10);
     expect(migrated.transactions.find((item) => item.id === plannedTransactionId)?.dueDate).toBe("2026-08-15");
     expect(migrated.propertyEntries.find((item) => item.id === plannedEntryId)?.dueDate).toBe("2026-08-15");
     expect(migrated.transactions.find((item) => item.id === confirmedTransactionId)?.dueDate).toBeUndefined();
@@ -457,7 +536,7 @@ describe("ExcelWorkbookRepository", () => {
 
     const migrated = await repository.load(filePath);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
-    expect(migrated.meta.schemaVersion).toBe(9);
+    expect(migrated.meta.schemaVersion).toBe(10);
     expect(migrated.propertyEntries[0]).toMatchObject({ taxTypeId: imu.id, taxInstallmentNumber: 2, amount: 350 });
   });
 
@@ -498,7 +577,7 @@ describe("ExcelWorkbookRepository", () => {
     await workbook.xlsx.writeFile(filePath);
 
     const migrated = await repository.load(filePath);
-    expect(migrated.meta.schemaVersion).toBe(9);
+    expect(migrated.meta.schemaVersion).toBe(10);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({ phoneInternetCost: 0, condominiumCost: 0 });
   });
 });
