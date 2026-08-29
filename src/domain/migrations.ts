@@ -168,8 +168,8 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
   const raw = structuredClone(rawValue) as RawRecord;
   const meta = raw.meta as RawRecord | undefined;
   const version = Number(meta?.schemaVersion);
-  if (version === 9) return financeDataSchema.parse(raw);
-  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6 && version !== 7 && version !== 8) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
+  if (version === 10) return financeDataSchema.parse(raw);
+  if ((version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6 && version !== 7 && version !== 8 && version !== 9) || !meta) throw new Error("INVALID_WORKBOOK_SCHEMA");
 
   if (version === 1) {
     const categories = list(raw.categories);
@@ -242,7 +242,7 @@ export function migrateFinanceData(rawValue: unknown): FinanceData {
     migrateLinkedRecordAccounts(raw);
     migrateRecurringDueDates(raw);
   }
-  raw.recurringRateChanges = [];
-  meta.schemaVersion = 9;
+  if (version <= 8) raw.recurringRateChanges = [];
+  meta.schemaVersion = 10;
   return financeDataSchema.parse(raw);
 }

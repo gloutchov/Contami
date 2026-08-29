@@ -15,7 +15,7 @@ import {
   upsertVehicleEntryWithAutomaticSharedExpense,
   upsertVehicleEntryWithLinks,
 } from "./linkedRecords";
-import { portfolioValues } from "./investments";
+import { isInvestmentCorrectionKind, portfolioValues } from "./investments";
 import type { AnnualSummary, FinanceData } from "./models";
 import { financeDataSchema } from "./models";
 import { repairOperationalData } from "./operationalDataRepair";
@@ -42,7 +42,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 9, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 10, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -108,6 +108,136 @@ function ensureEntryAccount(data: FinanceData, value: { date: string; paymentMet
   if (!monetary) return;
   if (!value.paymentMethodId) throw new Error("PAYMENT_METHOD_NOT_FOUND");
   value.accountId = resolvePaymentAccountId(data, value.paymentMethodId, value.accountId, value.date, currency);
+}
+
+function ensureInvestmentEntryAccount(
+  data: FinanceData,
+  value: FinanceData["investmentEntries"][number],
+  previous?: FinanceData["investmentEntries"][number],
+): void {
+  const investment = data.investments.find((item) => item.id === value.investmentId);
+  if (!investment) throw new Error("INVESTMENT_NOT_FOUND");
+  if (value.kind === "valuation") return;
+  const currency = investment.currency;
+  try {
+    ensureEntryAccount(data, value, true, currency);
+    return;
+  } catch (error) {
+    const unchangedLegacyReference = previous
+      && previous.kind !== "valuation"
+      && previous.investmentId === value.investmentId
+      && previous.date === value.date
+      && previous.paymentMethodId === value.paymentMethodId
+      && previous.accountId === value.accountId
+      && Boolean(value.paymentMethodId && value.accountId);
+    if (!(error instanceof Error) || error.message !== "ACCOUNT_REQUIRED" || !unchangedLegacyReference) throw error;
+
+    const paymentMethod = data.paymentMethods.find((item) => item.id === value.paymentMethodId);
+    const account = data.accounts.find((item) => item.id === value.accountId);
+    if (!paymentMethod) throw new Error("PAYMENT_METHOD_NOT_FOUND", { cause: error });
+    if (!account || account.currency !== currency) throw error;
+    if (paymentMethod.kind === "cash" ? account.kind !== "cash" : account.kind === "cash") {
+      throw new Error("ACCOUNT_PAYMENT_METHOD_MISMATCH", { cause: error });
+    }
+    // Imported historical rows can legitimately predate the account interval carried into the active workbook.
+    // Permit edits to their financial fields without forcing a new date/account, but never accept a new invalid reference.
+    value.accountId = previous.accountId;
+  }
+}
+
+function ensureInvestmentTransactionAccounts(
+  data: FinanceData,
+  value: FinanceData["transactions"][number],
+  previous?: FinanceData["transactions"][number],
+): void {
+  try {
+    validateTransactionAccounts(data, value);
+    return;
+  } catch (error) {
+    const unchangedLegacyReference = previous
+      && Boolean(previous.investmentId || previous.investmentEntryId)
+      && previous.investmentId === value.investmentId
+      && previous.investmentEntryId === value.investmentEntryId
+      && previous.date === value.date
+      && previous.paymentMethodId === value.paymentMethodId
+      && previous.accountId === value.accountId
+      && previous.destinationAccountId === value.destinationAccountId
+      && previous.currency === value.currency
+      && Boolean(value.accountId);
+    if (!(error instanceof Error) || error.message !== "ACCOUNT_REQUIRED" || !unchangedLegacyReference) throw error;
+
+    const paymentMethod = data.paymentMethods.find((item) => item.id === value.paymentMethodId);
+    const account = data.accounts.find((item) => item.id === value.accountId);
+    if (!paymentMethod) throw new Error("PAYMENT_METHOD_NOT_FOUND", { cause: error });
+    if (!account || account.currency !== value.currency || value.destinationAccountId) throw error;
+    if (paymentMethod.kind === "cash" ? account.kind !== "cash" : account.kind === "cash") {
+      throw new Error("ACCOUNT_PAYMENT_METHOD_MISMATCH", { cause: error });
+    }
+  }
+}
+
+interface InvestmentAnnualMovementEffect {
+  investmentId: string;
+  year: number;
+  contributions: number;
+  withdrawals: number;
+}
+
+function investmentEntryAnnualMovementEffect(
+  data: FinanceData,
+  entry: FinanceData["investmentEntries"][number] | undefined,
+): InvestmentAnnualMovementEffect | undefined {
+  if (!entry || entry.kind === "valuation" || isInvestmentCorrectionKind(entry.kind)) return undefined;
+  const transaction = entry.transactionId
+    ? data.transactions.find((item) => item.id === entry.transactionId)
+    : data.transactions.find((item) => item.investmentEntryId === entry.id);
+  if (transaction?.planned) return undefined;
+  return {
+    investmentId: entry.investmentId,
+    year: Number(entry.date.slice(0, 4)),
+    contributions: entry.kind === "contribution" ? entry.amount : 0,
+    withdrawals: entry.kind === "withdrawal" ? entry.amount : 0,
+  };
+}
+
+function adjustInvestmentAnnualSummary(
+  data: FinanceData,
+  before: InvestmentAnnualMovementEffect | undefined,
+  after: InvestmentAnnualMovementEffect | undefined,
+): void {
+  for (const [effect, direction] of [[before, -1], [after, 1]] as const) {
+    if (!effect) continue;
+    const summary = data.investmentAnnualSummaries.find((item) => (
+      item.investmentId === effect.investmentId && item.year === effect.year
+    ));
+    if (!summary) continue;
+    summary.contributions = Math.max(0, summary.contributions + effect.contributions * direction);
+    summary.withdrawals = Math.max(0, summary.withdrawals + effect.withdrawals * direction);
+  }
+}
+
+function linkedInvestmentEntryForTransaction(
+  data: FinanceData,
+  transaction: FinanceData["transactions"][number] | undefined,
+) {
+  if (!transaction) return undefined;
+  return data.investmentEntries.find((entry) => (
+    entry.id === transaction.investmentEntryId || entry.transactionId === transaction.id
+  ));
+}
+
+function ensureInvestmentCorrectionTarget(
+  data: FinanceData,
+  value: FinanceData["investmentEntries"][number],
+  previous?: FinanceData["investmentEntries"][number],
+): void {
+  if (!isInvestmentCorrectionKind(value.kind)) throw new Error("INVALID_INVESTMENT_CORRECTION");
+  const investment = data.investments.find((item) => item.id === value.investmentId);
+  if (!investment) throw new Error("INVESTMENT_NOT_FOUND");
+  if (data.investments.some((item) => item.parentInvestmentId === investment.id)) throw new Error("INVESTMENT_CORRECTION_REQUIRES_LEAF");
+  if (previous && (!isInvestmentCorrectionKind(previous.kind) || previous.investmentId !== value.investmentId)) {
+    throw new Error("INVALID_INVESTMENT_CORRECTION");
+  }
 }
 
 function ensureInvestmentPlanAccount(data: FinanceData, value: FinanceData["investments"][number]): void {
@@ -215,8 +345,24 @@ function saveVehicleWithInstallment(
 
 function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand): void {
   switch (command.type) {
-    case "addTransaction": ensureUnique(next.transactions, command.value.id); validateTransactionAccounts(next, command.value); upsertTransactionWithLinks(next, command.value); break;
-    case "updateTransaction": ensureExists(next.transactions, command.value.id); validateTransactionAccounts(next, command.value); upsertTransactionWithLinks(next, command.value); break;
+    case "addTransaction": {
+      ensureUnique(next.transactions, command.value.id);
+      ensureInvestmentTransactionAccounts(next, command.value);
+      upsertTransactionWithLinks(next, command.value);
+      const transaction = next.transactions.find((item) => item.id === command.value.id);
+      adjustInvestmentAnnualSummary(next, undefined, investmentEntryAnnualMovementEffect(next, linkedInvestmentEntryForTransaction(next, transaction)));
+      break;
+    }
+    case "updateTransaction": {
+      const previousTransaction = next.transactions.find((item) => item.id === command.value.id);
+      if (!previousTransaction) throw new Error("ENTITY_NOT_FOUND");
+      const before = investmentEntryAnnualMovementEffect(next, linkedInvestmentEntryForTransaction(next, previousTransaction));
+      ensureInvestmentTransactionAccounts(next, command.value, previousTransaction);
+      upsertTransactionWithLinks(next, command.value);
+      const transaction = next.transactions.find((item) => item.id === command.value.id);
+      adjustInvestmentAnnualSummary(next, before, investmentEntryAnnualMovementEffect(next, linkedInvestmentEntryForTransaction(next, transaction)));
+      break;
+    }
     case "addAccount": ensureUnique(next.accounts, command.value.id); validateAccount(next, command.value); next.accounts.push(command.value); break;
     case "updateAccount": validateAccount(next, command.value); replace(next.accounts, command.value); break;
     case "addProperty": ensureUnique(next.properties, command.value.id); next.properties.push(command.value); break;
@@ -284,7 +430,9 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
       ensureEntryAccount(next, command.value.initialContribution, true, command.value.investment.currency);
       next.investments.push(command.value.investment);
       syncInvestmentPlan(next, command.value.investment);
-      upsertInvestmentEntryWithLinks(next, command.value.initialContribution); break;
+      upsertInvestmentEntryWithLinks(next, command.value.initialContribution);
+      adjustInvestmentAnnualSummary(next, undefined, investmentEntryAnnualMovementEffect(next, command.value.initialContribution));
+      break;
     case "updateInvestment": {
       ensureInvestmentPlanAccount(next, command.value);
       const existingPlan = next.recurringItems.find((item) => item.investmentId === command.value.id && item.kind === "investment");
@@ -296,9 +444,31 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
     case "addInvestmentEntry":
       ensureUnique(next.investmentEntries, command.value.id);
       if (!next.investments.some((item) => item.id === command.value.investmentId)) throw new Error("INVESTMENT_NOT_FOUND");
-      ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency);
-      upsertInvestmentEntryWithLinks(next, command.value); break;
-    case "updateInvestmentEntry": ensureExists(next.investmentEntries, command.value.id); ensureEntryAccount(next, command.value, command.value.kind !== "valuation", next.investments.find((item) => item.id === command.value.investmentId)?.currency); upsertInvestmentEntryWithLinks(next, command.value); break;
+      ensureInvestmentEntryAccount(next, command.value);
+      upsertInvestmentEntryWithLinks(next, command.value);
+      adjustInvestmentAnnualSummary(next, undefined, investmentEntryAnnualMovementEffect(next, command.value));
+      break;
+    case "updateInvestmentEntry": {
+      const previous = next.investmentEntries.find((item) => item.id === command.value.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      const before = investmentEntryAnnualMovementEffect(next, previous);
+      ensureInvestmentEntryAccount(next, command.value, previous);
+      upsertInvestmentEntryWithLinks(next, command.value);
+      adjustInvestmentAnnualSummary(next, before, investmentEntryAnnualMovementEffect(next, command.value));
+      break;
+    }
+    case "addInvestmentCorrection":
+      ensureUnique(next.investmentEntries, command.value.id);
+      ensureInvestmentCorrectionTarget(next, command.value);
+      next.investmentEntries.push(command.value);
+      break;
+    case "updateInvestmentCorrection": {
+      const previous = next.investmentEntries.find((item) => item.id === command.value.id);
+      if (!previous) throw new Error("ENTITY_NOT_FOUND");
+      ensureInvestmentCorrectionTarget(next, command.value, previous);
+      replace(next.investmentEntries, command.value);
+      break;
+    }
     case "addRecurringItem": {
       ensureUnique(next.recurringItems, command.value.id);
       const recurring = command.value.vehicleId ? prepareVehicleInstallment(next, command.value) : command.value;
@@ -411,7 +581,17 @@ function applyFinanceCommandInPlace(next: FinanceData, command: FinanceCommand):
         && next.recurringItems.some((item) => item.id === command.id && item.vehicleId && item.kind === "installment")) {
         throw new Error("VEHICLE_INSTALLMENT_MANAGED");
       }
-      deleteLinkedEntity(next, command.entity, command.id); break;
+      {
+        const entry = command.entity === "investmentEntry"
+          ? next.investmentEntries.find((item) => item.id === command.id)
+          : command.entity === "transaction"
+            ? linkedInvestmentEntryForTransaction(next, next.transactions.find((item) => item.id === command.id))
+            : undefined;
+        const before = investmentEntryAnnualMovementEffect(next, entry);
+        deleteLinkedEntity(next, command.entity, command.id);
+        adjustInvestmentAnnualSummary(next, before, undefined);
+      }
+      break;
     case "setActive": {
       if (command.entity === "taxType") {
         const item = next.taxTypes.find((candidate) => candidate.id === command.id);
@@ -509,7 +689,7 @@ export interface HistoricalMetric {
 }
 
 export interface DashboardMetrics {
-  netWorth: number; liquidBalance: number; cashRegisterBalance: number; propertyValue: number; investmentValue: number; pensionValue: number;
+  netWorth: number; netWorthExcludingProperties: number; liquidBalance: number; cashRegisterBalance: number; propertyValue: number; investmentValue: number; pensionValue: number;
   yearIncome: number; yearExpenses: number; monthlyRecurring: number; sharedBalance: number;
   propertyIncome: number; propertyExpenses: number;
   months: Array<{ month: string; income: number; expenses: number }>;
@@ -632,11 +812,12 @@ export function computeDashboard(data: FinanceData): DashboardMetrics {
     amount: categoryExpenses.get(category.id) ?? 0,
   })).filter((item) => item.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 6);
   const netWorth = liquidBalance + propertyValue + combinedInvestmentValue;
+  const netWorthExcludingProperties = netWorth - propertyValue;
   const history = [
     ...data.annualSummaries.map((item) => ({ year: item.year, netWorth: item.closingNetWorth, liquidBalance: item.liquidBalance, propertyValue: item.propertyValue, investmentValue: item.investmentValue, income: item.income, expenses: item.expenses, monthlyRecurring: item.monthlyRecurring })),
     { year: data.meta.activeYear, netWorth, liquidBalance, propertyValue, investmentValue: combinedInvestmentValue, income: yearIncome, expenses: yearExpenses, monthlyRecurring },
   ].sort((a, b) => a.year - b.year);
-  return { netWorth, liquidBalance, cashRegisterBalance, propertyValue, investmentValue, pensionValue, yearIncome, yearExpenses, monthlyRecurring, sharedBalance, propertyIncome, propertyExpenses, months, categories, history };
+  return { netWorth, netWorthExcludingProperties, liquidBalance, cashRegisterBalance, propertyValue, investmentValue, pensionValue, yearIncome, yearExpenses, monthlyRecurring, sharedBalance, propertyIncome, propertyExpenses, months, categories, history };
 }
 
 export function createAnnualSummary(data: FinanceData): AnnualSummary {

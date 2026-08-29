@@ -88,6 +88,14 @@ const investmentWithInitialContributionSchema = z.object({
     context.addIssue({ code: "custom", message: "The initial contribution must be positive and linked to the new investment", path: ["initialContribution"] });
   }
 });
+const standardInvestmentEntrySchema = investmentEntrySchema.refine(
+  (value) => value.kind !== "contribution_correction" && value.kind !== "withdrawal_correction",
+  { message: "A regular investment entry cannot be a correction", path: ["kind"] },
+);
+const investmentCorrectionSchema = investmentEntrySchema.refine(
+  (value) => value.kind === "contribution_correction" || value.kind === "withdrawal_correction",
+  { message: "An investment correction needs a correction kind", path: ["kind"] },
+);
 const vehicleWithInstallmentSchema = z.object({
   vehicle: vehicleSchema,
   installment: recurringItemSchema.optional(),
@@ -125,8 +133,10 @@ export const financeCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("addInvestment"), value: investmentSchema }),
   z.object({ type: z.literal("addInvestmentWithInitialContribution"), value: investmentWithInitialContributionSchema }),
   z.object({ type: z.literal("updateInvestment"), value: investmentSchema }),
-  z.object({ type: z.literal("addInvestmentEntry"), value: investmentEntrySchema }),
-  z.object({ type: z.literal("updateInvestmentEntry"), value: investmentEntrySchema }),
+  z.object({ type: z.literal("addInvestmentEntry"), value: standardInvestmentEntrySchema }),
+  z.object({ type: z.literal("updateInvestmentEntry"), value: standardInvestmentEntrySchema }),
+  z.object({ type: z.literal("addInvestmentCorrection"), value: investmentCorrectionSchema }),
+  z.object({ type: z.literal("updateInvestmentCorrection"), value: investmentCorrectionSchema }),
   z.object({ type: z.literal("addRecurringItem"), value: recurringItemSchema }),
   z.object({ type: z.literal("updateRecurringItem"), value: recurringItemSchema }),
   z.object({ type: z.literal("addRecurringRateChange"), value: recurringRateChangeSchema }),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyFinanceCommand, computeDashboard, createAnnualSummary, createEmptyFinanceData } from "../../src/domain/finance";
-import { investmentPositionInvestedCapital, investmentPositionIsLoss, investmentPositionValue, pensionCompartments, pensionPlans, portfolioValues, regularInvestments, selectableFinancialPositions } from "../../src/domain/investments";
+import { investmentMovementEvents, investmentMovementTotals, investmentPositionInvestedCapital, investmentPositionIsLoss, investmentPositionMovementTotals, investmentPositionValue, investmentValuationTrend, pensionCompartments, pensionPlans, portfolioValues, regularInvestments, selectableFinancialPositions } from "../../src/domain/investments";
 
 describe("investment and private-pension classification", () => {
   it("applies investment transfers to liquidity without treating them as income or expenses", () => {
@@ -84,6 +84,148 @@ describe("investment and private-pension classification", () => {
     expect(investmentPositionInvestedCapital(data, data.investments[1])).toBe(900);
     expect(investmentPositionIsLoss(data, data.investments[1])).toBe(true);
     expect(investmentPositionIsLoss(data, data.investments[0])).toBe(true);
+  });
+
+  it("separates initial capital, later contributions, liquidations, and balance across annual history", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const plannedEntryId = crypto.randomUUID();
+    const plannedTransactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId, name: "Synthetic lifetime fund", kind: "fund", typeId: data.investmentTypes[1].id,
+      provider: "", currency: "EUR", active: true, openedAt: "2024-01-01", notes: "",
+    });
+    data.investmentAnnualSummaries.push(
+      { investmentId, year: 2024, closingValue: 950, contributions: 1_000, withdrawals: 100 },
+      { investmentId, year: 2025, closingValue: 1_100, contributions: 200, withdrawals: 50 },
+    );
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2025-06-01", kind: "contribution", amount: 999, description: "Historical detail already represented by its annual summary", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-10", kind: "contribution", amount: 300, description: "Current contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-10", kind: "withdrawal", amount: 80, description: "Current liquidation", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-03-10", kind: "valuation", amount: 1_500, description: "Current valuation", notes: "" },
+      { id: plannedEntryId, investmentId, date: "2026-12-10", kind: "contribution", amount: 500, description: "Planned contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, transactionId: plannedTransactionId, notes: "" },
+    );
+    data.transactions.push({
+      id: plannedTransactionId, date: "2026-12-10", description: "Planned contribution",
+      categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id,
+      kind: "transfer", cashFlowDirection: "outflow", amount: 500, currency: "EUR",
+      investmentId, investmentEntryId: plannedEntryId, planned: true, notes: "", createdAt: timestamp, updatedAt: timestamp,
+    });
+
+    expect(investmentMovementTotals(data, investmentId)).toEqual({
+      initialCapital: 1_000,
+      subsequentContributions: 500,
+      liquidations: 230,
+      balance: 1_270,
+    });
+    expect(investmentMovementEvents(data, investmentId).map((item) => [item.date, item.kind, item.amount])).toEqual([
+      ["2024-12-31", "contribution", 1_000],
+      ["2024-12-31", "withdrawal", 100],
+      ["2025-12-31", "contribution", 200],
+      ["2025-12-31", "withdrawal", 50],
+      ["2026-01-10", "contribution", 300],
+      ["2026-02-10", "withdrawal", 80],
+    ]);
+    expect(investmentPositionInvestedCapital(data, data.investments[0])).toBe(1_270);
+  });
+
+  it("falls back to confirmed historical detail when one annual movement component is zero", () => {
+    const data = createEmptyFinanceData(2026);
+    const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")!.id;
+    const pensionId = crypto.randomUUID();
+    const compartmentId = crypto.randomUUID();
+    data.investments.push(
+      { id: pensionId, name: "Synthetic pension", kind: "pension", typeId: pensionTypeId, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+      { id: compartmentId, name: "Synthetic inherited compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+    );
+    data.investmentAnnualSummaries.push({
+      investmentId: compartmentId, year: 2025, closingValue: 1_300, contributions: 0, withdrawals: 60,
+    });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2025-01-10", kind: "contribution", amount: 1_234, description: "Confirmed historical contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: compartmentId, date: "2025-03-10", kind: "withdrawal", amount: 999, description: "Historical detail already represented by the withdrawal summary", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+    );
+
+    expect(investmentMovementEvents(data, compartmentId).map((item) => [item.date, item.kind, item.amount])).toEqual([
+      ["2025-01-10", "contribution", 1_234],
+      ["2025-12-31", "withdrawal", 60],
+    ]);
+    expect(investmentPositionMovementTotals(data, data.investments[0])).toEqual({
+      initialCapital: 1_234,
+      subsequentContributions: 0,
+      liquidations: 60,
+      balance: 1_174,
+    });
+  });
+
+  it("uses corrections only in contribution and liquidation totals", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId, name: "Synthetic corrected fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-02", kind: "contribution", amount: 1_000, description: "Initial", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-01", kind: "valuation", amount: 1_050, description: "Observed value", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2025-12-15", kind: "contribution_correction", amount: 75, description: "Inherited contribution difference", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2025-12-16", kind: "withdrawal_correction", amount: 20, description: "Inherited liquidation difference", notes: "" },
+    );
+
+    expect(investmentMovementTotals(data, investmentId)).toEqual({
+      initialCapital: 1_000,
+      subsequentContributions: 75,
+      liquidations: 20,
+      balance: 1_055,
+    });
+    expect(investmentPositionValue(data, data.investments[0])).toBe(1_050);
+    expect(portfolioValues(data).investments).toBe(1_050);
+  });
+
+  it("compares the latest two valuation observations for the card trend", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId, name: "Synthetic trend fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2025-01-01", notes: "",
+    });
+    data.investmentAnnualSummaries.push({ investmentId, year: 2025, closingValue: 1_000, contributions: 1_000, withdrawals: 0 });
+    data.investmentEntries.push({ id: crypto.randomUUID(), investmentId, date: "2026-04-01", kind: "valuation", amount: 1_100, description: "Spring value", notes: "" });
+    expect(investmentValuationTrend(data, investmentId)).toBe("up");
+
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-06-01", kind: "contribution_correction", amount: 500, description: "Correction ignored by trend", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-07-01", kind: "valuation", amount: 980, description: "Summer value", notes: "" },
+    );
+    expect(investmentValuationTrend(data, investmentId)).toBe("down");
+  });
+
+  it("aggregates movement boxes from active pension compartments without counting the collector", () => {
+    const data = createEmptyFinanceData(2026);
+    const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")!.id;
+    const pensionId = crypto.randomUUID();
+    const firstId = crypto.randomUUID();
+    const secondId = crypto.randomUUID();
+    data.investments.push(
+      { id: pensionId, name: "Synthetic pension", kind: "pension", typeId: pensionTypeId, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+      { id: firstId, name: "First compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+      { id: secondId, name: "Closed compartment", kind: "pension", typeId: pensionTypeId, parentInvestmentId: pensionId, provider: "", currency: "EUR", active: false, openedAt: "2025-01-01", closedAt: "2025-12-31", notes: "" },
+    );
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId: firstId, date: "2026-01-10", kind: "contribution", amount: 500, description: "Initial", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: firstId, date: "2026-02-10", kind: "contribution", amount: 100, description: "Later", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: firstId, date: "2026-03-10", kind: "withdrawal", amount: 50, description: "Liquidation", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId: secondId, date: "2025-02-10", kind: "contribution", amount: 9_000, description: "Closed capital", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+    );
+
+    expect(investmentPositionMovementTotals(data, data.investments[0])).toEqual({
+      initialCapital: 500,
+      subsequentContributions: 100,
+      liquidations: 50,
+      balance: 550,
+    });
   });
 
   it("closes a pension collector together with its compartments", () => {

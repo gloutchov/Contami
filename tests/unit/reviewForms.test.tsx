@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FinanceCommand } from "../../src/domain/commands";
 import { applyFinanceCommand, createEmptyFinanceData as createBaseFinanceData } from "../../src/domain/finance";
 import { InvestmentForm } from "../../src/renderer/forms/InvestmentForms";
+import { InvestmentCorrectionForm } from "../../src/renderer/forms/InvestmentCorrectionForm";
 import { TaxTypeForm } from "../../src/renderer/forms/CatalogForms";
 import { PropertyExpenseForm } from "../../src/renderer/forms/PropertyExpenseForms";
 import { PropertyEntryForm } from "../../src/renderer/forms/PropertyForms";
@@ -100,6 +101,78 @@ describe("v0.8 review forms", () => {
     expect(screen.getByLabelText("Conto")).toBeRequired();
     expect(screen.getByRole("button", { name: "Salva" })).toBeDisabled();
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("edits a linked investment movement with the standard income and expense choices", async () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const entryId = crypto.randomUUID();
+    const transactionId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    data.investments.push({
+      id: investmentId, name: "Fondo sintetico", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2026-01-01", notes: "",
+    });
+    data.investmentEntries.push({
+      id: entryId, investmentId, date: "2026-03-01", kind: "contribution", amount: 200,
+      description: "Versamento sintetico", categoryId: data.categories[8].id,
+      paymentMethodId: data.paymentMethods[0].id, accountId: data.accounts[0].id,
+      transactionId, notes: "",
+    });
+    data.transactions.push({
+      id: transactionId, date: "2026-03-01", description: "Versamento sintetico",
+      categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id,
+      accountId: data.accounts[0].id, kind: "transfer", cashFlowDirection: "outflow", amount: 200,
+      currency: "EUR", investmentId, investmentEntryId: entryId, notes: "",
+      createdAt: timestamp, updatedAt: timestamp,
+    });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<TransactionForm data={data} value={data.transactions[0]} onClose={() => undefined} onSave={onSave} />);
+
+    expect(screen.getByLabelText("Tipo")).toHaveValue("expense");
+    expect(screen.queryByLabelText("Effetto sulla liquidità")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Investimento o comparto pensione")).toBeDisabled();
+    await user.selectOptions(screen.getByLabelText("Tipo"), "income");
+    await user.selectOptions(screen.getByLabelText("Categoria"), data.categories[8].id);
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "updateTransaction",
+      value: {
+        id: transactionId, kind: "transfer", cashFlowDirection: "inflow",
+        investmentId, investmentEntryId: entryId, destinationAccountId: undefined,
+      },
+    });
+  });
+
+  it("creates an investment correction without transaction fields", async () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    data.investments.push({
+      id: investmentId, name: "Fondo ereditato", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2025-01-01", notes: "",
+    });
+    const onSave = vi.fn<(command: FinanceCommand) => Promise<void>>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderIt(<InvestmentCorrectionForm data={data} investmentId={investmentId} onClose={() => undefined} onSave={onSave} />);
+
+    expect(screen.getByText(/Non crea una Transazione/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Metodo di pagamento")).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Direzione della correzione"), "withdrawal_correction");
+    await user.type(screen.getByLabelText("Importo"), "35");
+    await user.type(screen.getByLabelText("Descrizione"), "Differenza liquidazioni importate");
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      type: "addInvestmentCorrection",
+      value: {
+        investmentId, kind: "withdrawal_correction", amount: 35,
+        categoryId: undefined, paymentMethodId: undefined, accountId: undefined, transactionId: undefined,
+      },
+    });
   });
 
   it("creates a new investment together with its initial contribution", async () => {

@@ -11,7 +11,10 @@ import { saveAndClose } from "../utils/save";
 
 export function TransactionForm({ data, value, confirming = false, onClose, onSave }: { data: FinanceData; value?: Transaction; confirming?: boolean; onClose: () => void; onSave: (command: FinanceCommand) => Promise<void> }) {
   const { t, language } = useI18n();
-  const [kind, setKind] = useState<Transaction["kind"]>(value?.kind ?? "expense");
+  const linkedInvestmentMovement = Boolean(value?.investmentId && value?.investmentEntryId);
+  const [kind, setKind] = useState<Transaction["kind"]>(linkedInvestmentMovement
+    ? value?.cashFlowDirection === "inflow" ? "income" : "expense"
+    : value?.kind ?? "expense");
   const [cashFlowDirection, setCashFlowDirection] = useState<NonNullable<Transaction["cashFlowDirection"]>>(value?.cashFlowDirection ?? "neutral");
   const [date, setDate] = useState(confirming ? todayIso() : value?.date ?? todayIso());
   const [dueDate, setDueDate] = useState(value?.dueDate ?? (value?.recurringId ? value.date : ""));
@@ -35,7 +38,7 @@ export function TransactionForm({ data, value, confirming = false, onClose, onSa
   const selectedLegacyPosition = value?.investmentId && !positions.some((item) => item.id === value.investmentId) ? data.investments.find((item) => item.id === value.investmentId) : undefined;
   const regularPositions = [...positions.filter((item) => !pensionIds.has(item.id)), ...(selectedLegacyPosition && !pensionIds.has(selectedLegacyPosition.id) ? [selectedLegacyPosition] : [])];
   const pensionPositions = [...positions.filter((item) => pensionIds.has(item.id)), ...(selectedLegacyPosition && pensionIds.has(selectedLegacyPosition.id) ? [selectedLegacyPosition] : [])];
-  const internalTransfer = kind === "transfer" && cashFlowDirection === "neutral";
+  const internalTransfer = !linkedInvestmentMovement && kind === "transfer" && cashFlowDirection === "neutral";
   const selectedAccount = data.accounts.find((item) => item.id === accountId);
   const selectedDestination = data.accounts.find((item) => item.id === destinationAccountId);
   const compatibleAccounts = accountsForPaymentMethod(data, paymentMethodId, date, accountId);
@@ -49,6 +52,7 @@ export function TransactionForm({ data, value, confirming = false, onClose, onSa
     && accountIsAvailable(selectedDestination, date)
     && selectedDestination.currency === selectedAccount.currency);
   const valid = Boolean(description.trim() && Number(amount) > 0 && categoryId && paymentMethodId && accountValid && destinationValid
+    && (!linkedInvestmentMovement || investmentId)
     && (!selectedRecurring || dueDate));
   const suggestInternalDestination = (sourceId: string) => {
     const source = data.accounts.find((item) => item.id === sourceId);
@@ -67,23 +71,27 @@ export function TransactionForm({ data, value, confirming = false, onClose, onSa
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!valid) return;
     const timestamp = new Date().toISOString();
+    const storedKind: Transaction["kind"] = linkedInvestmentMovement ? "transfer" : kind;
+    const storedCashFlowDirection: Transaction["cashFlowDirection"] = linkedInvestmentMovement
+      ? kind === "income" ? "inflow" : "outflow"
+      : kind === "transfer" ? cashFlowDirection : undefined;
     const item: Transaction = {
       ...value, id: value?.id ?? crypto.randomUUID(), date, dueDate: selectedRecurring ? dueDate : value?.dueDate,
       description, categoryId, paymentMethodId,
       accountId: accountId || undefined, destinationAccountId: internalTransfer ? destinationAccountId || undefined : undefined,
-      kind, amount: Number(amount), currency: value?.currency ?? "EUR",
-      cashFlowDirection: kind === "transfer" ? cashFlowDirection : undefined,
-      recurringId: recurringId || undefined, propertyId: propertyId || undefined, propertyEntryId: value?.propertyEntryId,
+      kind: storedKind, amount: Number(amount), currency: value?.currency ?? "EUR",
+      cashFlowDirection: storedCashFlowDirection,
+      recurringId: recurringId || undefined, propertyId: linkedInvestmentMovement ? undefined : propertyId || undefined, propertyEntryId: value?.propertyEntryId,
       investmentId: investmentId || undefined, investmentEntryId: value?.investmentEntryId,
-      sharedExpenseId: value?.sharedExpenseId, shared: kind === "expense" && shared,
+      sharedExpenseId: value?.sharedExpenseId, shared: !linkedInvestmentMovement && kind === "expense" && shared,
       sharedPaidBy, sharedSettled: value?.sharedSettled ?? false, planned: confirming ? false : value?.planned, notes,
       createdAt: value?.createdAt ?? timestamp, updatedAt: timestamp,
     };
     await saveAndClose(onSave, { type: value ? "updateTransaction" : "addTransaction", value: item }, onClose);
   };
   return <Modal title={confirming ? t("confirmPlannedTransaction") : value ? t("editTransaction") : t("newTransaction")} onClose={onClose} onSubmit={submit} submitDisabled={!valid}>
-    <Field label={t("type")}><select value={kind} onChange={(event) => { const nextKind = event.target.value as Transaction["kind"]; setKind(nextKind); setCategoryId(""); if (nextKind !== "expense") setShared(false); if (nextKind === "transfer" && cashFlowDirection === "neutral") suggestInternalDestination(accountId); }}><option value="expense">{t("expense")}</option><option value="income">{t("income")}</option><option value="transfer">{t("transfer")}</option></select></Field>
-    {kind === "transfer" && <Field label={t("cashFlowDirection")}><select value={cashFlowDirection} onChange={(event) => { const nextDirection = event.target.value as NonNullable<Transaction["cashFlowDirection"]>; setCashFlowDirection(nextDirection); if (nextDirection === "neutral") suggestInternalDestination(accountId); }}><option value="outflow">{t("cashOutflow")}</option><option value="inflow">{t("cashInflow")}</option><option value="neutral">{t("cashNeutral")}</option></select></Field>}
+    <Field label={t("type")}><select value={kind} onChange={(event) => { const nextKind = event.target.value as Transaction["kind"]; setKind(nextKind); setCategoryId(""); if (nextKind !== "expense") setShared(false); if (nextKind === "transfer" && cashFlowDirection === "neutral") suggestInternalDestination(accountId); }}><option value="expense">{t("expense")}</option><option value="income">{t("income")}</option>{!linkedInvestmentMovement && <option value="transfer">{t("transfer")}</option>}</select></Field>
+    {!linkedInvestmentMovement && kind === "transfer" && <Field label={t("cashFlowDirection")}><select value={cashFlowDirection} onChange={(event) => { const nextDirection = event.target.value as NonNullable<Transaction["cashFlowDirection"]>; setCashFlowDirection(nextDirection); if (nextDirection === "neutral") suggestInternalDestination(accountId); }}><option value="outflow">{t("cashOutflow")}</option><option value="inflow">{t("cashInflow")}</option><option value="neutral">{t("cashNeutral")}</option></select></Field>}
     <Field label={t(confirming ? kind === "income" ? "actualReceiptDate" : "actualPaymentDate" : "date")}><input required type="date" value={date} onChange={(event) => setDate(event.target.value)} /></Field>
     {selectedRecurring && <Field label={t("dueDate")}><input required type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></Field>}
     <Field label={t("description")} wide><input required maxLength={240} value={description} onChange={(event) => setDescription(event.target.value)} autoFocus /></Field>
@@ -98,10 +106,10 @@ export function TransactionForm({ data, value, confirming = false, onClose, onSa
       <Field label={t("destinationAccount")}><select required value={destinationAccountId} onChange={(event) => setDestinationAccountId(event.target.value)}><option value="">—</option>{data.accounts.filter((item) => (item.active || item.id === destinationAccountId) && item.id !== accountId && accountIsAvailable(item, date) && (!selectedAccount || item.currency === selectedAccount.currency)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
     </> : <PaymentAccountField data={data} paymentMethodId={paymentMethodId} date={date} value={accountId} onChange={setAccountId} />}
     <Field label={t("amount")}><input required min="0.01" step="0.01" inputMode="decimal" type="number" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
-    <Field label={t("property")}><select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}><option value="">—</option>{data.properties.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-    <Field label={t("investmentOrCompartment")}><select value={investmentId} onChange={(event) => setInvestmentId(event.target.value)}><option value="">—</option>{regularPositions.length > 0 && <optgroup label={t("investments")}>{regularPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}{pensionPositions.length > 0 && <optgroup label={t("pensionCompartments")}>{pensionPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}</select></Field>
+    {!linkedInvestmentMovement && <Field label={t("property")}><select value={propertyId} onChange={(event) => setPropertyId(event.target.value)}><option value="">—</option>{data.properties.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
+    <Field label={t("investmentOrCompartment")}><select required={linkedInvestmentMovement} disabled={linkedInvestmentMovement} value={investmentId} onChange={(event) => setInvestmentId(event.target.value)}>{!linkedInvestmentMovement && <option value="">—</option>}{regularPositions.length > 0 && <optgroup label={t("investments")}>{regularPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}{pensionPositions.length > 0 && <optgroup label={t("pensionCompartments")}>{pensionPositions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}</select></Field>
     <Field label={t("recurring")}><select value={recurringId} onChange={(event) => { const nextId = event.target.value; setRecurringId(nextId); if (nextId && !dueDate) setDueDate(date); }}><option value="">—</option>{recurringItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-    {kind === "expense" && <><Field label={t("sharedExpense")}><span className="check-field"><input type="checkbox" checked={shared} onChange={(event) => setShared(event.target.checked)} />{t("splitHalf")}</span></Field>{shared && <Field label={t("paidBy")}><select value={sharedPaidBy} onChange={(event) => setSharedPaidBy(event.target.value as "owner" | "partner")}><option value="owner">{t("you")}</option><option value="partner">{t("partner")}</option></select></Field>}</>}
+    {!linkedInvestmentMovement && kind === "expense" && <><Field label={t("sharedExpense")}><span className="check-field"><input type="checkbox" checked={shared} onChange={(event) => setShared(event.target.checked)} />{t("splitHalf")}</span></Field>{shared && <Field label={t("paidBy")}><select value={sharedPaidBy} onChange={(event) => setSharedPaidBy(event.target.value as "owner" | "partner")}><option value="owner">{t("you")}</option><option value="partner">{t("partner")}</option></select></Field>}</>}
     <Field label={t("notes")} wide><textarea maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
   </Modal>;
 }

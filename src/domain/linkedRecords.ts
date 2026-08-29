@@ -1,4 +1,5 @@
 import type { FinanceData, Investment, InvestmentEntry, PropertyEntry, RecurringItem, SharedExpense, Transaction, VehicleEntry } from "./models";
+import { isLinkedInvestmentMovementKind } from "./investments";
 import { catalogUsageCount } from "./catalogUsage";
 import { investmentEntryFromTransaction, transactionFromInvestmentEntry } from "./investmentTransactionSync";
 import { recurringOccurrenceDate, recurringRateAt } from "./recurringRates";
@@ -266,7 +267,7 @@ export function upsertPropertyEntryWithAutomaticSharedExpense(data: FinanceData,
 export function upsertInvestmentEntryWithLinks(data: FinanceData, value: InvestmentEntry): void {
   const previous = data.investmentEntries.find((item) => item.id === value.id);
   replaceOrAdd(data.investmentEntries, value);
-  if (value.kind !== "valuation") {
+  if (isLinkedInvestmentMovementKind(value.kind)) {
     const existing = data.transactions.find((item) => item.id === value.transactionId || item.investmentEntryId === value.id);
     const transaction = transactionFromInvestmentEntry(data, value, existing);
     value.transactionId = transaction.id;

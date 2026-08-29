@@ -256,4 +256,19 @@ describe("investment and transaction reconciliation", () => {
     expect(reconciled.ambiguousTransactions).toBe(1);
     expect(reconciled.data).toEqual(data);
   });
+
+  it("never creates or matches Transactions for manual corrections", () => {
+    const data = createEmptyFinanceData(2026);
+    const investment = addPosition(data, { id: crypto.randomUUID(), name: "Synthetic corrected fund" });
+    data.investmentEntries.push({
+      id: crypto.randomUUID(), investmentId: investment.id, date: "2025-12-31",
+      kind: "contribution_correction", amount: 30, description: "Inherited difference", notes: "",
+    });
+
+    const reconciled = reconcileInvestmentTransactions(data, { now: () => timestamp });
+
+    expect(reconciled.repairs).toEqual([]);
+    expect(reconciled.data.transactions).toEqual([]);
+    expect(reconciled.data.investmentEntries).toEqual(data.investmentEntries);
+  });
 });

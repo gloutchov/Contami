@@ -48,8 +48,8 @@ ContaMì/
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
 │   │   ├── commands.ts                 # comandi validati, inclusi salvataggi atomici con divisione a metà
-│   │   ├── finance.ts                  # aggregazioni, KPI, saldi filtrati/ad oggi separati Conto/Cassa e applicazione comandi
-│   │   ├── investments.ts              # classificazione e totali distinti investimenti/pensioni
+│   │   ├── finance.ts                  # aggregazioni, KPI incluso patrimonio senza immobili, saldi Conto/Cassa e comandi
+│   │   ├── investments.ts              # classificazione, correzioni, trend e aggregazioni investimenti/pensioni
 │   │   ├── investmentTransactionSync.ts # coppie movimento/Transazione e riconciliazione idempotente
 │   │   ├── importTemplates.ts           # contratti versionati e liste chiuse dei template di importazione
 │   │   ├── imports.ts                   # strategie, anteprima e piano import tipizzati
@@ -60,10 +60,10 @@ ContaMì/
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
 │   │   ├── recurringRates.ts           # tariffa per decorrenza, anteprima e protezione dello storico
 │   │   ├── vehicleInstallments.ts      # unicità, ciclo di vita e protezione dello storico dei finanziamenti auto
-│   │   ├── migrations.ts               # migrazione workbook v1–v8 → v9 senza riscrivere importi
-│   │   ├── models.ts                   # schema Zod v9 e modello finanziario
+│   │   ├── migrations.ts               # migrazione workbook v1–v9 → v10 senza riscrivere importi
+│   │   ├── models.ts                   # schema Zod v10 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
-│   │   └── rollover.ts                 # passaggio d’anno, rate residue e affitti insoluti
+│   │   └── rollover.ts                 # passaggio d’anno, correzioni investimento, rate residue e affitti insoluti
 │   ├── infrastructure/
 │   │   ├── pdf/
 │   │   │   └── PropertyReportDocument.ts # documento HTML/CSS locale e vettoriale per stampa/PDF
@@ -95,6 +95,7 @@ ContaMì/
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
 │   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, animati e con tooltip, senza attributi style
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
+│   │   │   ├── InvestmentMovementSummary.tsx # quattro KPI/fatti e freccia di tendenza riusati da investimenti e pensioni
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
 │   │   │   ├── PropertyReportDialog.tsx # periodo e nomi effimeri dei proprietari, stampa/salvataggio
 │   │   │   ├── RecurringRateChangesEditor.tsx # cronologia, anteprima e conferma tariffa
@@ -102,6 +103,7 @@ ContaMì/
 │   │   ├── forms/                      # moduli di inserimento per ogni dominio
 │   │   │   ├── AccountForm.tsx     # conti ordinari e Casse con alimentazione predefinita
 │   │   │   ├── InvestmentForms.tsx  # investimenti non pensionistici e movimenti
+│   │   │   ├── InvestmentCorrectionForm.tsx # correzioni senza Transazione per posizioni e comparti
 │   │   │   ├── PensionForms.tsx     # pensioni-raccoglitore e comparti associati
 │   │   │   ├── PropertyForms.tsx   # immobili e registrazioni generiche, incluse spese condivise automatiche
 │   │   │   ├── PropertyExpenseForms.tsx # utenze/tasse, consumi e quote condivise
@@ -118,10 +120,10 @@ ContaMì/
 │   │   │   ├── propertyIndicators.ts   # indicatori residenza / residence indicators
 │   │   │   └── vehicleHistory.ts       # serie annuali, vita intera e confronto costo/km per vettura
 │   │   ├── views/                      # dashboard e liste tematiche lazy-loaded
-│   │   │   ├── OverviewView.tsx     # patrimonio, liquidità e saldo complessivo delle Casse
+│   │   │   ├── OverviewView.tsx     # patrimonio totale/al netto immobili, liquidità e saldo Casse
 │   │   │   ├── TransactionsView.tsx # saldi filtrati puri e riepiloghi ad oggi separati tra conti e Casse
-│   │   │   ├── InvestmentsView.tsx  # portafoglio privo delle pensioni integrative
-│   │   │   ├── PensionsView.tsx     # dashboard pensioni, comparti, dettagli e CRUD
+│   │   │   ├── InvestmentsView.tsx  # portafoglio non pensione con quattro riepiloghi su pagina/schede/dettagli
+│   │   │   ├── PensionsView.tsx     # pensioni/comparti con quattro riepiloghi aggregati, dettagli e CRUD
 │   │   │   └── VehiclesView.tsx     # dashboard automobili, confronto e registrazioni
 │   │   ├── App.tsx                     # orchestrazione UI e stato applicativo
 │   │   ├── main.tsx                    # entry point React
@@ -176,7 +178,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1–v8 → v9
+│       ├── migrations.test.ts            # compatibilità schema v1–v9 → v10
 │       ├── recurringRates.test.ts        # decorrenze, storico, collegamenti e rollover tariffario
 │       ├── vehicleInstallments.test.ts   # comando atomico, unicità, classificazione e ciclo di vita rate auto
 │       ├── xlsxZipPreflight.test.ts      # limiti, mutazioni seeded e casi ZIP ostili

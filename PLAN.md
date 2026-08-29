@@ -23,7 +23,7 @@ Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il n
 
 La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
 
-**Stato corrente:** la roadmap è stata riaperta il 2026-08-22 con M25 sul branch `milestone/25-property-owner-reports`. La milestone introduce report immobili bilingui, stampabili o salvabili localmente in PDF, e assegna il checkpoint desktop `v1.15.0`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
+**Stato corrente:** M26 è completata localmente sul branch `milestone/26-investment-capital-reconciliation` ed è in promozione verso `main`. La milestone corregge la modifica dei movimenti patrimoniali e rende esplicita la composizione del capitale di investimenti e pensioni integrative; assegna il checkpoint desktop `v1.16.0`. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
 
 | Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
@@ -59,10 +59,11 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | M24 — Saldi filtrati e totali odierni | `milestone/24-transaction-balance-summaries` | `1.14.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | Patch trasparenza icona | `patch/1.14.1-transparent-icons` | desktop `1.14.1` / web `landing-v1.0.3` | Rilasciata; CI/release macOS e Windows e Pages verdi |
 | M25 — Report immobili per proprietari | `milestone/25-property-owner-reports` | `1.15.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
+| M26 — Riconciliazione capitale investito e riepiloghi | `milestone/26-investment-capital-reconciliation` | `1.16.0` | Completata localmente; CI e integrazione in corso |
 
 **Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0` → trasparenza icona `v1.14.1` → report immobili per proprietari `v1.15.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1` → `landing-v1.0.2` → `landing-v1.0.3`.
 
-**Checkpoint desktop aperto:** nessuno.
+**Checkpoint desktop aperto:** `v1.16.0` con M26.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -844,6 +845,61 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Pubblicazione 2026-08-23:** la PR `#71` è stata integrata in `main` dal merge commit `f8db441`; la CI `32601241937` è verde su macOS e Windows e Pages `32601241838` è completato. Il tag annotato `v1.15.0` punta allo stesso merge e la relativa CI `32601428740` è verde su entrambe le piattaforme. Il workflow Release `32601428746` ha completato preflight, packaging, ispezione di `app.asar`, smoke del pacchetto e smoke installato su macOS ARM64/x64 e Windows x64, pubblicando sei artifact applicativi non firmati più `SHA256SUMS.txt`. Tutti i sei digest ricalcolati dai file pubblicati coincidono con il manifesto e tutti i sette file, manifesto incluso, coincidono con i digest SHA-256 registrati da GitHub. M25 e la release desktop `v1.15.0` sono completate.
 
+## M26 — Riconciliazione del capitale investito e riepiloghi dei movimenti
+
+**Obiettivo:** rendere affidabile e auditabile la modifica di Versamenti e Liquidazioni e mostrare separatamente le componenti che determinano il capitale netto di investimenti e pensioni integrative.
+
+**Attività pianificate**
+
+- Riprodurre localmente il problema segnalato usando il workbook privato soltanto in lettura e copie tecniche temporanee, senza inserirlo in Git, fixture, log, screenshot, servizi remoti o artifact.
+- Tracciare il flusso completo di creazione e modifica tra `Investment Entry` e `Transaction`, incluse posizioni ordinarie, comparti pensione, versamento iniziale, movimenti successivi e liquidazioni.
+- Correggere la trasformazione di dominio affinché ogni modifica aggiorni in posto la stessa coppia UUID bidirezionale, senza creare righe aggiuntive, lasciare il vecchio effetto di cassa o moltiplicare il capitale investito.
+- Rendere conservativa e idempotente la gestione di collegamenti storici mancanti o incoerenti: riutilizzare soltanto corrispondenze esplicite o esatte e univoche, segnalare le ambiguità e non indovinare associazioni.
+- Definire una trasformazione pura unica per quattro grandezze: capitale iniziale, versamenti successivi, liquidazioni e saldo netto tra capitale versato e liquidato. Le sole righe confermate partecipano ai totali; valutazioni e pianificazioni restano escluse.
+- Mostrare i quattro riepiloghi nella pagina Investimenti e nel dettaglio di ogni posizione finale; aggregare senza doppio conteggio eventuali gruppi di investimento.
+- Mostrare gli stessi quattro riepiloghi nella pagina Pensione Integrativa, nel dettaglio di ogni comparto e, per i raccoglitori, come somma dei soli comparti finali.
+- Mostrare nel box Patrimonio netto della Panoramica anche il valore al netto degli immobili, calcolato sottraendo la quota immobiliare già inclusa nel totale.
+- Aggiungere tutte le nuove stringhe in italiano e inglese, mantenendo stati vuoto/errore/caricamento/disabilitato, focus tastiera, temi chiaro/scuro e leggibilità a 1080 px.
+- Conservare schema workbook v9, IPC, preload, rete e confini del renderer se i campi persistenti esistenti risultano sufficienti; qualsiasi migrazione necessaria dovrà essere prima versionata e documentata.
+
+**Criteri di accettazione**
+
+- Modificare ripetutamente importo, data, descrizione, tipo, categoria, metodo o Conto/Cassa di un Versamento o di una Liquidazione conserva una sola `Investment Entry` e una sola `Transaction` collegate dagli stessi UUID.
+- Dopo ogni modifica, il capitale investito e il saldo del Conto/Cassa cambiano soltanto per il delta tra vecchio e nuovo movimento; redditi e spese correnti restano invariati perché il movimento continua a essere un trasferimento patrimoniale.
+- Il capitale iniziale corrisponde al primo Versamento confermato disponibile per data della posizione, con ordinamento deterministico. Quando un anno chiuso conserva soltanto il consuntivo aggregato di `Investment History`, il totale Versamenti del primo consuntivo disponibile è l'unica granularità storica autorevole e costituisce il capitale iniziale; gli altri Versamenti confluiscono nei versamenti successivi, le Liquidazioni sono mostrate positive e il saldo netto coincide con capitale iniziale più versamenti successivi meno liquidazioni, senza azzeramenti intermedi impliciti.
+- I totali della pagina Investimenti coincidono con la somma delle sole posizioni finali non pensionistiche; i totali pensione coincidono con la somma dei comparti finali e i raccoglitori non duplicano i figli.
+- Il valore secondario del box Patrimonio netto coincide con patrimonio netto meno valore immobili e non modifica alcun dato persistito.
+- I movimenti pianificati e le valutazioni non alterano le quattro grandezze. Casi storici ambigui restano invariati e producono una segnalazione redatta.
+- Il workbook privato usato per la diagnosi rimane intatto; eventuali correzioni dei dati reali richiedono una copia recuperabile, rilettura, controllo conteggi/collegamenti e seconda apertura idempotente.
+
+**Test richiesti:** unit test sintetici per modifiche ripetute da entrambe le viste, cambio Versamento↔Liquidazione, delta di capitale e liquidità, pianificazioni e aggregazioni investimento/pensione; integration test di round-trip workbook e riconciliazione idempotente; regressione rollover e importazione; Playwright CLI IT/EN, chiaro/scuro e 1080 px su pagina e dettagli; `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `node scripts/check-required-docs.mjs` e `npm audit`.
+
+**Documentazione:** `PLAN.md`, README, manuali IT/EN, quick start e MAP se viene introdotto un nuovo modulo; `SECURITY_MODEL.md` soltanto per cambi a schema, salvataggio, riconciliazione, IPC o altri confini di sicurezza. Versione applicativa prevista `1.16.0`.
+
+**Avvio 2026-08-29:** creato il branch `milestone/26-investment-capital-reconciliation` dalla `main` pulita. La prima attività in corso è la diagnosi e correzione della modifica dei movimenti collegati; i quattro riepiloghi saranno implementati dopo la regressione sul capitale e sui saldi.
+
+**Diagnosi e prima correzione 2026-08-29:** il workbook privato è stato analizzato localmente in sola lettura tramite una copia tecnica temporanea, senza inserirne dati, percorsi o valori nelle fixture permanenti. Le coppie Movimento investimento↔Transazione risultano univoche, reciproche e prive di duplicati o collegamenti orfani. La causa operativa riprodotta è nei movimenti storici importati anteriori all'intervallo del Conto/Cassa conservato nel workbook: ogni correzione veniva rifiutata dalla validazione temporale, inducendo a ridatare o reinserire il movimento e quindi a sommare nuovamente capitale ed effetto di cassa. La trasformazione di dominio consente ora di correggere in posto questi record soltanto mantenendo invariati investimento, data, metodo e Conto/Cassa originari; esistenza del metodo, valuta e compatibilità del conto vengono ricontrollate, mentre riferimenti nuovi o spostati fuori intervallo restano vietati. Test unitari sintetici coprono correzioni ripetute, UUID e conteggi stabili, inversione Versamento↔Liquidazione, delta di capitale/liquidità e rifiuto dei nuovi riferimenti storici invalidi; un test d'integrazione copre salvataggio, backup e round-trip `.xlsx`. Il workbook privato originale non è stato modificato. I quattro riepiloghi restano la seconda fase di M26.
+
+**Verifica prima fase 2026-08-29:** completati con esito verde `npm run lint`, `npm run typecheck`, 219 test Vitest in 43 file, `npm run build`, `node scripts/check-required-docs.mjs` e `npm audit` con zero vulnerabilità. Non essendoci modifiche UI in questa prima fase, il collaudo Playwright IT/EN e chiaro/scuro resta associato alla seconda fase dei quattro riepiloghi.
+
+**Esito seconda fase 2026-08-29:** implementata una trasformazione pura condivisa per capitale iniziale, versamenti successivi, liquidazioni e saldo, con continuità sui consuntivi annuali e aggregazione delle sole posizioni finali attive. I quattro valori sono visibili nella pagina, nelle schede e nei dettagli di Investimenti e Pensione Integrativa, inclusi raccoglitori e comparti; il box Patrimonio netto mostra inoltre il valore esclusi gli immobili. La correzione di un dettaglio storico aggiorna per delta anche l'eventuale consuntivo `Investment History`, mentre schema workbook v9, IPC, preload e rete restano invariati. Con soli dati sintetici sono verdi `npm run lint`, `npm run typecheck`, 224 test Vitest in 43 file, `npm run build`, `node scripts/check-required-docs.mjs` e `npm audit` con zero vulnerabilità. Il workflow Playwright CLI ha verificato Panoramica, Investimenti, dettaglio investimento, Pensione Integrativa e comparti a 1080 px in italiano/tema chiaro e inglese/tema scuro, senza overflow orizzontale o errori console. Il workbook privato originale non è stato modificato.
+
+**Estensione richiesta 2026-08-29 — correzioni manuali e andamento:**
+
+- Nella modifica da Transazioni di un Versamento o di una Liquidazione collegati, presentare il normale tipo Uscita/Entrata e nascondere la scelta tecnica dell'effetto di cassa. Il dominio continua a salvarli come trasferimenti patrimoniali `outflow`/`inflow`, quindi restano esclusi da redditi e spese correnti e non possono diventare per errore trasferimenti interni neutri.
+- Aggiungere nei blocchi delle singole posizioni finali di Investimenti e dei comparti pensione un'azione **Correzione** con data, direzione, importo, descrizione e note. Una correzione aumenta soltanto Versamenti successivi oppure Liquidazioni e il relativo saldo; non crea Transazioni, non modifica liquidità o controvalore e resta riconoscibile nel dettaglio.
+- Distinguere persistentemente le correzioni dai movimenti reali, validarle come record privi di categoria, metodo, Conto/Cassa e `transactionId`, conservarle nel passaggio d'anno senza incorporarle una seconda volta nei consuntivi e migrare in modo deterministico i workbook precedenti.
+- Mostrare accanto al valore attuale delle singole posizioni una freccia verso l'alto o verso il basso quando l'ultima valutazione disponibile è rispettivamente maggiore o minore della precedente; valori uguali o meno di due rilevazioni non mostrano indicatori.
+- Conservare l'unico canale IPC `execute`, il renderer isolato e i blocchi di rete; aggiornare schema workbook, manuali IT/EN, README, quick start, MAP e SECURITY_MODEL.
+
+**Criteri di accettazione dell'estensione:** una correzione non produce né riconcilia una Transazione, non cambia saldi o controvalore, confluisce soltanto nei quattro riepiloghi ed è preservata da salvataggio, riapertura e rollover. La modifica di una Transazione collegata non espone più l'opzione Neutro tra conti e conserva UUID, investimento, verso di cassa e validazioni del conto. Le frecce confrontano soltanto valutazioni confermate e consuntivi storici canonici, sono accompagnate da testo accessibile e restano leggibili in IT/EN, chiaro/scuro e a 1080 px.
+
+**Test dell'estensione:** unit test per validazione, assenza della Transazione, totali, controvalore, liquidità, cancellazione, trend e rollover; migrazione e round-trip workbook sintetico; regressione della modifica da Transazioni; Playwright CLI sui tre flussi e preflight completo previsto da `AGENTS.md`.
+
+**Esito dell'estensione 2026-08-29:** la modifica da Transazioni di Versamenti e Liquidazioni usa ora il modulo standard Uscita/Entrata, mantiene fisso l'investimento collegato e traduce il dato nel trasferimento patrimoniale corretto senza esporre l'effetto neutro. Le singole posizioni e i comparti pensione dispongono dell'azione Correzione: i nuovi record espliciti incrementano soltanto Versamenti successivi o Liquidazioni, non hanno campi di pagamento o collegamenti a Transazioni e non cambiano liquidità, controvalore o grafico del valore. Le correzioni restano distinguibili, modificabili e cancellabili nel dettaglio e sono preservate una sola volta dal rollover. Lo schema corrente è v10, senza nuove colonne; la migrazione v9→v10 conserva integralmente record e cronologia tariffaria. Le schede delle posizioni finali mostrano inoltre una freccia accessibile in aumento o diminuzione confrontando le ultime due osservazioni canoniche, mentre raccoglitori, valori invariati e serie insufficienti non mostrano indicatori. Con soli dati sintetici sono verdi `npm run lint`, `npm run typecheck`, 234 test Vitest in 43 file, `npm run build`, `node scripts/check-required-docs.mjs`, `npm audit` con zero vulnerabilità e tutti gli 11 test Playwright automatici. Il workflow Playwright CLI ha verificato in italiano/tema chiaro e inglese/tema scuro, a 1080 px, il modulo standard della Transazione collegata, entrambe le direzioni di Correzione, Investimenti, comparti pensione e frecce sia in salita sia in discesa; non sono emersi overflow orizzontali o errori console. Il workbook privato originale non è stato modificato.
+
+**Correzione di riconciliazione 2026-08-29:** la verifica locale in sola lettura ha rilevato un comparto con Versamento storico confermato ma componente Versamenti pari a zero nel consuntivo annuale dello stesso anno. La trasformazione scartava l'intero dettaglio in presenza di qualsiasi consuntivo e mostrava quindi capitale investito zero. La riconciliazione è ora distinta per direzione: una componente annuale positiva resta autorevole e sopprime i dettagli omologhi, mentre una componente assente o zero usa i movimenti confermati disponibili senza influire sull'altra direzione. Una regressione interamente sintetica copre il caso su comparto e raccoglitore pensione, inclusa la prevenzione del doppio conteggio. Sono verdi lint, typecheck, build, controllo documentale, audit senza vulnerabilità, 235 test Vitest in 43 file e tutti gli 11 test Playwright automatici. Il workbook privato è rimasto invariato.
+
 ## Patch grafici, menu release e integrità UUID
 
 **Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
@@ -929,6 +985,12 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - M25 riusa registrazioni, consuntivi annuali e quota di proprietà dello schema v9: non richiede migrazioni e non modifica il workbook durante stampa o esportazione.
 - La generazione resta interamente locale; PDF e stampa attraversano un nuovo canale IPC ristretto e validato, senza esporre percorsi, HTML o dati finanziari grezzi oltre il renderer già autorizzato.
 - M25 è stata integrata dalla PR `#71` e pubblicata come release desktop `v1.15.0` dopo il completamento di CI, packaging, smoke e verifica dei checksum su macOS e Windows.
+
+## Riapertura roadmap — 2026-08-29
+
+- La segnalazione di modifiche ripetute che gonfiano capitale investito e saldi ha aperto M26 sul branch `milestone/26-investment-capital-reconciliation` e assegnato il checkpoint desktop `1.16.0`.
+- La prima fase corregge e verifica l'aggiornamento in posto della coppia Movimento investimento↔Transazione e la sua incidenza differenziale sul Conto/Cassa, usando il workbook reale soltanto per diagnosi locale in sola lettura e test permanenti esclusivamente sintetici.
+- La seconda fase aggiunge capitale iniziale, versamenti successivi, liquidazioni e saldo netto nelle viste complessive e di dettaglio di Investimenti e Pensione Integrativa, aggregando soltanto le posizioni finali per evitare doppio conteggio; in Panoramica espone inoltre il patrimonio al netto degli immobili.
 
 ## Decisione futura — Cifratura portabile
 
