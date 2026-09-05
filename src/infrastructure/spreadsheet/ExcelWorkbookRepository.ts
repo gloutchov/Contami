@@ -16,7 +16,7 @@ import {
   type WorkbookRevisionState,
 } from "./WorkbookRevisionGuard";
 import { preflightXlsxWorkbook } from "./XlsxWorkbookPreflight";
-import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, WORKBOOK_TABLES_V9, type WorkbookTableDefinition } from "./workbookSchema";
+import { WORKBOOK_SCHEMA_VERSION, WORKBOOK_TABLES, WORKBOOK_TABLES_V1, WORKBOOK_TABLES_V10, WORKBOOK_TABLES_V2, WORKBOOK_TABLES_V3, WORKBOOK_TABLES_V4, WORKBOOK_TABLES_V5, WORKBOOK_TABLES_V6, WORKBOOK_TABLES_V7, WORKBOOK_TABLES_V8, WORKBOOK_TABLES_V9, type WorkbookTableDefinition } from "./workbookSchema";
 
 const HEADER_FILL = "FF073B4C";
 const ACCENT_FILL = "FF74D6B1";
@@ -88,6 +88,7 @@ function configureDataSheet(sheet: ExcelJS.Worksheet, definition: WorkbookTableD
     if (definition.columns.includes(column)) sheet.getColumn(column).numFmt = '#,##0.00 [$€-it-IT]';
   }
   if (definition.columns.includes("ownershipShare")) sheet.getColumn("ownershipShare").numFmt = "0%";
+  if (definition.columns.includes("returnRate")) sheet.getColumn("returnRate").numFmt = "0.00%";
 }
 
 function addOverview(workbook: ExcelJS.Workbook, data: FinanceData): void {
@@ -230,9 +231,11 @@ export class ExcelWorkbookRepository {
                     ? WORKBOOK_TABLES_V8
                     : schemaVersion === 9
                       ? WORKBOOK_TABLES_V9
-                      : schemaVersion === WORKBOOK_SCHEMA_VERSION
-                        ? WORKBOOK_TABLES
-                        : undefined;
+                      : schemaVersion === 10
+                        ? WORKBOOK_TABLES_V10
+                        : schemaVersion === WORKBOOK_SCHEMA_VERSION
+                          ? WORKBOOK_TABLES
+                          : undefined;
     if (!definitions) throw new Error("INVALID_WORKBOOK_SCHEMA");
     const physicalRows = new Map<WorkbookTableDefinition["key"], number[]>();
     for (const definition of definitions) {

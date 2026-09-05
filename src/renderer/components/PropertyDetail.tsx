@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { rentalPropertyReturnSeries } from "../../domain/assetReturns";
 import type { FinanceData, Property, PropertyEntry } from "../../domain/models";
 import { rentInstallmentsForProperty, type RentInstallmentStatus } from "../../domain/rent";
 import { formatCurrency, formatDate, todayIso } from "../utils/format";
@@ -8,6 +9,7 @@ import { summarizeResidenceEntries } from "../utils/propertyIndicators";
 import { useI18n } from "../i18n/I18nContext";
 import { EntryFilters } from "./EntryFilters";
 import { HistoryChart } from "./HistoryChart";
+import { ReturnChart } from "./ReturnChart";
 import { TrendBars } from "./TrendBars";
 
 export function PropertyDetail({
@@ -33,6 +35,7 @@ export function PropertyDetail({
   const history = useMemo(() => propertyHistory(data, property.id), [data, property.id]);
   const valueTimeline = useMemo(() => propertyValueTimeline(data, property.id), [data, property.id]);
   const cashFlowTimeline = useMemo(() => propertyCashFlowTimeline(data, property.id), [data, property.id]);
+  const returns = useMemo(() => rentalPropertyReturnSeries(data, property.id, todayIso()), [data, property.id]);
   const currentIndicators = summarizeResidenceEntries(entries, data.meta.activeYear);
   const filteredIncome = filtered.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
   const filteredExpenses = filtered.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0);
@@ -63,6 +66,7 @@ export function PropertyDetail({
     </>}
 
     <section className="detail-history-section"><h3>{t("commercialValueHistory")}</h3><HistoryChart ariaLabel={t("commercialValueHistory")} data={valueTimeline.map((item) => ({ ...item, commercialValue: item.commercialValue * property.ownershipShare }))} xKey="date" xTickFormatter={(value) => formatDate(String(value), language)} series={[{ key: "commercialValue", label: t("commercialValue"), color: "#ffb842" }]} format={(value) => formatCurrency(value, language)} /></section>
+    {property.usage === "rental" && <section className="detail-history-section"><h3>{t("monthlyReturnHistory")}</h3><ReturnChart period="monthly" series={returns} /></section>}
   </>;
 
   return <>

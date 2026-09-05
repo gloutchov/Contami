@@ -79,8 +79,12 @@ function demoData(): FinanceData {
     { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-03-01`, kind: "valuation", amount: 92_450, description: "Current value", notes: "" },
   );
   data.investmentAnnualSummaries.push(
-    { investmentId, year: data.meta.activeYear - 2, closingValue: 79_000, contributions: 70_000, withdrawals: 0 },
-    { investmentId, year: data.meta.activeYear - 1, closingValue: 85_000, contributions: 5_000, withdrawals: 0 },
+    { investmentId, year: data.meta.activeYear - 2, closingValue: 79_000, contributions: 70_000, withdrawals: 0, closingValueObservedAt: `${data.meta.activeYear - 2}-12-31` },
+    {
+      investmentId, year: data.meta.activeYear - 1, closingValue: 85_000, contributions: 5_000, withdrawals: 0,
+      closingValueObservedAt: `${data.meta.activeYear - 1}-12-31`, returnRate: 1_000 / 81_500,
+      returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
+    },
   );
   const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")?.id;
   const pensionId = crypto.randomUUID();
@@ -95,8 +99,17 @@ function demoData(): FinanceData {
       { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-06-30`, kind: "valuation", amount: [18_450, 12_780, 9_620][index], description: "Current value", notes: "" },
     );
     data.investmentAnnualSummaries.push(
-      { investmentId: item.id, year: data.meta.activeYear - 2, closingValue: [15_000, 9_000, 7_000][index], contributions: 4_800, withdrawals: 0 },
-      { investmentId: item.id, year: data.meta.activeYear - 1, closingValue: [16_800, 10_600, 8_100][index], contributions: 1_200, withdrawals: 0 },
+      {
+        investmentId: item.id, year: data.meta.activeYear - 2, closingValue: [15_000, 9_000, 7_000][index],
+        contributions: 4_800, withdrawals: 0, closingValueObservedAt: `${data.meta.activeYear - 2}-12-31`,
+      },
+      {
+        investmentId: item.id, year: data.meta.activeYear - 1, closingValue: [16_800, 10_600, 8_100][index],
+        contributions: 1_200, withdrawals: 0, closingValueObservedAt: `${data.meta.activeYear - 1}-12-31`,
+        returnRate: ([16_800, 10_600, 8_100][index] - [15_000, 9_000, 7_000][index] - 1_200)
+          / ([15_000, 9_000, 7_000][index] + 600),
+        returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
+      },
     );
   });
   const previousVehicleId = crypto.randomUUID(); const currentVehicleId = crypto.randomUUID();

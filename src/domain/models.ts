@@ -304,6 +304,33 @@ export const investmentAnnualSummarySchema = z.object({
   closingValue: money,
   contributions: money,
   withdrawals: money,
+  closingValueObservedAt: isoDate.optional(),
+  returnRate: z.number().finite().min(-1_000_000).max(1_000_000).optional(),
+  returnMethod: z.enum(["linked_modified_dietz", "original_dietz_estimate"]).optional(),
+  returnCoverage: z.enum(["complete", "partial", "estimated"]).optional(),
+  returnPartialPeriod: z.boolean().optional(),
+}).superRefine((value, context) => {
+  const returnFields = [value.returnRate, value.returnMethod, value.returnCoverage, value.returnPartialPeriod];
+  if (returnFields.some((field) => field !== undefined) && returnFields.some((field) => field === undefined)) {
+    context.addIssue({
+      code: "custom",
+      message: "A persisted investment return requires rate, method, coverage and partial-period flag",
+      path: ["returnRate"],
+    });
+    return;
+  }
+  if (value.returnMethod === "linked_modified_dietz" && value.returnCoverage === "estimated") {
+    context.addIssue({ code: "custom", message: "A linked Modified Dietz return cannot have estimated coverage", path: ["returnCoverage"] });
+  }
+  if (value.returnMethod === "original_dietz_estimate" && value.returnCoverage !== "estimated") {
+    context.addIssue({ code: "custom", message: "An Original Dietz estimate requires estimated coverage", path: ["returnCoverage"] });
+  }
+  if (value.returnCoverage === "complete" && value.returnPartialPeriod) {
+    context.addIssue({ code: "custom", message: "Complete return coverage cannot describe a partial period", path: ["returnPartialPeriod"] });
+  }
+  if (value.returnCoverage === "partial" && value.returnPartialPeriod === false) {
+    context.addIssue({ code: "custom", message: "Partial return coverage must describe a partial period", path: ["returnPartialPeriod"] });
+  }
 });
 
 export const vehicleAnnualSummarySchema = z.object({
@@ -325,7 +352,7 @@ export const vehicleAnnualSummarySchema = z.object({
 
 export const financeDataSchema = z.object({
   meta: z.object({
-    schemaVersion: z.literal(10),
+    schemaVersion: z.literal(11),
     activeYear: z.number().int().min(1900).max(9999),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,

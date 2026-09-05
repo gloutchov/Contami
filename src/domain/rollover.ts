@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { accountBalance } from "./accounts";
 import { createAnnualSummary, createEmptyFinanceData } from "./finance";
-import { createInvestmentAnnualSummaries, createPropertyAnnualSummaries, createVehicleAnnualSummaries } from "./annualHistory";
-import { isInvestmentCorrectionKind } from "./investments";
+import {
+  createInvestmentAnnualSummaries,
+  createPropertyAnnualSummaries,
+  createVehicleAnnualSummaries,
+  propertyAnnualSummariesWithLateIncome,
+} from "./annualHistory";
+import { investmentReturnSeries } from "./assetReturns";
+import { isInvestmentCorrectionKind, ROLLOVER_OPENING_VALUATION_DESCRIPTION } from "./investments";
 import { recurrenceAnchorDay, syncRecurringLink, syncRecurringTransactions, upsertTransactionWithLinks } from "./linkedRecords";
 import type { FinanceData, InvestmentEntry, PropertyEntry, RecurringItem } from "./models";
 
@@ -88,16 +94,31 @@ export function createRolloverFinanceData(current: FinanceData, nextYear = curre
   });
   next.sharedExpenses = structuredClone(current.sharedExpenses.filter((item) => !item.settled));
   next.annualSummaries = [...structuredClone(current.annualSummaries), createAnnualSummary(current)];
-  next.propertyAnnualSummaries = [...structuredClone(current.propertyAnnualSummaries), ...createPropertyAnnualSummaries(current)];
-  next.investmentAnnualSummaries = [...structuredClone(current.investmentAnnualSummaries), ...createInvestmentAnnualSummaries(current)];
+  next.propertyAnnualSummaries = [...propertyAnnualSummariesWithLateIncome(current), ...createPropertyAnnualSummaries(current)];
+  const currentInvestmentSummaries = createInvestmentAnnualSummaries(current).map((summary) => {
+    const investment = current.investments.find((item) => item.id === summary.investmentId);
+    const point = investment
+      ? investmentReturnSeries(current, investment, `${current.meta.activeYear}-12-31`).annual
+        .find((candidate) => candidate.year === current.meta.activeYear)
+      : undefined;
+    if (!point) return summary;
+    return {
+      ...summary,
+      returnRate: point.rate,
+      returnMethod: point.coverage === "estimated" ? "original_dietz_estimate" as const : "linked_modified_dietz" as const,
+      returnCoverage: point.coverage,
+      returnPartialPeriod: point.partialPeriod,
+    };
+  });
+  next.investmentAnnualSummaries = [...structuredClone(current.investmentAnnualSummaries), ...currentInvestmentSummaries];
   next.vehicleAnnualSummaries = [...structuredClone(current.vehicleAnnualSummaries), ...createVehicleAnnualSummaries(current)];
   for (const property of next.properties) {
     const entry = latestEntry(current.propertyEntries, property.id, "propertyId");
-    if (entry) next.propertyEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: "Opening valuation / Valutazione iniziale" });
+    if (entry) next.propertyEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: ROLLOVER_OPENING_VALUATION_DESCRIPTION });
   }
   for (const investment of next.investments) {
     const entry = latestEntry(current.investmentEntries, investment.id, "investmentId");
-    if (entry) next.investmentEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: "Opening valuation / Valutazione iniziale" });
+    if (entry) next.investmentEntries.push({ ...structuredClone(entry), id: randomUUID(), date: `${nextYear}-01-01`, description: ROLLOVER_OPENING_VALUATION_DESCRIPTION });
   }
   const nextInvestmentIds = new Set(next.investments.map((item) => item.id));
   next.investmentEntries.push(...structuredClone(current.investmentEntries.filter((entry) => (

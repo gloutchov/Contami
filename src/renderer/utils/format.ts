@@ -10,6 +10,16 @@ export const formatDate = (date: string, language: Language) => new Intl.DateTim
   { day: "2-digit", month: "short", year: "numeric" },
 ).format(new Date(`${date}T12:00:00Z`));
 
+export const formatMonth = (date: string, language: Language) => new Intl.DateTimeFormat(
+  language === "it" ? "it-IT" : "en-GB",
+  { month: "short", year: "2-digit", timeZone: "UTC" },
+).format(new Date(`${date.slice(0, 7)}-01T12:00:00Z`));
+
+export const formatPercent = (rate: number, language: Language) => new Intl.NumberFormat(
+  language === "it" ? "it-IT" : "en-GB",
+  { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 2, signDisplay: "exceptZero" },
+).format(rate);
+
 export const todayIso = () => {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;

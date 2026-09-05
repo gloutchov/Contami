@@ -115,7 +115,15 @@ export const WORKBOOK_TABLES_V9: WorkbookTableDefinition[] = [
   },
 ];
 
-export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V9;
+export const WORKBOOK_TABLES_V10: WorkbookTableDefinition[] = WORKBOOK_TABLES_V9;
+
+export const WORKBOOK_TABLES: WorkbookTableDefinition[] = WORKBOOK_TABLES_V10.map((definition) => definition.key === "investmentAnnualSummaries"
+  ? {
+      ...definition,
+      columns: [...definition.columns, "closingValueObservedAt", "returnRate", "returnMethod", "returnCoverage", "returnPartialPeriod"],
+      dateColumns: [...(definition.dateColumns ?? []), "closingValueObservedAt"],
+    }
+  : definition);
 
 export const WORKBOOK_TABLES_V2: WorkbookTableDefinition[] = [
   { key: "categories", sheet: "Categories", columns: ["id", "nameIt", "nameEn", "kind", "active"] },
@@ -146,4 +154,4 @@ export const WORKBOOK_TABLES_V1: WorkbookTableDefinition[] = [
   { key: "annualSummaries", sheet: "Annual Summaries", columns: ["year", "income", "expenses", "netCashFlow", "closingNetWorth"] },
 ];
 
-export const WORKBOOK_SCHEMA_VERSION = 10;
+export const WORKBOOK_SCHEMA_VERSION = 11;

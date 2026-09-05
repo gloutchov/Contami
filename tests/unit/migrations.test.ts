@@ -3,6 +3,44 @@ import { createEmptyFinanceData } from "../../src/domain/finance";
 import { migrateFinanceData } from "../../src/domain/migrations";
 
 describe("finance data migrations", () => {
+  it("upgrades version 10 without inventing historical investment return coverage", () => {
+    const legacy = structuredClone(createEmptyFinanceData(2026));
+    const investmentId = crypto.randomUUID();
+    legacy.meta.schemaVersion = 10 as 11;
+    legacy.investments.push({
+      id: investmentId, name: "Synthetic legacy fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2024-01-01", notes: "",
+    });
+    legacy.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 110, contributions: 100, withdrawals: 0,
+    });
+
+    const migrated = migrateFinanceData(legacy);
+
+    expect(migrated.meta.schemaVersion).toBe(11);
+    expect(migrated.investmentAnnualSummaries[0]).toMatchObject({
+      investmentId, year: 2025, closingValue: 110,
+    });
+    expect(migrated.investmentAnnualSummaries[0].closingValueObservedAt).toBeUndefined();
+    expect(migrated.investmentAnnualSummaries[0].returnRate).toBeUndefined();
+    expect(migrated.investmentAnnualSummaries[0].returnMethod).toBeUndefined();
+  });
+
+  it("rejects an incomplete persisted annual investment return", () => {
+    const invalid = structuredClone(createEmptyFinanceData(2026));
+    const investmentId = crypto.randomUUID();
+    invalid.investments.push({
+      id: investmentId, name: "Synthetic fund", kind: "fund", provider: "", currency: "EUR",
+      active: true, openedAt: "2025-01-01", notes: "",
+    });
+    invalid.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 110, contributions: 100, withdrawals: 0,
+      returnRate: 0.1,
+    });
+
+    expect(() => migrateFinanceData(invalid)).toThrow();
+  });
+
   it("upgrades version 8 with an empty rate history and leaves existing records unchanged", () => {
     const legacy = structuredClone(createEmptyFinanceData(2026)) as unknown as Record<string, unknown> & {
       meta: { schemaVersion: number };
@@ -32,7 +70,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.recurringRateChanges).toEqual([]);
     expect(migrated.recurringItems).toEqual(recurringBefore);
     expect(migrated.transactions).toEqual(transactionsBefore);
@@ -41,7 +79,7 @@ describe("finance data migrations", () => {
   it("upgrades version 9 without dropping its recurring rate history", () => {
     const legacy = structuredClone(createEmptyFinanceData(2026));
     const recurringId = crypto.randomUUID();
-    legacy.meta.schemaVersion = 9 as 10;
+    legacy.meta.schemaVersion = 9 as 11;
     legacy.recurringItems.push({
       id: recurringId, name: "Synthetic service", kind: "service", direction: "expense", amount: 80,
       frequency: "monthly", categoryId: legacy.categories[3].id, paymentMethodId: legacy.paymentMethods[0].id,
@@ -53,7 +91,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.recurringRateChanges).toEqual(legacy.recurringRateChanges);
   });
 
@@ -72,7 +110,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.investmentTypes).toHaveLength(7);
     expect(migrated.taxTypes.map((item) => item.name)).toEqual(["Canone TV", "IMU", "TARI"]);
     expect(migrated.annualSummaries[0]).toMatchObject({
@@ -107,7 +145,7 @@ describe("finance data migrations", () => {
     const migrated = migrateFinanceData(legacy);
     const imu = migrated.taxTypes.find((item) => item.name === "IMU")!;
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.propertyEntries[0]).toMatchObject({
       taxTypeId: imu.id,
       taxInstallmentNumber: 2,
@@ -139,7 +177,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.propertyAnnualSummaries[0]).toMatchObject({
       phoneInternetCost: 0,
       condominiumCost: 0,
@@ -185,7 +223,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.investmentEntries[0]?.accountId).toBe(accountId);
     expect(migrated.transactions[0]?.accountId).toBe(accountId);
     expect(migrated.investments[0]?.periodicAccountId).toBe(accountId);
@@ -222,7 +260,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.propertyEntries[0].accountId).toBe(accountId);
     expect(migrated.transactions[0].destinationAccountId).toBeUndefined();
     expect(migrated.accounts[0].defaultFundingAccountId).toBeUndefined();
@@ -315,7 +353,7 @@ describe("finance data migrations", () => {
 
     const migrated = migrateFinanceData(legacy);
 
-    expect(migrated.meta.schemaVersion).toBe(10);
+    expect(migrated.meta.schemaVersion).toBe(11);
     expect(migrated.transactions.find((item) => item.id === plannedTransactionId)?.dueDate).toBe("2026-08-15");
     expect(migrated.propertyEntries.find((item) => item.id === plannedEntryId)?.dueDate).toBe("2026-08-15");
     expect(migrated.transactions.find((item) => item.id === confirmedTransactionId)?.dueDate).toBeUndefined();

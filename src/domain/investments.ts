@@ -2,6 +2,11 @@ import type { FinanceData, Investment, InvestmentEntry } from "./models";
 
 export type InvestmentCorrectionKind = "contribution_correction" | "withdrawal_correction";
 export type LinkedInvestmentMovementKind = "contribution" | "withdrawal";
+export const ROLLOVER_OPENING_VALUATION_DESCRIPTION = "Opening valuation / Valutazione iniziale";
+
+export function isRolloverOpeningValuation(entry: InvestmentEntry): boolean {
+  return entry.kind === "valuation" && entry.description === ROLLOVER_OPENING_VALUATION_DESCRIPTION;
+}
 
 export function isInvestmentCorrectionKind(kind: InvestmentEntry["kind"]): kind is InvestmentCorrectionKind {
   return kind === "contribution_correction" || kind === "withdrawal_correction";

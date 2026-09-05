@@ -64,6 +64,7 @@
 .financial-chart-point { stroke: var(--surface-solid); stroke-width: 1.5; vector-effect: non-scaling-stroke; animation: financial-chart-fade-in 260ms ease-out 560ms both; }
 .financial-chart-bar { vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center bottom; animation: financial-chart-grow-y 720ms cubic-bezier(.22, 1, .36, 1) both; }
 .financial-chart-hit-area { pointer-events: all; }
+.financial-chart-hit-area:focus { outline: none; stroke: var(--mint); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .financial-chart-tooltip { pointer-events: none; animation: financial-chart-fade-in 120ms ease-out both; }
 .financial-chart-cursor { stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .financial-chart-hover-point { stroke: var(--surface-solid); stroke-width: 2; vector-effect: non-scaling-stroke; }
@@ -76,6 +77,16 @@
 .financial-chart-legend { min-height: 28px; display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 400; line-height: 1.2; animation: financial-chart-fade-in 300ms ease-out 480ms both; }
 .financial-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .financial-chart-legend svg { width: 16px; height: 10px; flex: 0 0 auto; }
+.return-chart { min-width: 0; }
+.return-chart-note { margin: 4px 10px 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.return-chart-empty { padding: 18px 10px 8px; line-height: 1.5; }
+.compact-return-chart { margin: 2px 0 14px; padding: 10px 9px 3px; border: 1px solid var(--border); border-radius: 11px; background: color-mix(in srgb, var(--background) 78%, transparent); }
+.return-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 16px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.return-chart-heading small { padding: 2px 5px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 24%, var(--surface-solid)); color: var(--text); font-size: 8px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+.compact-return-chart .compact-history-chart { height: 112px; padding: 3px 3px 4px 0; }
+.compact-return-chart .financial-chart-axis { font-size: 7px; }
+.compact-return-chart .financial-chart-x-label { font-size: 8px; }
+.compact-return-chart .financial-chart-tooltip-label, .compact-return-chart .financial-chart-tooltip-value { font-size: 9px; }
 
 .clickable { cursor: pointer; transition: transform 140ms ease, border-color 140ms ease; }
 .clickable:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--mint) 70%, var(--border)); }

@@ -225,6 +225,8 @@ describe("linked finance records", () => {
     });
     data.investmentAnnualSummaries.push({
       investmentId, year: 2025, closingValue: 525, contributions: 500, withdrawals: 0,
+      closingValueObservedAt: "2025-12-31", returnRate: 0.05,
+      returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
     });
 
     expect(accountBalance(data, accountId)).toBe(1_000);
@@ -243,8 +245,44 @@ describe("linked finance records", () => {
     expect(data.investmentEntries[0]).toMatchObject({ id: entryId, transactionId, amount: 480, description: "Corrected from Transactions" });
     expect(data.transactions[0]).toMatchObject({ id: transactionId, investmentEntryId: entryId, amount: 480, cashFlowDirection: "outflow" });
     expect(data.investmentAnnualSummaries[0]).toMatchObject({ contributions: 480, withdrawals: 0 });
+    expect(data.investmentAnnualSummaries[0].returnRate).toBeUndefined();
+    expect(data.investmentAnnualSummaries[0].returnMethod).toBeUndefined();
     expect(investmentInvestedCapital(data, investmentId)).toBe(480);
     expect(accountBalance(data, accountId)).toBe(1_000);
+  });
+
+  it("invalidates persisted returns for an edited valuation and its collector", () => {
+    let data = createEmptyFinanceData(2026);
+    const parentId = crypto.randomUUID();
+    const investmentId = crypto.randomUUID();
+    const valuationId = crypto.randomUUID();
+    data.investments.push(
+      { id: parentId, name: "Synthetic collector", kind: "pension", provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+      { id: investmentId, parentInvestmentId: parentId, name: "Synthetic compartment", kind: "pension", provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" },
+    );
+    data.investmentEntries.push({
+      id: valuationId, investmentId, date: "2025-12-31", kind: "valuation", amount: 105,
+      description: "Synthetic historical valuation", notes: "",
+    });
+    data.investmentAnnualSummaries.push(
+      {
+        investmentId, year: 2025, closingValue: 105, contributions: 100, withdrawals: 0,
+        closingValueObservedAt: "2025-12-31", returnRate: 0.05,
+        returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
+      },
+      {
+        investmentId: parentId, year: 2025, closingValue: 0, contributions: 0, withdrawals: 0,
+        closingValueObservedAt: "2025-12-31", returnRate: 0.05,
+        returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
+      },
+    );
+
+    data = applyFinanceCommand(data, { type: "updateInvestmentEntry", value: {
+      ...data.investmentEntries[0], amount: 106,
+    } });
+
+    expect(data.investmentAnnualSummaries.map((summary) => summary.returnRate)).toEqual([undefined, undefined]);
+    expect(data.investmentAnnualSummaries[0]).toMatchObject({ contributions: 100, withdrawals: 0 });
   });
 
   it("does not allow a legacy movement to acquire a new invalid historical account date", () => {

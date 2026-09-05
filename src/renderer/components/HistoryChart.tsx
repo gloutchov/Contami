@@ -9,6 +9,11 @@ export interface HistorySeries {
   areaOpacity?: number;
 }
 
+export interface HistoryTooltipRow {
+  label: string;
+  value: string;
+}
+
 type ChartType = "area" | "bar" | "line";
 type ChartPoint = { x: number; y: number };
 
@@ -45,9 +50,10 @@ function useResponsiveChartSize(): {
   return { ref, ...size };
 }
 
-function numericValue(value: number | string | undefined): number {
+function numericValue(value: number | string | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function chartNumber(value: number): string {
@@ -139,26 +145,35 @@ export function HistoryChart({
   ariaLabel,
   xKey = "year",
   xTickFormatter,
+  yTickFormatter,
   detail = true,
   showLegend = true,
   showPoints,
+  compact = false,
+  missingValueLabel = "—",
+  tooltipDetails,
 }: {
-  data: Array<Record<string, number | string>>;
+  data: Array<Record<string, number | string | null | undefined>>;
   series: HistorySeries[];
   format: (value: number) => string;
   type?: ChartType;
   ariaLabel: string;
   xKey?: string;
   xTickFormatter?: (value: string | number) => string;
+  yTickFormatter?: (value: number) => string;
   detail?: boolean;
   showLegend?: boolean;
   showPoints?: boolean;
+  compact?: boolean;
+  missingValueLabel?: string;
+  tooltipDetails?: (item: Record<string, number | string | null | undefined>) => HistoryTooltipRow[];
 }) {
   const chartId = useId().replaceAll(":", "");
   const { ref: svgRef, width, height } = useResponsiveChartSize();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const values = data.flatMap((item) => series.map((candidate) => numericValue(item[candidate.key])));
-  if (!data.length || !values.some((value) => value !== 0)) return null;
+  const values = data.flatMap((item) => series.map((candidate) => numericValue(item[candidate.key])))
+    .filter((value): value is number => value !== undefined);
+  if (!data.length || !values.length) return null;
 
   const { minimum, maximum, ticks } = chartScale(values);
   const range = maximum - minimum || 1;
@@ -173,20 +188,29 @@ export function HistoryChart({
   const labels = selectedLabelIndexes(data.length);
   const renderPoints = showPoints ?? (type === "line" && data.length < 15);
   const animationKey = `${width}x${height}-${values.join("-")}`;
-  const xLabel = (item: Record<string, number | string>) => {
+  const xLabel = (item: Record<string, number | string | null | undefined>) => {
     const value = item[xKey] ?? "";
     return xTickFormatter ? xTickFormatter(value) : String(value);
   };
-  const nativeTooltip = (item: Record<string, number | string>) => [
+  const formattedValue = (value: number | string | null | undefined) => {
+    const numeric = numericValue(value);
+    return numeric === undefined ? missingValueLabel : format(numeric);
+  };
+  const nativeTooltip = (item: Record<string, number | string | null | undefined>) => [
     xLabel(item),
-    ...series.map((candidate) => `${candidate.label}: ${format(numericValue(item[candidate.key]))}`),
+    ...series.map((candidate) => `${candidate.label}: ${formattedValue(item[candidate.key])}`),
+    ...(tooltipDetails?.(item).map((row) => `${row.label}: ${row.value}`) ?? []),
   ].join("\n");
   const hoveredItem = hoveredIndex === null ? undefined : data[hoveredIndex];
+  const hoveredDetails = hoveredItem ? tooltipDetails?.(hoveredItem) ?? [] : [];
   const tooltipWidth = Math.min(248, Math.max(140, plotWidth - 12));
-  const tooltipHeight = 36 + series.length * 19;
+  const tooltipHeight = 36 + (series.length + hoveredDetails.length) * 19;
   const tooltipAnchorX = hoveredIndex === null ? PLOT.left : type === "bar" ? slotX(hoveredIndex) : pointX(hoveredIndex);
-  const tooltipAnchorY = hoveredItem
-    ? Math.min(...series.map((candidate) => pointY(numericValue(hoveredItem[candidate.key]))))
+  const hoveredValues = hoveredItem
+    ? series.map((candidate) => numericValue(hoveredItem[candidate.key])).filter((value): value is number => value !== undefined)
+    : [];
+  const tooltipAnchorY = hoveredValues.length
+    ? Math.min(...hoveredValues.map(pointY))
     : PLOT.top;
   const preferredTooltipX = tooltipAnchorX + 14 + tooltipWidth <= width - PLOT.right
     ? tooltipAnchorX + 14
@@ -198,8 +222,9 @@ export function HistoryChart({
     Math.max(PLOT.top + 4, tooltipAnchorY - tooltipHeight / 2),
   );
 
-  return <div className={`history-chart${detail ? " detail-history-chart" : ""}`} role="img" aria-label={ariaLabel}>
-    <svg className="financial-chart-svg" ref={svgRef} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" onMouseLeave={() => setHoveredIndex(null)}>
+  return <div className={`history-chart${detail ? " detail-history-chart" : ""}${compact ? " compact-history-chart" : ""}`} role="group" aria-label={ariaLabel}>
+    <svg className="financial-chart-svg" ref={svgRef} viewBox={`0 0 ${width} ${height}`} onMouseLeave={() => setHoveredIndex(null)}>
+      <title>{ariaLabel}</title>
       {type === "area" && <defs>
         {series.map((candidate, index) => <linearGradient id={`${chartId}-area-${index}`} key={candidate.key} x1="0" x2="0" y1="0" y2="1">
           <stop offset="5%" stopColor={candidate.areaColor ?? candidate.color} stopOpacity={candidate.areaOpacity ?? 0.3} />
@@ -211,7 +236,7 @@ export function HistoryChart({
         const y = pointY(value);
         return <g key={value}>
           <line className="financial-chart-grid" x1={PLOT.left} x2={width - PLOT.right} y1={y} y2={y} />
-          <text className="financial-chart-axis financial-chart-y-label" x={PLOT.left - 8} y={y + 3}>{chartNumber(value)}</text>
+          <text className="financial-chart-axis financial-chart-y-label" x={PLOT.left - 8} y={y + 3}>{yTickFormatter ? yTickFormatter(value) : chartNumber(value)}</text>
         </g>;
       })}
       {minimum < 0 && maximum > 0 && <line className="financial-chart-zero" x1={PLOT.left} x2={width - PLOT.right} y1={zeroY} y2={zeroY} />}
@@ -223,6 +248,7 @@ export function HistoryChart({
         const groupStart = slotX(dataIndex) - groupWidth / 2;
         return series.map((candidate, seriesIndex) => {
           const value = numericValue(item[candidate.key]);
+          if (value === undefined) return null;
           const valueY = pointY(value);
           const y = Math.min(valueY, zeroY);
           const height = Math.max(1, Math.abs(zeroY - valueY));
@@ -240,20 +266,36 @@ export function HistoryChart({
       })}
 
       {(type === "line" || type === "area") && series.map((candidate, seriesIndex) => {
-        const points = data.map((item, index) => ({ x: pointX(index), y: pointY(numericValue(item[candidate.key])) }));
-        const linePath = monotonePath(points);
-        const areaPath = `${linePath} L ${chartNumber(points.at(-1)?.x ?? PLOT.left)} ${chartNumber(zeroY)} L ${chartNumber(points[0].x)} ${chartNumber(zeroY)} Z`;
+        const segments: ChartPoint[][] = [];
+        data.forEach((item, index) => {
+          const value = numericValue(item[candidate.key]);
+          if (value === undefined) return;
+          const previousValue = index > 0 ? numericValue(data[index - 1][candidate.key]) : undefined;
+          if (previousValue === undefined) segments.push([]);
+          segments.at(-1)!.push({ x: pointX(index), y: pointY(value) });
+        });
         return <g key={`${candidate.key}-${animationKey}`}>
-          {type === "area" && <path className="financial-chart-area" d={areaPath} fill={`url(#${chartId}-area-${seriesIndex})`} />}
-          <path className="financial-chart-line" d={linePath} pathLength="1" stroke={candidate.color} strokeWidth={candidate.strokeWidth ?? 2.5} />
-          {renderPoints && points.map((point, index) => <circle
+          {segments.map((points, segmentIndex) => {
+            const linePath = monotonePath(points);
+            const areaPath = `${linePath} L ${chartNumber(points.at(-1)?.x ?? PLOT.left)} ${chartNumber(zeroY)} L ${chartNumber(points[0].x)} ${chartNumber(zeroY)} Z`;
+            return <g key={`${candidate.key}-segment-${segmentIndex}`}>
+              {type === "area" && <path className="financial-chart-area" d={areaPath} fill={`url(#${chartId}-area-${seriesIndex})`} />}
+              <path className="financial-chart-line" d={linePath} pathLength="1" stroke={candidate.color} strokeWidth={candidate.strokeWidth ?? 2.5} />
+            </g>;
+          })}
+          {renderPoints && data.flatMap((item, index) => {
+            const value = numericValue(item[candidate.key]);
+            if (value === undefined) return [];
+            const point = { x: pointX(index), y: pointY(value) };
+            return [<circle
             className="financial-chart-point"
             cx={point.x}
             cy={point.y}
             fill={candidate.color}
             key={`${candidate.key}-${index}`}
             r="3"
-          />)}
+            />];
+          })}
         </g>;
       })}
 
@@ -271,12 +313,16 @@ export function HistoryChart({
         const left = index === 0 ? PLOT.left : center - interval / 2;
         const right = index === data.length - 1 ? width - PLOT.right : center + interval / 2;
         return <rect
+          aria-label={nativeTooltip(item)}
           className="financial-chart-hit-area"
           fill="transparent"
           height={plotHeight}
           key={`hit-${index}`}
+          onBlur={() => setHoveredIndex(null)}
+          onFocus={() => setHoveredIndex(index)}
           onMouseEnter={() => setHoveredIndex(index)}
           onMouseMove={() => setHoveredIndex(index)}
+          tabIndex={0}
           width={Math.max(1, right - left)}
           x={left}
           y={PLOT.top}
@@ -285,14 +331,17 @@ export function HistoryChart({
 
       {hoveredItem && hoveredIndex !== null && <g className="financial-chart-tooltip">
         <line className="financial-chart-cursor" x1={tooltipAnchorX} x2={tooltipAnchorX} y1={PLOT.top} y2={height - PLOT.bottom} />
-        {type !== "bar" && series.map((candidate) => <circle
-          className="financial-chart-hover-point"
-          cx={tooltipAnchorX}
-          cy={pointY(numericValue(hoveredItem[candidate.key]))}
-          fill={candidate.color}
-          key={candidate.key}
-          r="4"
-        />)}
+        {type !== "bar" && series.flatMap((candidate) => {
+          const value = numericValue(hoveredItem[candidate.key]);
+          return value === undefined ? [] : [<circle
+            className="financial-chart-hover-point"
+            cx={tooltipAnchorX}
+            cy={pointY(value)}
+            fill={candidate.color}
+            key={candidate.key}
+            r="4"
+          />];
+        })}
         <rect className="financial-chart-tooltip-box" height={tooltipHeight} rx="10" width={tooltipWidth} x={tooltipX} y={tooltipY} />
         <text className="financial-chart-tooltip-title" x={tooltipX + 11} y={tooltipY + 18}>{xLabel(hoveredItem)}</text>
         <line className="financial-chart-tooltip-divider" x1={tooltipX + 10} x2={tooltipX + tooltipWidth - 10} y1={tooltipY + 27} y2={tooltipY + 27} />
@@ -301,7 +350,14 @@ export function HistoryChart({
           return <g key={candidate.key}>
             <circle cx={tooltipX + 13} cy={rowY - 3} fill={candidate.color} r="3" />
             <text className="financial-chart-tooltip-label" x={tooltipX + 22} y={rowY}>{candidate.label}</text>
-            <text className="financial-chart-tooltip-value" textAnchor="end" x={tooltipX + tooltipWidth - 10} y={rowY}>{format(numericValue(hoveredItem[candidate.key]))}</text>
+            <text className="financial-chart-tooltip-value" textAnchor="end" x={tooltipX + tooltipWidth - 10} y={rowY}>{formattedValue(hoveredItem[candidate.key])}</text>
+          </g>;
+        })}
+        {hoveredDetails.map((row, index) => {
+          const rowY = tooltipY + 45 + (series.length + index) * 19;
+          return <g key={`${row.label}-${index}`}>
+            <text className="financial-chart-tooltip-label" x={tooltipX + 13} y={rowY}>{row.label}</text>
+            <text className="financial-chart-tooltip-value" textAnchor="end" x={tooltipX + tooltipWidth - 10} y={rowY}>{row.value}</text>
           </g>;
         })}
       </g>}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { investmentReturnSeries } from "../../src/domain/assetReturns";
 import { applyFinanceCommand, createEmptyFinanceData } from "../../src/domain/finance";
 import { investmentMovementTotals } from "../../src/domain/investments";
 import { createRolloverFinanceData } from "../../src/domain/rollover";
@@ -190,7 +191,12 @@ describe("createRolloverFinanceData", () => {
 
     expect(next.investmentAnnualSummaries).toMatchObject([{
       investmentId, year: 2026, closingValue: 1_250, contributions: 1_200, withdrawals: 100,
+      closingValueObservedAt: "2026-12-20", returnMethod: "original_dietz_estimate",
+      returnCoverage: "estimated", returnPartialPeriod: true,
     }]);
+    expect(next.investmentAnnualSummaries[0].returnRate).toBeCloseTo(150 / 550, 10);
+    expect(investmentReturnSeries(next, next.investments[0], "2027-01-31").annual.find((point) => point.year === 2026))
+      .toMatchObject({ rate: 150 / 550, coverage: "estimated", partialPeriod: true });
     expect(investmentMovementTotals(next, investmentId)).toEqual({
       initialCapital: 1_200,
       subsequentContributions: 0,
@@ -317,5 +323,30 @@ describe("createRolloverFinanceData", () => {
     expect(next.investmentEntries.every((item) => item.kind === "contribution"
       && item.investmentId === compartmentId
       && transactions.some((transaction) => transaction.id === item.transactionId))).toBe(true);
+  });
+
+  it("persists a late rent payment in the annual summary for its competence year", () => {
+    const current = createEmptyFinanceData(2027);
+    const propertyId = crypto.randomUUID();
+    current.properties.push({
+      id: propertyId, name: "Synthetic rental", kind: "apartment", usage: "rental",
+      ownershipShare: 1, purchasePrice: 100_000, active: true, notes: "",
+    });
+    current.propertyAnnualSummaries.push({
+      propertyId, year: 2026, income: 0, expenses: 0, closingValue: 100_000,
+      electricityKwh: 0, gasCubicMeters: 0, waterCubicMeters: 0,
+      electricityCost: 0, gasCost: 0, waterCost: 0,
+      phoneInternetCost: 0, condominiumCost: 0,
+    });
+    current.propertyEntries.push({
+      id: crypto.randomUUID(), propertyId, date: "2027-01-05", dueDate: "2026-12-10",
+      kind: "income", category: "Rent", description: "December rent paid in January", amount: 1_000,
+      categoryId: current.categories[1].id, paymentMethodId: current.paymentMethods[0].id, notes: "",
+    });
+
+    const next = createRolloverFinanceData(current, 2028);
+
+    expect(next.propertyAnnualSummaries.find((item) => item.propertyId === propertyId && item.year === 2026)?.income).toBe(1_000);
+    expect(next.propertyAnnualSummaries.find((item) => item.propertyId === propertyId && item.year === 2027)?.income).toBe(0);
   });
 });

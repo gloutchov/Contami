@@ -42,7 +42,7 @@ export function createEmptyFinanceData(year = new Date().getFullYear()): Finance
   const category = (nameIt: string, nameEn: string, kind: "income" | "expense" | "both") => ({ id: randomUUID(), nameIt, nameEn, kind, active: true });
   const payment = (name: string, kind: "cash" | "card" | "bank_transfer" | "direct_debit" | "digital_wallet" | "other") => ({ id: randomUUID(), name, kind, active: true });
   return financeDataSchema.parse({
-    meta: { schemaVersion: 10, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
+    meta: { schemaVersion: 11, activeYear: year, createdAt: timestamp, updatedAt: timestamp },
     categories: [
       category("Stipendio", "Salary", "income"), category("Affitti", "Rent income", "income"),
       category("Alimentari", "Groceries", "expense"), category("Casa", "Home", "expense"),
@@ -187,7 +187,7 @@ function investmentEntryAnnualMovementEffect(
   data: FinanceData,
   entry: FinanceData["investmentEntries"][number] | undefined,
 ): InvestmentAnnualMovementEffect | undefined {
-  if (!entry || entry.kind === "valuation" || isInvestmentCorrectionKind(entry.kind)) return undefined;
+  if (!entry || isInvestmentCorrectionKind(entry.kind)) return undefined;
   const transaction = entry.transactionId
     ? data.transactions.find((item) => item.id === entry.transactionId)
     : data.transactions.find((item) => item.investmentEntryId === entry.id);
@@ -207,12 +207,26 @@ function adjustInvestmentAnnualSummary(
 ): void {
   for (const [effect, direction] of [[before, -1], [after, 1]] as const) {
     if (!effect) continue;
-    const summary = data.investmentAnnualSummaries.find((item) => (
-      item.investmentId === effect.investmentId && item.year === effect.year
-    ));
-    if (!summary) continue;
-    summary.contributions = Math.max(0, summary.contributions + effect.contributions * direction);
-    summary.withdrawals = Math.max(0, summary.withdrawals + effect.withdrawals * direction);
+    const affectedInvestmentIds = new Set([effect.investmentId]);
+    let investmentId: string | undefined = effect.investmentId;
+    for (let depth = 0; depth < data.investments.length && investmentId; depth += 1) {
+      const parentId = data.investments.find((item) => item.id === investmentId)?.parentInvestmentId;
+      if (!parentId || affectedInvestmentIds.has(parentId)) break;
+      affectedInvestmentIds.add(parentId);
+      investmentId = parentId;
+    }
+    data.investmentAnnualSummaries
+      .filter((item) => affectedInvestmentIds.has(item.investmentId) && item.year === effect.year)
+      .forEach((summary) => {
+        if (summary.investmentId === effect.investmentId) {
+          summary.contributions = Math.max(0, summary.contributions + effect.contributions * direction);
+          summary.withdrawals = Math.max(0, summary.withdrawals + effect.withdrawals * direction);
+        }
+        summary.returnRate = undefined;
+        summary.returnMethod = undefined;
+        summary.returnCoverage = undefined;
+        summary.returnPartialPeriod = undefined;
+      });
   }
 }
 

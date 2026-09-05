@@ -4,17 +4,34 @@ import type {
   PropertyAnnualSummary,
   VehicleAnnualSummary,
 } from "./models";
-import { confirmedInvestmentEntries, latestInvestmentValue } from "./investments";
+import { confirmedInvestmentEntries, isRolloverOpeningValuation, latestInvestmentValue } from "./investments";
 import { isCondominiumCost, isPropertyUtilityCost, propertyConsumptionQuantity } from "./propertyMetrics";
 
 const total = (values: number[]) => values.reduce((sum, value) => sum + value, 0);
+
+function isConfirmedPropertyEntry(data: FinanceData, entry: FinanceData["propertyEntries"][number]): boolean {
+  return !data.transactions.find((transaction) => transaction.id === entry.transactionId)?.planned;
+}
+
+export function propertyAnnualSummariesWithLateIncome(data: FinanceData): PropertyAnnualSummary[] {
+  const summaries = data.propertyAnnualSummaries.map((summary) => ({ ...summary }));
+  for (const entry of data.propertyEntries) {
+    if (entry.kind !== "income" || !entry.dueDate || !isConfirmedPropertyEntry(data, entry)) continue;
+    const competenceYear = Number(entry.dueDate.slice(0, 4));
+    const paymentYear = Number(entry.date.slice(0, 4));
+    if (competenceYear >= data.meta.activeYear || paymentYear !== data.meta.activeYear || competenceYear === paymentYear) continue;
+    const summary = summaries.find((item) => item.propertyId === entry.propertyId && item.year === competenceYear);
+    if (summary) summary.income += entry.amount;
+  }
+  return summaries;
+}
 
 export function createPropertyAnnualSummaries(data: FinanceData): PropertyAnnualSummary[] {
   const year = data.meta.activeYear;
   return data.properties.map((property) => {
     const entries = data.propertyEntries.filter((entry) => entry.propertyId === property.id
-      && entry.date.startsWith(String(year))
-      && !data.transactions.find((transaction) => transaction.id === entry.transactionId)?.planned);
+      && (entry.kind === "income" ? entry.dueDate ?? entry.date : entry.date).startsWith(String(year))
+      && isConfirmedPropertyEntry(data, entry));
     const latestValuation = entries.filter((entry) => entry.kind === "valuation").sort((a, b) => b.date.localeCompare(a.date))[0];
     const consumption = (kind: "electricity" | "gas" | "water") => total(entries
       .filter((entry) => entry.kind === "consumption" || entry.detailKind?.startsWith("utility_"))
@@ -44,12 +61,19 @@ export function createInvestmentAnnualSummaries(data: FinanceData): InvestmentAn
   const year = data.meta.activeYear;
   return data.investments.map((investment) => {
     const entries = confirmedInvestmentEntries(data, investment.id).filter((entry) => entry.date.startsWith(String(year)));
+    const latestValuation = entries
+      .filter((entry) => entry.kind === "valuation" && !isRolloverOpeningValuation(entry))
+      .sort((left, right) => left.date.localeCompare(right.date) || left.id.localeCompare(right.id))
+      .at(-1);
+    const laterMovement = latestValuation && entries.some((entry) => (entry.kind === "contribution" || entry.kind === "withdrawal")
+      && entry.date > latestValuation.date);
     return {
       investmentId: investment.id,
       year,
       closingValue: latestInvestmentValue(data, investment.id),
       contributions: total(entries.filter((entry) => entry.kind === "contribution").map((entry) => entry.amount)),
       withdrawals: total(entries.filter((entry) => entry.kind === "withdrawal").map((entry) => entry.amount)),
+      closingValueObservedAt: latestValuation && !laterMovement ? latestValuation.date : undefined,
     };
   });
 }
