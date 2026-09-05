@@ -95,8 +95,8 @@ ContaMì/
 │   ├── renderer/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
-│   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, animati e con tooltip, senza attributi style
-│   │   │   ├── ReturnChart.tsx         # grafici mensili/annuali percentuali, lacune e dettaglio componenti
+│   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, gap configurabili, media e tooltip sopra/overlay, senza style
+│   │   │   ├── ReturnChart.tsx         # rendimenti mensili/annuali, linea continua, media e dettaglio componenti
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   │   ├── InvestmentMovementSummary.tsx # quattro KPI/fatti e freccia di tendenza riusati da investimenti e pensioni
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
