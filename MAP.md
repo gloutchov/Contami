@@ -22,6 +22,7 @@ ContaMì/
 ├── documents/
 │   ├── import-template-spec.md        # contratti versionati degli otto template Excel
 │   ├── import-guide.md                # compilazione, anteprima, errori e recupero IT/EN
+│   ├── return-formulas.md             # formule, copertura e limiti dei rendimenti IT/EN
 │   ├── reference-analysis.md          # analisi priva di PII del Numbers sorgente
 │   └── landing-maintenance.md         # manutenzione e rigenerazione sicura dei media
 ├── scripts/
@@ -47,6 +48,7 @@ ContaMì/
 │   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
+│   │   ├── assetReturns.ts              # Modified Dietz, rendimento locativo, copertura e aggregati puri
 │   │   ├── commands.ts                 # comandi validati, inclusi salvataggi atomici con divisione a metà
 │   │   ├── finance.ts                  # aggregazioni, KPI incluso patrimonio senza immobili, saldi Conto/Cassa e comandi
 │   │   ├── investments.ts              # classificazione, correzioni, trend e aggregazioni investimenti/pensioni
@@ -60,10 +62,10 @@ ContaMì/
 │   │   ├── rent.ts                     # stato rate affitto da competenza e incasso effettivo
 │   │   ├── recurringRates.ts           # tariffa per decorrenza, anteprima e protezione dello storico
 │   │   ├── vehicleInstallments.ts      # unicità, ciclo di vita e protezione dello storico dei finanziamenti auto
-│   │   ├── migrations.ts               # migrazione workbook v1–v9 → v10 senza riscrivere importi
-│   │   ├── models.ts                   # schema Zod v10 e modello finanziario
+│   │   ├── migrations.ts               # migrazione workbook v1–v10 → v11 senza inventare rendimenti storici
+│   │   ├── models.ts                   # schema Zod v11 e modello finanziario
 │   │   ├── uuidRepair.ts               # unicità UUID e riallineamento conservativo dei collegamenti
-│   │   └── rollover.ts                 # passaggio d’anno, correzioni investimento, rate residue e affitti insoluti
+│   │   └── rollover.ts                 # passaggio d’anno, rendimenti conservati, rate residue e affitti insoluti
 │   ├── infrastructure/
 │   │   ├── pdf/
 │   │   │   └── PropertyReportDocument.ts # documento HTML/CSS locale e vettoriale per stampa/PDF
@@ -94,6 +96,7 @@ ContaMì/
 │   │   ├── components/                 # shell, KPI, modali, dettagli, grafici storici e stati vuoti
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
 │   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, animati e con tooltip, senza attributi style
+│   │   │   ├── ReturnChart.tsx         # grafici mensili/annuali percentuali, lacune e dettaglio componenti
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   │   ├── InvestmentMovementSummary.tsx # quattro KPI/fatti e freccia di tendenza riusati da investimenti e pensioni
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
@@ -169,6 +172,7 @@ ContaMì/
 │       ├── propertyReport.test.ts         # periodi, quote, previsioni, limiti, HTML ed escaping
 │       ├── propertyReportDialog.test.tsx  # dialogo bilingue, azioni e stati disabilitati
 │       ├── annualHistory.test.ts        # aggregati utenze e automobili
+│       ├── assetReturns.test.ts         # formule, copertura, flussi, aggregati, valute e affitti sintetici
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── strictCsp.test.tsx            # policy prod/dev, scanner e grafici SVG dinamici
@@ -178,7 +182,7 @@ ContaMì/
 │       ├── import-preview-dialog.test.tsx # riepilogo IT/EN e conferma accessibile
 │       ├── taxTypes.test.ts              # CRUD, archiviazione e vincoli del catalogo tasse
 │       ├── linkedRecords.test.ts         # collegamenti, limiti e chiusura delle ricorrenze
-│       ├── migrations.test.ts            # compatibilità schema v1–v9 → v10
+│       ├── migrations.test.ts            # compatibilità schema v1–v10 → v11
 │       ├── recurringRates.test.ts        # decorrenze, storico, collegamenti e rollover tariffario
 │       ├── vehicleInstallments.test.ts   # comando atomico, unicità, classificazione e ciclo di vita rate auto
 │       ├── xlsxZipPreflight.test.ts      # limiti, mutazioni seeded e casi ZIP ostili
