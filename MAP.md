@@ -48,7 +48,7 @@ ContaMì/
 │   │   ├── catalogDefaults.ts          # tipi investimento e tasse iniziali / default investment and tax types
 │   │   ├── catalogUsage.ts             # conteggio riferimenti per cataloghi / catalog usage counts
 │   │   ├── annualHistory.ts            # consuntivi annuali dettagliati per immobili, investimenti e veicoli
-│   │   ├── assetReturns.ts              # Modified Dietz, rendimento locativo, copertura e aggregati puri
+│   │   ├── assetReturns.ts              # Modified Dietz, rendimento locativo, copertura e portafogli aggregati puri
 │   │   ├── commands.ts                 # comandi validati, inclusi salvataggi atomici con divisione a metà
 │   │   ├── finance.ts                  # aggregazioni, KPI incluso patrimonio senza immobili, saldi Conto/Cassa e comandi
 │   │   ├── investments.ts              # classificazione, correzioni, trend e aggregazioni investimenti/pensioni
@@ -97,6 +97,7 @@ ContaMì/
 │   │   │   ├── EntryFilters.tsx        # filtri condivisi descrizione/mese con reset accessibile
 │   │   │   ├── HistoryChart.tsx        # grafici SVG responsive, gap configurabili, media e tooltip sopra/overlay, senza style
 │   │   │   ├── ReturnChart.tsx         # rendimenti mensili/annuali, linea continua, media e dettaglio componenti
+│   │   │   ├── AnnualReturnComparisonChart.tsx # confronto annuale multi-serie per tipologia
 │   │   │   ├── ImportPreviewDialog.tsx # riepilogo, diagnostica e conferma accessibile
 │   │   │   ├── InvestmentMovementSummary.tsx # quattro KPI/fatti e freccia di tendenza riusati da investimenti e pensioni
 │   │   │   ├── PaymentAccountField.tsx # selezione coerente di conto o Cassa per metodo
@@ -118,6 +119,7 @@ ContaMì/
 │   │   ├── utils/                      # formati, liste as-of-today, indicatori e serie storiche
 │   │   │   ├── detailFilters.ts        # logica pura condivisa per descrizione, mese e opzioni annuali
 │   │   │   ├── investmentHistory.ts    # tutte le osservazioni di investito/controvalore, inclusi i raccoglitori pensione
+│   │   │   ├── investmentReturnPresentation.ts # scelta mensile/annuale delle card per anno di apertura
 │   │   │   ├── overviewTransactions.ts # recenti confermati / confirmed recent records
 │   │   │   ├── propertyHistory.ts      # serie, mesi e filtri delle registrazioni immobiliari
 │   │   │   ├── propertyIndicators.ts   # indicatori residenza / residence indicators
@@ -125,7 +127,7 @@ ContaMì/
 │   │   ├── views/                      # dashboard e liste tematiche lazy-loaded
 │   │   │   ├── OverviewView.tsx     # patrimonio totale/al netto immobili, liquidità e saldo Casse
 │   │   │   ├── TransactionsView.tsx # saldi filtrati puri e riepiloghi ad oggi separati tra conti e Casse
-│   │   │   ├── InvestmentsView.tsx  # portafoglio non pensione con quattro riepiloghi su pagina/schede/dettagli
+│   │   │   ├── InvestmentsView.tsx  # portafoglio, riepiloghi e confronto rendimenti Titoli/Fondi/Fogli
 │   │   │   ├── PensionsView.tsx     # pensioni/comparti con quattro riepiloghi aggregati, dettagli e CRUD
 │   │   │   └── VehiclesView.tsx     # dashboard automobili, confronto e registrazioni
 │   │   ├── App.tsx                     # orchestrazione UI e stato applicativo
@@ -173,6 +175,7 @@ ContaMì/
 │       ├── propertyReportDialog.test.tsx  # dialogo bilingue, azioni e stati disabilitati
 │       ├── annualHistory.test.ts        # aggregati utenze e automobili
 │       ├── assetReturns.test.ts         # formule, copertura, flussi, aggregati, valute e affitti sintetici
+│       ├── returnCharts.test.tsx        # periodo card, confronto multi-serie e tooltip accessibile
 │       ├── catalogUsage.test.ts         # conteggi uso categorie/metodi e protezione riferimenti
 │       ├── historyViews.test.ts          # filtri immobili, serie investimenti e totali vetture
 │       ├── strictCsp.test.tsx            # policy prod/dev, scanner e grafici SVG dinamici

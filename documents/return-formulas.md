@@ -32,9 +32,9 @@ Un anno con copertura mensile completa collega geometricamente i mesi: `(Π(1 + 
 
 A year with complete monthly coverage geometrically links its months: `(Π(1 + Rm)) − 1`. A period starting or ending during the year is partial. When only consecutive annual summaries remain, ContaMì uses the prior year’s closing value as the opening and the current year’s closing value as the ending, showing an **estimated** Original Dietz result with a `0.5` cash-flow weight. In an opening year, the first available Contribution is instead reclassified as full-weight opening capital; when only an aggregate summary survives, that first year’s total Contributions are the best reconstructible opening base and the result remains labelled as an estimate. The estimate is derived in memory for migrated workbooks too and does not retroactively rewrite history; a year with neither a prior closing value nor reconstructible opening capital is omitted.
 
-Per gruppi e pensioni-raccoglitore, valori e flussi delle posizioni finali applicabili a ciascun periodo vengono sommati prima di applicare la formula. Le percentuali dei figli non sono sommate o mediate. Un insieme con valute diverse non produce un aggregato senza tassi di conversione.
+Per gruppi, pensioni-raccoglitore e confronto globale Titoli/Fondi/Fogli della pagina Investimenti, valori e flussi delle posizioni finali applicabili a ciascun periodo vengono sommati prima di applicare la formula. Le percentuali dei figli non sono sommate o mediate. Un insieme con valute diverse non produce un aggregato senza tassi di conversione.
 
-For groups and pension collectors, values and flows from leaf positions applicable to each period are summed before applying the formula. Child percentages are never added or arithmetically averaged. A mixed-currency set produces no aggregate without conversion rates.
+For groups, pension collectors, and the Investments page’s global Securities/Funds/Savings plans comparison, values and flows from leaf positions applicable to each period are summed before applying the formula. Child percentages are never added or arithmetically averaged. A mixed-currency set produces no aggregate without conversion rates.
 
 ## Immobili in affitto / Rental properties
 
@@ -61,6 +61,7 @@ Rent received after year rollover is assigned to the annual summary for its due 
 - La linea tratteggiata **Media** è la media aritmetica dei soli rendimenti visibili e disponibili; è un riferimento grafico, non un rendimento composto o annualizzato.
 - **stima / estimate** identifica dati annuali senza date dei singoli flussi.
 - Il tooltip, collocato sopra l’area tracciata, espone l’intervallo osservato e i componenti numerici usati dalla formula senza coprire i punti adiacenti.
+- Nell’anno solare di apertura, le card di investimenti e comparti mostrano la serie mensile; dagli anni successivi mostrano quella annuale. Il dettaglio conserva sempre la serie mensile.
 - I punti mensili restano trasformazioni pure della `FinanceData` già validata. Al rollover, il workbook v11 conserva in `Investment History` il rendimento annuale già calcolato, metodo, copertura, stato parziale e data dell’osservazione finale; la migrazione v10→v11 lascia assenti i risultati storici non ricostruibili. Non vengono richieste quotazioni.
 
 - A gap in the monthly chart means insufficient coverage, not a zero return.
@@ -68,4 +69,5 @@ Rent received after year rollover is assigned to the annual summary for its due 
 - The dashed **Average** line is the arithmetic mean of visible, available returns only; it is a visual reference, not a compounded or annualized return.
 - **stima / estimate** identifies annual data with no individual cash-flow dates.
 - The tooltip sits above the plot and exposes the observed interval and numeric formula components without covering adjacent points.
+- During the opening calendar year, investment and compartment cards show the monthly series; from later years they show the annual series. Details always retain the monthly series.
 - Monthly points remain pure transformations of already validated `FinanceData`. At rollover, the v11 workbook stores the calculated annual return, method, coverage, partial-period status, and ending-observation date in `Investment History`; v10→v11 migration leaves non-reconstructible historical results absent. No quotes are requested.
