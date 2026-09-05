@@ -80,24 +80,44 @@ describe("strict renderer CSP", () => {
         missingValueLabel="Unavailable"
         series={[{ key: "amount", label: "Amount", color: "#4e94a7" }]}
       />
+      <HistoryChart
+        ariaLabel="Synthetic connected gaps"
+        connectGaps
+        data={[{ year: 2024, amount: 0 }, { year: 2025, amount: null }, { year: 2026, amount: 10 }]}
+        format={(value) => String(value)}
+        missingValueLabel="Unavailable"
+        referenceLine={{ label: "Average", value: 5 }}
+        series={[{ key: "amount", label: "Amount", color: "#4e94a7" }]}
+        tooltipPlacement="above"
+      />
       <TrendBars points={[{ year: 2025, value: 10 }, { year: 2026, value: 20 }]} format={(value) => String(value)} />
     </>);
     expect(container.querySelectorAll("[style]")).toHaveLength(0);
     expect([...container.querySelectorAll(".trend-fill")].map((bar) => Number(bar.getAttribute("height")))).toEqual([50, 100]);
     expect(container.querySelector(".financial-chart-bar")).toHaveAttribute("fill", "#72d5b0");
     expect(container.querySelectorAll(".financial-chart-area")).toHaveLength(1);
-    expect(container.querySelectorAll(".financial-chart-line")).toHaveLength(4);
+    expect(container.querySelectorAll(".financial-chart-line")).toHaveLength(5);
     expect([...container.querySelectorAll(".financial-chart-line")].every((line) => line.tagName.toLowerCase() === "path")).toBe(true);
     expect([...container.querySelectorAll(".financial-chart-line")]
       .filter((line) => !line.closest('[aria-label="Synthetic gaps"]'))
       .every((line) => /\bC\b/.test(line.getAttribute("d") ?? ""))).toBe(true);
     expect([...container.querySelectorAll(".financial-chart-line")].every((line) => line.getAttribute("pathLength") === "1")).toBe(true);
     expect(container.querySelector(".financial-chart-area")).toHaveAttribute("fill", expect.stringMatching(/^url\(#.+\)$/));
-    expect(container.querySelectorAll(".financial-chart-hit-area title")).toHaveLength(9);
+    expect(container.querySelectorAll(".financial-chart-hit-area title")).toHaveLength(12);
     const gapChart = container.querySelector('[aria-label="Synthetic gaps"]');
     expect(gapChart?.querySelectorAll(".financial-chart-line")).toHaveLength(2);
     expect(gapChart?.querySelectorAll(".financial-chart-point")).toHaveLength(2);
     expect(gapChart?.querySelectorAll(".financial-chart-hit-area title")[1]).toHaveTextContent("Unavailable");
+
+    const connectedGapChart = container.querySelector('[aria-label="Synthetic connected gaps"]');
+    expect(connectedGapChart?.querySelectorAll(".financial-chart-line")).toHaveLength(1);
+    expect(connectedGapChart?.querySelectorAll(".financial-chart-point")).toHaveLength(2);
+    expect(connectedGapChart?.querySelector(".financial-chart-average")).toHaveTextContent("Average: 5");
+    expect(connectedGapChart?.querySelector(".financial-chart-average-summary")).toHaveTextContent("Average5");
+    const firstConnectedHitArea = connectedGapChart?.querySelector(".financial-chart-hit-area");
+    fireEvent.focus(firstConnectedHitArea!);
+    expect(connectedGapChart?.querySelector(".financial-chart-tooltip-panel")).toHaveTextContent("2024Amount0Average5");
+    expect(connectedGapChart?.querySelector(".financial-chart-tooltip-title")).toBeNull();
 
     const lineChart = container.querySelector('[aria-label="Synthetic line"]');
     const firstLineHitArea = lineChart?.querySelector(".financial-chart-hit-area");

@@ -194,9 +194,9 @@ describe("createRolloverFinanceData", () => {
       closingValueObservedAt: "2026-12-20", returnMethod: "original_dietz_estimate",
       returnCoverage: "estimated", returnPartialPeriod: true,
     }]);
-    expect(next.investmentAnnualSummaries[0].returnRate).toBeCloseTo(150 / 550, 10);
+    expect(next.investmentAnnualSummaries[0].returnRate).toBeCloseTo(150 / 1_050, 10);
     expect(investmentReturnSeries(next, next.investments[0], "2027-01-31").annual.find((point) => point.year === 2026))
-      .toMatchObject({ rate: 150 / 550, coverage: "estimated", partialPeriod: true });
+      .toMatchObject({ rate: 150 / 1_050, coverage: "estimated", partialPeriod: true });
     expect(investmentMovementTotals(next, investmentId)).toEqual({
       initialCapital: 1_200,
       subsequentContributions: 0,

@@ -107,9 +107,15 @@ function demoData(): FinanceData {
         id: crypto.randomUUID(), investmentId: item.id,
         date: `${data.meta.activeYear}-${String(monthIndex + 1).padStart(2, "0")}-${[31, 28, 31, 30, 31, 30][monthIndex]}`,
         kind: "valuation" as const, amount,
-        description: monthIndex === observedValues.length - 1 ? "Current value" : "Monthly pension value",
+        description: monthIndex === observedValues.length - 1
+          ? index === 0 ? "June value" : "Current value"
+          : "Monthly pension value",
         notes: "",
       })),
+      ...(index === 0 ? [{
+        id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-08-31`,
+        kind: "valuation" as const, amount: 18_450, description: "Current value", notes: "",
+      }] : []),
     );
     data.investmentAnnualSummaries.push(
       {

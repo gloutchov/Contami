@@ -21,6 +21,8 @@ export function ReturnChart({
   const { t, language } = useI18n();
   const points: ReturnPoint[] = period === "monthly" ? series.monthly : series.annual;
   const hasValues = points.some((point) => point.rate !== null);
+  const measuredRates = points.flatMap((point) => point.rate === null ? [] : [point.rate]);
+  const averageRate = measuredRates.reduce((sum, rate) => sum + rate, 0) / measuredRates.length;
   const title = period === "monthly" ? t("monthlyReturnHistory") : t("annualReturnHistory");
   const reason = series.unavailableReason === "mixed-currency" ? t("mixedCurrencyReturnUnavailable") : t("noReturnHistory");
   if (!hasValues) return compact ? null : <p className="empty-inline return-chart-empty">{reason}</p>;
@@ -56,13 +58,16 @@ export function ReturnChart({
     <HistoryChart
       ariaLabel={title}
       compact={compact}
+      connectGaps
       data={data}
       detail={!compact}
       format={(value) => formatPercent(value / 100, language)}
       missingValueLabel={t("returnUnavailable")}
+      referenceLine={{ label: t("returnAverage"), value: averageRate * 100 }}
       series={[{ key: "returnRate", label: t("returnPercentage"), color: "#4e94a7", areaColor: "#72d5b0", areaOpacity: 0.22 }]}
       showLegend={!compact}
       showPoints
+      tooltipPlacement="above"
       type="area"
       xKey="period"
       xTickFormatter={(value) => period === "monthly" ? formatMonth(String(value), language) : String(value)}

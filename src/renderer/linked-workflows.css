@@ -56,6 +56,7 @@
 .financial-chart-svg { display: block; width: 100%; height: 100%; min-height: 0; flex: 1 1 0; overflow: visible; }
 .financial-chart-grid { stroke: var(--border); stroke-dasharray: 3 3; stroke-width: 1; animation: financial-chart-fade-in 260ms ease-out both; }
 .financial-chart-zero { stroke: var(--muted); stroke-width: 1; animation: financial-chart-fade-in 260ms ease-out both; }
+.financial-chart-average { stroke: var(--gold); stroke-dasharray: 6 4; stroke-width: 1.5; vector-effect: non-scaling-stroke; animation: financial-chart-fade-in 260ms ease-out both; }
 .financial-chart-axis { fill: var(--muted); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 9px; font-weight: 400; animation: financial-chart-fade-in 260ms ease-out both; }
 .financial-chart-y-label { text-anchor: end; }
 .financial-chart-x-label { font-size: 10px; }
@@ -74,6 +75,15 @@
 .financial-chart-tooltip-title { fill: var(--text); font-size: 11px; font-weight: 600; }
 .financial-chart-tooltip-label { fill: var(--muted); font-weight: 400; }
 .financial-chart-tooltip-value { fill: var(--text); font-weight: 600; }
+.financial-chart-tooltip-rail { min-height: 68px; display: flex; align-items: flex-start; padding: 3px 9px 7px 54px; flex: 0 0 auto; }
+.financial-chart-tooltip-panel, .financial-chart-average-summary { width: 100%; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-solid); box-shadow: 0 5px 12px rgba(2, 22, 29, .1); color: var(--text); animation: financial-chart-fade-in 120ms ease-out both; }
+.financial-chart-tooltip-panel { display: flex; align-items: center; gap: 5px 14px; padding: 7px 9px; flex-wrap: wrap; font-size: 10px; line-height: 1.25; }
+.financial-chart-tooltip-panel > strong { margin-right: 3px; font-size: 11px; }
+.financial-chart-tooltip-panel > span, .financial-chart-average-summary { display: inline-flex; align-items: baseline; gap: 5px; }
+.financial-chart-tooltip-panel small, .financial-chart-average-summary small { color: var(--muted); font-size: inherit; }
+.financial-chart-tooltip-panel b, .financial-chart-average-summary b { font-size: inherit; }
+.financial-chart-average-value { color: color-mix(in srgb, var(--gold) 72%, var(--text)); }
+.financial-chart-average-summary { width: auto; padding: 6px 9px; color: color-mix(in srgb, var(--gold) 72%, var(--text)); font-size: 9px; }
 .financial-chart-legend { min-height: 28px; display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 400; line-height: 1.2; animation: financial-chart-fade-in 300ms ease-out 480ms both; }
 .financial-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .financial-chart-legend svg { width: 16px; height: 10px; flex: 0 0 auto; }
@@ -84,6 +94,11 @@
 .return-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 16px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .return-chart-heading small { padding: 2px 5px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 24%, var(--surface-solid)); color: var(--text); font-size: 8px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .compact-return-chart .compact-history-chart { height: 112px; padding: 3px 3px 4px 0; }
+.compact-return-chart .compact-history-chart.tooltip-above { height: 158px; }
+.compact-return-chart .financial-chart-tooltip-rail { min-height: 46px; padding: 3px 4px 5px 39px; }
+.compact-return-chart .financial-chart-tooltip-panel { gap: 4px 9px; padding: 5px 7px; font-size: 9px; }
+.compact-return-chart .financial-chart-tooltip-panel > strong { width: 100%; font-size: 10px; }
+.compact-return-chart .financial-chart-average-summary { padding: 5px 7px; font-size: 8px; }
 .compact-return-chart .financial-chart-axis { font-size: 7px; }
 .compact-return-chart .financial-chart-x-label { font-size: 8px; }
 .compact-return-chart .financial-chart-tooltip-label, .compact-return-chart .financial-chart-tooltip-value { font-size: 9px; }
@@ -120,6 +135,7 @@
 .detail-history-section { margin: 0 0 18px; padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--background); }
 .detail-history-section h3 { margin: 0 0 13px; font-size: 13px; }
 .detail-history-chart { height: 230px; padding-bottom: 4px; }
+.detail-history-chart.tooltip-above { height: 298px; }
 .detail-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, .45fr) auto; gap: 10px; align-items: center; margin-bottom: 14px; }
 .detail-filters .search-field { min-width: 0; max-width: none; }
 .filter-reset-button { white-space: nowrap; }

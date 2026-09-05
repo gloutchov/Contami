@@ -56,6 +56,14 @@ interface InvestmentPeriodMetrics {
   endingObservedAt: string;
 }
 
+interface InvestmentOpeningObservation {
+  date: string;
+  value: number;
+  order: number;
+  id: string;
+  source: "valuation" | "summary" | "initial-contribution";
+}
+
 const DAY_MS = 86_400_000;
 const MAX_MONTHS = 240;
 const EPSILON = 0.000_001;
@@ -124,24 +132,42 @@ function investmentMonthMetrics(
     .at(-1);
   if (!valuation) return undefined;
 
-  const previousObservations = [
+  const previousObservations: InvestmentOpeningObservation[] = [
     ...entries
       .filter((entry) => entry.kind === "valuation" && !isRolloverOpeningValuation(entry) && entry.date < start)
-      .map((entry) => ({ date: entry.date, value: entry.amount, order: 1, id: entry.id })),
+      .map((entry) => ({ date: entry.date, value: entry.amount, order: 1, id: entry.id, source: "valuation" as const })),
     ...data.investmentAnnualSummaries
       .filter((summary) => summary.investmentId === investment.id
         && summary.closingValueObservedAt !== undefined
         && summary.closingValueObservedAt < start)
       .map((summary) => ({
-        date: summary.closingValueObservedAt!, value: summary.closingValue, order: 0, id: `summary-${summary.year}`,
+        date: summary.closingValueObservedAt!, value: summary.closingValue, order: 0,
+        id: `summary-${summary.year}`, source: "summary" as const,
       })),
   ].sort((left, right) => left.date.localeCompare(right.date) || left.order - right.order || left.id.localeCompare(right.id));
-  const opening = previousObservations.at(-1);
+  let opening = previousObservations.at(-1);
+  if (!opening && investment.openedAt.startsWith(String(data.meta.activeYear))) {
+    const initialContribution = entries
+      .filter((entry) => entry.kind === "contribution" && entry.date <= valuation.date)
+      .sort((left, right) => left.date.localeCompare(right.date) || left.id.localeCompare(right.id))[0];
+    if (initialContribution) {
+      opening = {
+        date: initialContribution.date,
+        value: initialContribution.amount,
+        order: 0,
+        id: initialContribution.id,
+        source: "initial-contribution",
+      };
+    }
+  }
   if (!opening) return undefined;
   const periodDays = daysBetween(opening.date, valuation.date);
   if (periodDays <= 0) return undefined;
   const movements = entries.filter((entry) => (entry.kind === "contribution" || entry.kind === "withdrawal")
-    && entry.date > opening.date && entry.date <= valuation.date);
+    && entry.date <= valuation.date
+    && (opening.source === "initial-contribution"
+      ? entry.id !== opening.id && entry.date >= opening.date
+      : entry.date > opening.date));
   let netFlows = 0;
   let weightedFlows = 0;
   for (const movement of movements) {
@@ -194,6 +220,24 @@ function summariesForInvestment(data: FinanceData, investment: Investment, asOf:
   return [...byYear.values()].sort((left, right) => left.year - right.year);
 }
 
+function initialContributionForAnnualEstimate(
+  data: FinanceData,
+  investment: Investment,
+  summary: InvestmentAnnualSummary,
+): number | undefined {
+  const yearStart = `${summary.year}-01-01`;
+  const yearEnd = `${summary.year}-12-31`;
+  if (investment.openedAt < yearStart || investment.openedAt > yearEnd || summary.contributions <= EPSILON) return undefined;
+  const latestIncludedDate = summary.closingValueObservedAt ?? yearEnd;
+  const detailedInitial = confirmedInvestmentEntries(data, investment.id)
+    .filter((entry) => entry.kind === "contribution"
+      && entry.date >= yearStart
+      && entry.date <= latestIncludedDate)
+    .sort((left, right) => left.date.localeCompare(right.date) || left.id.localeCompare(right.id))[0];
+  if (!detailedInitial) return summary.contributions;
+  return Math.min(detailedInitial.amount, summary.contributions);
+}
+
 function annualInvestmentEstimates(
   data: FinanceData,
   leaves: Investment[],
@@ -209,17 +253,25 @@ function annualInvestmentEstimates(
     const rows = relevant.map((leaf) => histories.get(leaf.id)?.find((item) => item.year === year));
     if (!relevant.length || rows.some((row) => !row)) continue;
     let openingValue = 0;
+    let initialContributions = 0;
     let missingOpeningValue = false;
-    for (const leaf of relevant) {
+    for (const [index, leaf] of relevant.entries()) {
       const previous = histories.get(leaf.id)?.find((item) => item.year === year - 1);
       if (previous) openingValue += previous.closingValue;
-      else if (leaf.openedAt < yearStart) missingOpeningValue = true;
+      else {
+        const initialContribution = initialContributionForAnnualEstimate(data, leaf, rows[index]!);
+        if (initialContribution === undefined) missingOpeningValue = true;
+        else {
+          openingValue += initialContribution;
+          initialContributions += initialContribution;
+        }
+      }
     }
     if (missingOpeningValue) continue;
     const closingValue = rows.reduce((sum, row) => sum + row!.closingValue, 0);
     const contributions = rows.reduce((sum, row) => sum + row!.contributions, 0);
     const withdrawals = rows.reduce((sum, row) => sum + row!.withdrawals, 0);
-    const netFlows = contributions - withdrawals;
+    const netFlows = contributions - initialContributions - withdrawals;
     const denominator = openingValue + netFlows / 2;
     if (denominator <= EPSILON) continue;
     const rate = (closingValue - openingValue - netFlows) / denominator;

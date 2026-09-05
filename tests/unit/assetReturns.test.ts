@@ -81,6 +81,47 @@ describe("asset percentage returns", () => {
     expect(investmentReturnSeries(data, investment, "2026-02-28").monthly.map((point) => point.rate)).toEqual([0, 0]);
   });
 
+  it("uses the first contribution as opening capital instead of an annual cash flow", () => {
+    const data = createEmptyFinanceData(2025);
+    const investmentId = crypto.randomUUID();
+    const investment = { id: investmentId, name: "New fund", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2025-01-10", notes: "" };
+    data.investments.push(investment);
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2025-01-10", kind: "contribution", amount: 100, description: "Initial purchase", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2025-06-30", kind: "contribution", amount: 20, description: "Later contribution", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2025-12-31", kind: "valuation", amount: 132, description: "Year-end value", notes: "" },
+    );
+
+    const result = investmentReturnSeries(data, investment, "2025-12-31");
+    expect(result.monthly.find((point) => point.date === "2025-12-01")).toMatchObject({
+      coverage: "partial",
+      components: { kind: "investment", openingValue: 100, endingValue: 132, netFlows: 20 },
+    });
+    expect(result.annual.find((point) => point.year === 2025)).toMatchObject({
+      rate: 12 / 110,
+      coverage: "estimated",
+      partialPeriod: true,
+      components: { kind: "investment", openingValue: 100, endingValue: 132, netFlows: 20, weightedBase: 110 },
+    });
+  });
+
+  it("uses an inception-year summary contribution as the annual opening base", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const investment = { id: investmentId, name: "Legacy inception fund", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2020-01-01", notes: "" };
+    data.investments.push(investment);
+    data.investmentAnnualSummaries.push({
+      investmentId, year: 2020, closingValue: 112, contributions: 100, withdrawals: 0,
+    });
+
+    expect(investmentReturnSeries(data, investment, "2026-09-05").annual).toContainEqual(expect.objectContaining({
+      year: 2020,
+      rate: 0.12,
+      coverage: "estimated",
+      partialPeriod: false,
+    }));
+  });
+
   it("calculates each monthly point between consecutive observed valuations", () => {
     const data = createEmptyFinanceData(2026);
     const investmentId = crypto.randomUUID();
