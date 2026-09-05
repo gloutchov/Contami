@@ -23,7 +23,7 @@ Le versioni pre-1.0 indicano un **checkpoint di maturità verificato**, non il n
 
 La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa ed estende i flussi applicativi prima dell’hardening finale; per maturità si colloca quindi tra M5 e M6. Il tag `v0.2.0` resta la **preview storica** precedente. La revisione applicativa ha confermato il codice completato fino a M8 come checkpoint funzionale `v0.8.0`; il lavoro successivo riparte dal gate di hardening `v0.9.0`.
 
-**Stato corrente:** M26 è completata, integrata e rilasciata come `v1.16.0`. La milestone corregge la modifica dei movimenti patrimoniali e rende esplicita la composizione del capitale di investimenti e pensioni integrative. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
+**Stato corrente:** M27 è aperta e pianificata sul branch `milestone/27-asset-return-charts`, con checkpoint previsto `v1.17.0`. La milestone introduce rendimenti percentuali mensili e annuali per investimenti, comparti pensione e immobili locati, mantenendo separati rendimento finanziario e rendimento locativo. L'ultimo checkpoint completato e rilasciato resta `v1.16.0` con M26. Le sezioni **Attività pianificate** delle milestone già chiuse conservano il perimetro originario e non rappresentano lavoro ancora da eseguire.
 
 | Milestone | Branch previsto | Checkpoint di maturità | Stato |
 |---|---|---:|---|
@@ -60,10 +60,11 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 | Patch trasparenza icona | `patch/1.14.1-transparent-icons` | desktop `1.14.1` / web `landing-v1.0.3` | Rilasciata; CI/release macOS e Windows e Pages verdi |
 | M25 — Report immobili per proprietari | `milestone/25-property-owner-reports` | `1.15.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
 | M26 — Riconciliazione capitale investito e riepiloghi | `milestone/26-investment-capital-reconciliation` | `1.16.0` | Completata e rilasciata; CI/release macOS e Windows verdi |
+| M27 — Rendimenti percentuali patrimoniali | `milestone/27-asset-return-charts` | `1.17.0` | Aperta; analisi e implementazione da avviare |
 
 **Sequenza delle promozioni desktop completate:** `v0.2.0` preview storica → `v0.8.0` checkpoint funzionale → hardening `v0.9.0` → stabile `v1.0.0` → catalogo tasse `v1.1.0` → template Excel `v1.2.0` → importazione guidata `v1.3.0` → patch residenza/storico immobili `v1.3.1` → patch grafici immobili/menu release `v1.3.2` → patch limiti rate `v1.3.3` → filtri e azioni di dettaglio `v1.4.0` → sincronizzazione patrimoniale `v1.5.0` → correzione conti/flussi di cassa `v1.5.1` → casse e trasferimenti interni `v1.6.0` → competenza/incasso affitti `v1.7.0` → cambio tariffa `v1.8.0` → rate automobile `v1.9.0` → aggiornamento Node.js e toolchain `v1.10.0` → apertura workbook `v1.11.0` → conferma ricorrenze non-affitto `v1.11.1` → integrità salvataggi `v1.12.0` → spese condivise Immobili/Automobile `v1.12.1` → CSP rigorosa `v1.13.0` → saldi filtrati e totali odierni `v1.14.0` → trasparenza icona `v1.14.1` → report immobili per proprietari `v1.15.0` → riconciliazione capitale investito `v1.16.0`. La landing segue la sequenza web separata `landing-v1.0.0` → `landing-v1.0.1` → `landing-v1.0.2` → `landing-v1.0.3`.
 
-**Checkpoint desktop aperto:** nessuno; l'ultimo checkpoint completato è `v1.16.0` con M26.
+**Checkpoint desktop aperto:** `v1.17.0` con M27; l'ultimo checkpoint completato è `v1.16.0` con M26.
 
 ## M0 — Piano, inventario e analisi del riferimento
 
@@ -902,6 +903,48 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 
 **Integrazione e pubblicazione 2026-08-29:** il commit funzionale `98fbbb4` è stato verificato sul branch dalla CI `33256948662` e nella PR `#73` dalla CI `33257122548`, entrambe verdi su macOS e Windows. La PR è stata integrata in `main` dal merge commit `6e5b66c`; Pages `33257292251` e la CI di `main` `33257292723` sono verdi. Il tag annotato `v1.16.0` punta allo stesso merge; la CI del tag `33257447026` e il workflow Release `33257446996` hanno completato con successo qualità, packaging, ispezione e smoke test su macOS ARM64/x64 e Windows x64. La release pubblicata contiene sei artifact applicativi più `SHA256SUMS.txt`: tutti i file sono stati scaricati in streaming, i digest SHA-256 sono stati ricalcolati senza conservarne copie locali e coincidono sia con il manifesto sia con i digest registrati da GitHub. M26 e la release desktop `v1.16.0` sono completate.
 
+## M27 — Rendimenti percentuali di investimenti, pensioni e immobili locati
+
+**Obiettivo:** mostrare rendimenti percentuali mensili e annuali riconciliabili con i dati locali per ogni investimento, comparto di pensione integrativa e immobile in affitto, distinguendo la performance finanziaria depurata dai flussi dal rendimento locativo netto.
+
+**Definizioni di calcolo**
+
+- Per investimenti e comparti, calcolare il rendimento mensile con il metodo Modified Dietz: `R = (Vf - Vi - ΣF) / (Vi + Σ(w × F))`, dove i Versamenti sono flussi positivi, le Liquidazioni flussi negativi e il peso `w` rappresenta la quota di periodo per cui ciascun flusso è rimasto investito. Il risultato è una stima del rendimento time-weighted che non trasforma nuovi Versamenti o Liquidazioni in guadagni o perdite.
+- Usare soltanto movimenti e valorizzazioni confermati. Pianificazioni e Correzioni M26 sono escluse dai flussi di rendimento: le prime non sono ancora avvenute, le seconde rettificano la base contabile ma non rappresentano denaro entrato o uscito né modificano il controvalore.
+- Calcolare un mese soltanto quando esistono una base iniziale valida e una valorizzazione finale confermata sufficiente a delimitare il periodo. Mesi privi di copertura restano lacune esplicite; non interpolare prezzi, non trasformare un valore trascinato in una nuova osservazione e non mostrare `0%` in assenza di misurazione.
+- Ottenere il rendimento annuale di investimenti e comparti collegando geometricamente i rendimenti mensili coperti: `(Π(1 + Rm)) - 1`. Un anno incompleto deve essere indicato come parziale/YTD; un anno con lacune non può apparire come rendimento completo. Eventuali stime ricavate dai soli consuntivi annuali precedenti devono essere distinguibili dai risultati calcolati con dettaglio giornaliero e non possono usare date inventate senza dichiararne l'assunzione.
+- Per gli immobili con `usage = rental`, calcolare il rendimento locativo netto non annualizzato del mese come `(entrate da affitto confermate - spese immobiliari confermate) / valore di mercato di riferimento`. Le entrate periodiche seguono il mese di competenza `dueDate` quando disponibile, non il giorno dell'incasso; le spese seguono la propria data. Il rendimento annuale usa gli stessi componenti aggregati per anno. Valore assente o nullo produce dato non disponibile.
+- Applicare numeratore e denominatore all'intero immobile oppure alla medesima quota di proprietà: la percentuale deve restare invariata. Tooltip e documentazione devono rendere visibili entrate, spese, valore di riferimento, periodo, formula e qualità della copertura.
+- Per gruppi di investimento e pensioni-raccoglitore, aggregare prima valori e flussi delle sole posizioni finali applicabili e calcolare poi la percentuale; non sommare né mediare aritmeticamente percentuali dei figli. In presenza di valute diverse senza tasso di conversione, omettere l'aggregato percentuale e mantenere disponibili i rendimenti delle singole posizioni.
+
+**Attività pianificate**
+
+- Introdurre nel dominio una trasformazione pura e condivisa per periodi, Modified Dietz, collegamento geometrico, copertura del dato e aggregazione gerarchica, separata dai componenti React e riusabile da investimenti e pensioni.
+- Introdurre una trasformazione pura distinta per il rendimento locativo netto, riusando le regole esistenti su registrazioni confermate, competenza degli affitti, consuntivi annuali e valore commerciale.
+- Aggiungere nel dettaglio di ogni investimento e comparto, immediatamente sotto il grafico cifra investita/controvalore, un grafico cartesiano mensile con mesi sull'asse X, percentuale con segno sull'asse Y, linea dello zero, tooltip accessibile e lacune riconoscibili.
+- Aggiungere nel dettaglio di ogni immobile locato, sotto il grafico del valore commerciale, lo stesso tipo di grafico mensile per il rendimento locativo netto. Residenze e immobili non locati non mostrano il grafico.
+- Inserire in ogni box riassuntivo applicabile un grafico annuale compatto ma dotato di assi, anni sulla X e percentuale sulla Y; includere investimenti finali, comparti pensione e immobili locati. Gruppi e pensioni-raccoglitore mostrano l'aggregato soltanto quando calcolabile senza doppio conteggio o conversioni implicite.
+- Estendere `HistoryChart` o introdurre un componente specializzato senza stili inline, mantenendo CSP rigorosa, riduzione movimento, navigazione/focus da tastiera, tooltip leggibili e resa corretta di valori positivi, negativi e nulli.
+- Aggiungere formattazione percentuale localizzata IT/EN e stringhe per rendimento mensile/annuale, YTD, stima, copertura insufficiente, formula e componenti del calcolo.
+- Portare lo schema workbook a v11 se necessario per conservare dopo il rollover rendimento annuale, metodo e copertura calcolati mentre il dettaglio è ancora disponibile. La migrazione v10→v11 deve lasciare assenti i valori storici non ricostruibili, senza inventarli; salvataggio, backup, verifica e rollback restano quelli esistenti.
+- Conservare invariati IPC, preload, blocco rete e capacità del renderer: tutti i rendimenti derivano dalla copia `FinanceData` già validata e non richiedono quotazioni, servizi remoti o nuove fonti dati.
+
+**Criteri di accettazione**
+
+- Un Versamento o una Liquidazione, a parità di valore di mercato, non genera da solo un rendimento positivo o negativo; la data del flusso incide soltanto sul peso Modified Dietz. Correzioni e pianificazioni non alterano i rendimenti.
+- Ogni punto percentuale è riconciliabile con valori e flussi origine; denominatore nullo/non finito, copertura insufficiente e valute incompatibili producono uno stato esplicito, mai `NaN`, infinito o `0%` fittizio.
+- I rendimenti annuali completi coincidono con il collegamento geometrico dei mesi coperti. YTD, stime storiche e anni incompleti sono distinguibili visivamente e tramite testo accessibile.
+- Il rendimento locativo usa soltanto immobili in affitto e righe confermate, assegna il canone alla competenza corretta e non cambia quando numeratore e valore sono entrambi riportati dalla quota intera alla stessa quota di proprietà.
+- Pensioni-raccoglitore e gruppi non duplicano i figli; l'aggregato percentuale è ottenuto da valori e flussi aggregati e non dalla media delle percentuali individuali.
+- Grafici mensili di dettaglio e annuali compatti restano leggibili in italiano/inglese, tema chiaro/scuro e alla larghezza minima di 1080 px, inclusi serie vuota, un solo punto, valori negativi, intervalli lunghi, focus e `prefers-reduced-motion`.
+- Rollover e round-trip preservano i soli dati di rendimento eventualmente necessari alla continuità; workbook precedenti si aprono senza perdita e nessuna percentuale derivata modifica movimenti, liquidità, controvalori o consuntivi economici.
+
+**Test richiesti:** unit test sintetici per formula Modified Dietz, pesi giornalieri, anni bisestili, più flussi nello stesso giorno, Versamenti/Liquidazioni, Correzioni, pianificazioni, denominatore nullo, lacune, YTD e collegamento geometrico; aggregazioni di gruppi/pensioni e valute incompatibili; rendimento locativo mensile/annuale con competenza e incasso separati, spese, quote e valori mancanti; migrazione v10→v11 se necessaria, rollover e round-trip; test renderer e Playwright CLI su investimenti, comparti e immobili locati in IT/EN, chiaro/scuro e 1080 px; `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `node scripts/check-required-docs.mjs` e `npm audit`.
+
+**Documentazione:** `PLAN.md`, README, manuali IT/EN, quick start, glossario delle formule e MAP per gli eventuali moduli nuovi; `SECURITY_MODEL.md` per ogni cambiamento a schema, rollover o persistenza. Versione applicativa prevista `1.17.0`. Nessun workbook privato, valore reale o screenshot dell'utente entra in test, Git, CI, documentazione o artifact.
+
+**Avvio 2026-09-05:** creato il branch `milestone/27-asset-return-charts` dalla `main` pulita e allineata al commit `d81d7db`. L'analisi di fattibilità conferma che movimenti, valorizzazioni, competenza degli affitti e consuntivi annuali esistenti costituiscono una base sufficiente; l'implementazione deve prima consolidare formula, copertura e continuità del rollover con dati esclusivamente sintetici.
+
 ## Patch grafici, menu release e integrità UUID
 
 **Obiettivo:** correggere prima di M16 la leggibilità dei grafici piccoli nella modale immobili, il menu dell’app compilata e le collisioni UUID introdotte da ritocchi manuali al workbook.
@@ -993,6 +1036,12 @@ La milestone M8 è stata aggiunta dopo la prima stesura del piano, ma completa e
 - La segnalazione di modifiche ripetute che gonfiano capitale investito e saldi ha aperto M26 sul branch `milestone/26-investment-capital-reconciliation` e assegnato il checkpoint desktop `1.16.0`.
 - La prima fase corregge e verifica l'aggiornamento in posto della coppia Movimento investimento↔Transazione e la sua incidenza differenziale sul Conto/Cassa, usando il workbook reale soltanto per diagnosi locale in sola lettura e test permanenti esclusivamente sintetici.
 - La seconda fase aggiunge capitale iniziale, versamenti successivi, liquidazioni e saldo netto nelle viste complessive e di dettaglio di Investimenti e Pensione Integrativa, aggregando soltanto le posizioni finali per evitare doppio conteggio; in Panoramica espone inoltre il patrimonio al netto degli immobili.
+
+## Riapertura roadmap — 2026-09-05
+
+- La richiesta di rendimenti percentuali mensili e annuali ha aperto M27 sul branch `milestone/27-asset-return-charts` e assegnato il checkpoint desktop `1.17.0`.
+- Investimenti e comparti useranno rendimenti depurati da Versamenti e Liquidazioni, con Modified Dietz mensile e collegamento geometrico annuale; lacune di valorizzazione, anni parziali e stime da consuntivi storici resteranno espliciti.
+- Gli immobili locati useranno un rendimento locativo netto separato, basato su competenza dei canoni, spese confermate e valore di mercato di riferimento. La funzione resta locale e non introduce quotazioni esterne, rete, telemetria o nuovi privilegi del renderer.
 
 ## Decisione futura — Cifratura portabile
 
