@@ -180,6 +180,11 @@
 
 .type-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 9px; margin-bottom: 20px; }
 .type-totals strong { font-size: 15px; }
+.investment-return-overview { margin-bottom: 22px; padding: 18px 20px 8px; }
+.investment-return-overview-heading { display: grid; gap: 5px; margin: 0 2px 2px; }
+.investment-return-overview-heading h2 { margin: 0; font-size: 17px; }
+.investment-return-overview-heading p { margin: 0; max-width: 760px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.annual-return-comparison-chart .detail-history-chart.tooltip-above { height: 300px; }
 .investment-overview-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .investment-movement-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 18px; }
 .investment-movement-facts > span { display: grid; align-content: start; gap: 4px; min-width: 0; padding: 11px; border: 1px solid var(--border); border-radius: 11px; background: var(--background); }

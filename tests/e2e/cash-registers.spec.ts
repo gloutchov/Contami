@@ -89,7 +89,7 @@ test("marks investment and pension card values as losses", async ({ page }) => {
 
   const investmentCard = page.locator("article.entity-card").filter({ has: page.getByRole("heading", { name: "Synthetic loss position" }) });
   await expect(investmentCard.locator(".entity-value")).not.toHaveClass(/value-loss/);
-  await investmentCard.click();
+  await investmentCard.getByRole("heading", { name: "Synthetic loss position" }).click();
   await page.getByRole("dialog", { name: "Synthetic loss position" }).getByRole("button", { name: "Update value" }).click();
   const valuationDialog = page.getByRole("dialog", { name: "Update value" });
   await valuationDialog.getByLabel("Amount").fill("800");
@@ -99,7 +99,7 @@ test("marks investment and pension card values as losses", async ({ page }) => {
 
   await page.getByRole("navigation").getByRole("button", { name: "Private Pension", exact: true }).click();
   const compartmentCard = page.locator("article.entity-card").filter({ has: page.getByRole("heading", { name: "Linea Equilibrio" }) });
-  await compartmentCard.click();
+  await compartmentCard.getByRole("heading", { name: "Linea Equilibrio" }).click();
   await page.getByRole("dialog", { name: "Linea Equilibrio" }).getByRole("button", { name: "Update value" }).click();
   const pensionValuationDialog = page.getByRole("dialog", { name: "Update value" });
   await pensionValuationDialog.getByLabel("Amount").fill("100");

@@ -4,6 +4,7 @@ import { formatCurrency, formatDate, formatMonth, formatPercent } from "../utils
 import { HistoryChart } from "./HistoryChart";
 
 type ReturnPoint = MonthlyReturnPoint | AnnualReturnPoint;
+export type ReturnPeriod = "monthly" | "annual";
 
 function returnDate(point: ReturnPoint): string | number {
   return "date" in point ? point.date : point.year;
@@ -15,7 +16,7 @@ export function ReturnChart({
   compact = false,
 }: {
   series: AssetReturnSeries;
-  period: "monthly" | "annual";
+  period: ReturnPeriod;
   compact?: boolean;
 }) {
   const { t, language } = useI18n();
@@ -54,7 +55,7 @@ export function ReturnChart({
   });
   const money = (value: number | string | null | undefined) => formatCurrency(Number(value), language, series.currency);
   return <div className={`return-chart${compact ? " compact-return-chart" : ""}`}>
-    {compact && <div className="return-chart-heading"><span>{t("annualReturn")}</span>{(estimated || partial) && <small>{[estimated ? t("estimatedShort") : "", partial ? t("partialShort") : ""].filter(Boolean).join(" · ")}</small>}</div>}
+    {compact && <div className="return-chart-heading"><span>{t(period === "monthly" ? "monthlyReturn" : "annualReturn")}</span>{(estimated || partial) && <small>{[estimated ? t("estimatedShort") : "", partial ? t("partialShort") : ""].filter(Boolean).join(" · ")}</small>}</div>}
     <HistoryChart
       ariaLabel={title}
       compact={compact}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { investmentReturnSeries, rentalPropertyReturnSeries } from "../../src/domain/assetReturns";
+import { investmentPortfolioReturnSeries, investmentReturnSeries, rentalPropertyReturnSeries } from "../../src/domain/assetReturns";
 import { createEmptyFinanceData } from "../../src/domain/finance";
 import { ROLLOVER_OPENING_VALUATION_DESCRIPTION } from "../../src/domain/investments";
 
@@ -260,6 +260,31 @@ describe("asset percentage returns", () => {
       monthly: [],
       annual: [],
       unavailableReason: "mixed-currency",
+    });
+  });
+
+  it("aggregates arbitrary portfolio roots before calculating type-comparison returns", () => {
+    const data = createEmptyFinanceData(2026);
+    const firstId = crypto.randomUUID();
+    const secondId = crypto.randomUUID();
+    const first = { id: firstId, name: "First security", kind: "stock" as const, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" };
+    const second = { id: secondId, name: "Second security", kind: "stock" as const, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" };
+    data.investments.push(first, second);
+    data.investmentAnnualSummaries.push(
+      { investmentId: firstId, year: 2025, closingValue: 100, contributions: 100, withdrawals: 0, closingValueObservedAt: "2025-12-31" },
+      { investmentId: secondId, year: 2025, closingValue: 300, contributions: 300, withdrawals: 0, closingValueObservedAt: "2025-12-31" },
+    );
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId: firstId, date: "2026-01-31", kind: "valuation", amount: 110, description: "First value", notes: "" },
+      { id: crypto.randomUUID(), investmentId: secondId, date: "2026-01-31", kind: "valuation", amount: 315, description: "Second value", notes: "" },
+    );
+
+    const result = investmentPortfolioReturnSeries(data, [first, first, second], "2026-01-31");
+    expect(result.monthly[0].rate).toBeCloseTo(25 / 400, 10);
+    expect(result.annual.find((point) => point.year === 2026)).toMatchObject({
+      rate: 25 / 400,
+      coverage: "partial",
+      partialPeriod: true,
     });
   });
 

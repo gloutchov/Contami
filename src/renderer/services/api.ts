@@ -10,7 +10,7 @@ function demoData(): FinanceData {
   const payment = data.paymentMethods[1].id;
   const accountId = crypto.randomUUID();
   const recurringId = crypto.randomUUID();
-  data.accounts.push({ id: accountId, name: "Main account", kind: "bank", currency: "EUR", openingBalance: 24_800, active: true, openedAt: `${data.meta.activeYear}-01-01`, notes: "" });
+  data.accounts.push({ id: accountId, name: "Main account", kind: "bank", currency: "EUR", openingBalance: 32_800, active: true, openedAt: `${data.meta.activeYear}-01-01`, notes: "" });
   data.transactions.push(
     { id: crypto.randomUUID(), date: `${data.meta.activeYear}-01-04`, description: "Salary", categoryId: category("Salary"), paymentMethodId: payment, accountId, kind: "income", amount: 3_250, currency: "EUR", notes: "", createdAt: now, updatedAt: now },
     { id: crypto.randomUUID(), date: `${data.meta.activeYear}-01-07`, description: "Groceries", categoryId: category("Groceries"), paymentMethodId: payment, accountId, kind: "expense", amount: 138.40, currency: "EUR", notes: "", createdAt: now, updatedAt: now },
@@ -87,6 +87,34 @@ function demoData(): FinanceData {
       closingValueObservedAt: `${data.meta.activeYear - 1}-12-31`, returnRate: 1_000 / 81_500,
       returnMethod: "original_dietz_estimate", returnCoverage: "estimated", returnPartialPeriod: false,
     },
+  );
+  const stockId = crypto.randomUUID();
+  const savingsId = crypto.randomUUID();
+  data.investments.push(
+    { id: stockId, name: "Equity basket", kind: "stock", typeId: data.investmentTypes.find((item) => item.code === "stock")?.id, provider: "", currency: "EUR", active: true, openedAt: `${data.meta.activeYear - 2}-01-10`, notes: "" },
+    { id: savingsId, name: "New savings plan", kind: "savings", typeId: data.investmentTypes.find((item) => item.code === "savings")?.id, provider: "", currency: "EUR", active: true, openedAt: `${data.meta.activeYear}-01-10`, notes: "" },
+  );
+  data.investmentAnnualSummaries.push(
+    { investmentId: stockId, year: data.meta.activeYear - 2, closingValue: 22_000, contributions: 20_000, withdrawals: 0, closingValueObservedAt: `${data.meta.activeYear - 2}-12-31` },
+    { investmentId: stockId, year: data.meta.activeYear - 1, closingValue: 24_500, contributions: 1_000, withdrawals: 0, closingValueObservedAt: `${data.meta.activeYear - 1}-12-31` },
+  );
+  data.investmentEntries.push(
+    ...[25_000, 25_500, 26_200, 25_900, 26_600, 27_000].map((amount, index) => ({
+      id: crypto.randomUUID(), investmentId: stockId,
+      date: `${data.meta.activeYear}-${String(index + 1).padStart(2, "0")}-${[31, 28, 31, 30, 31, 30][index]}`,
+      kind: "valuation" as const, amount, description: "Monthly equity value", notes: "",
+    })),
+    { id: crypto.randomUUID(), investmentId: savingsId, date: `${data.meta.activeYear}-01-10`, kind: "contribution", amount: 8_000, description: "Initial savings contribution", categoryId: category("Investments"), paymentMethodId: payment, accountId, notes: "" },
+    ...[
+      { date: "01-31", amount: 8_080 },
+      { date: "02-28", amount: 8_150 },
+      { date: "03-31", amount: 8_300 },
+      { date: "05-31", amount: 8_400 },
+      { date: "08-31", amount: 8_650 },
+    ].map((item) => ({
+      id: crypto.randomUUID(), investmentId: savingsId, date: `${data.meta.activeYear}-${item.date}`,
+      kind: "valuation" as const, amount: item.amount, description: "Savings plan value", notes: "",
+    })),
   );
   const pensionTypeId = data.investmentTypes.find((item) => item.code === "pension")?.id;
   const pensionId = crypto.randomUUID();

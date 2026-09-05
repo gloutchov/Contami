@@ -116,6 +116,10 @@ function returnLeaves(data: FinanceData, root: Investment): Investment[] {
   return children.flatMap((child) => returnLeaves(data, child));
 }
 
+function distinctReturnLeaves(data: FinanceData, roots: Investment[]): Investment[] {
+  return [...new Map(roots.flatMap((root) => returnLeaves(data, root)).map((leaf) => [leaf.id, leaf])).values()];
+}
+
 function investmentMonthMetrics(
   data: FinanceData,
   investment: Investment,
@@ -349,18 +353,16 @@ function exactAnnualInvestmentReturns(
   return points;
 }
 
-export function investmentReturnSeries(
+function investmentReturnSeriesForLeaves(
   data: FinanceData,
-  root: Investment,
-  asOf = `${data.meta.activeYear}-12-31`,
+  leaves: Investment[],
+  effectiveEnd: string,
+  persisted: AnnualReturnPoint[] = [],
 ): AssetReturnSeries {
-  const leaves = returnLeaves(data, root);
   if (!leaves.length) return { monthly: [], annual: [], unavailableReason: "insufficient-data" };
   if (new Set(leaves.map((item) => item.currency)).size > 1) {
     return { monthly: [], annual: [], unavailableReason: "mixed-currency" };
   }
-  const effectiveEnd = [asOf, `${data.meta.activeYear}-12-31`, root.closedAt ?? "9999-12-31"]
-    .sort()[0];
   const valuationDates = leaves.flatMap((leaf) => confirmedInvestmentEntries(data, leaf.id)
     .filter((entry) => entry.kind === "valuation" && !isRolloverOpeningValuation(entry) && entry.date <= effectiveEnd)
     .map((entry) => entry.date));
@@ -400,7 +402,6 @@ export function investmentReturnSeries(
   }
   const estimated = annualInvestmentEstimates(data, leaves, effectiveEnd);
   const exact = exactAnnualInvestmentReturns(data, leaves, monthly, effectiveEnd);
-  const persisted = persistedAnnualInvestmentReturns(data, root);
   const annualByYear = new Map(estimated.map((point) => [point.year, point]));
   persisted.forEach((point) => annualByYear.set(point.year, point));
   exact.forEach((point) => annualByYear.set(point.year, point));
@@ -411,6 +412,29 @@ export function investmentReturnSeries(
     currency: leaves[0].currency,
     unavailableReason: monthly.some((point) => point.rate !== null) || annual.length ? undefined : "insufficient-data",
   };
+}
+
+export function investmentReturnSeries(
+  data: FinanceData,
+  root: Investment,
+  asOf = `${data.meta.activeYear}-12-31`,
+): AssetReturnSeries {
+  const effectiveEnd = [asOf, `${data.meta.activeYear}-12-31`, root.closedAt ?? "9999-12-31"].sort()[0];
+  return investmentReturnSeriesForLeaves(
+    data,
+    distinctReturnLeaves(data, [root]),
+    effectiveEnd,
+    persistedAnnualInvestmentReturns(data, root),
+  );
+}
+
+export function investmentPortfolioReturnSeries(
+  data: FinanceData,
+  roots: Investment[],
+  asOf = `${data.meta.activeYear}-12-31`,
+): AssetReturnSeries {
+  const effectiveEnd = [asOf, `${data.meta.activeYear}-12-31`].sort()[0];
+  return investmentReturnSeriesForLeaves(data, distinctReturnLeaves(data, roots), effectiveEnd);
 }
 
 function propertyReferenceValue(data: FinanceData, propertyId: string, date: string): number | undefined {
