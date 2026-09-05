@@ -1,6 +1,6 @@
 import type { AnnualReturnPoint, AssetReturnSeries, MonthlyReturnPoint } from "../../domain/assetReturns";
 import { useI18n } from "../i18n/I18nContext";
-import { formatCurrency, formatMonth, formatPercent } from "../utils/format";
+import { formatCurrency, formatDate, formatMonth, formatPercent } from "../utils/format";
 import { HistoryChart } from "./HistoryChart";
 
 type ReturnPoint = MonthlyReturnPoint | AnnualReturnPoint;
@@ -42,6 +42,8 @@ export function ReturnChart({
       endingValue: components?.kind === "investment" ? components.endingValue : null,
       netFlows: components?.kind === "investment" ? components.netFlows : null,
       weightedBase: components?.kind === "investment" ? components.weightedBase : null,
+      openingObservedAt: components?.kind === "investment" ? components.openingObservedAt : null,
+      endingObservedAt: components?.kind === "investment" ? components.endingObservedAt : null,
       income: components?.kind === "rental" ? components.income : null,
       expenses: components?.kind === "rental" ? components.expenses : null,
       referenceValue: components?.kind === "rental" ? components.referenceValue : null,
@@ -67,6 +69,10 @@ export function ReturnChart({
       yTickFormatter={(value) => formatPercent(value / 100, language)}
       tooltipDetails={(item) => [
         { label: t("returnCoverage"), value: String(item.coverageLabel ?? t("returnUnavailable")) },
+        ...(item.openingObservedAt && item.endingObservedAt ? [{
+          label: t("returnObservationInterval"),
+          value: `${formatDate(String(item.openingObservedAt), language)} → ${formatDate(String(item.endingObservedAt), language)}`,
+        }] : []),
         ...(compact ? [] : item.componentKind === "investment" ? [
           { label: t("returnOpeningValue"), value: money(item.openingValue) },
           { label: t("returnEndingValue"), value: money(item.endingValue) },

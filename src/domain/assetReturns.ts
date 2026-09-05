@@ -11,6 +11,8 @@ export type ReturnComponents = {
   endingValue: number;
   netFlows: number;
   weightedBase: number;
+  openingObservedAt?: string;
+  endingObservedAt?: string;
 } | {
   kind: "rental";
   income: number;
@@ -50,11 +52,8 @@ interface InvestmentPeriodMetrics {
   endingValue: number;
   netFlows: number;
   coverage: "complete" | "partial";
-}
-
-interface InvestmentValueState {
-  value: number;
-  observationDate?: string;
+  openingObservedAt: string;
+  endingObservedAt: string;
 }
 
 const DAY_MS = 86_400_000;
@@ -83,10 +82,6 @@ function monthEnd(date: string): string {
   return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 }
 
-function previousDay(date: string): string {
-  return new Date((dateSerial(date) - 1) * DAY_MS).toISOString().slice(0, 10);
-}
-
 function addMonths(date: string, amount: number): string {
   const [year, month] = dateParts(date);
   return new Date(Date.UTC(year, month - 1 + amount, 1)).toISOString().slice(0, 10);
@@ -113,43 +108,6 @@ function returnLeaves(data: FinanceData, root: Investment): Investment[] {
   return children.flatMap((child) => returnLeaves(data, child));
 }
 
-function investmentValueBefore(data: FinanceData, investment: Investment, date: string): InvestmentValueState {
-  const entries = confirmedInvestmentEntries(data, investment.id)
-    .filter((entry) => entry.date < date
-      && (entry.kind === "contribution" || entry.kind === "withdrawal" || entry.kind === "valuation"))
-    .map((entry) => ({
-      date: entry.date,
-      order: entry.kind === "contribution" ? 0 : entry.kind === "withdrawal" ? 1 : 2,
-      id: entry.id,
-      kind: entry.kind,
-      amount: entry.amount,
-      observationDate: entry.kind === "valuation" && !isRolloverOpeningValuation(entry) ? entry.date : undefined,
-    }));
-  const summaries = data.investmentAnnualSummaries
-    .filter((summary) => summary.investmentId === investment.id && `${summary.year}-12-31` < date)
-    .map((summary) => ({
-      date: `${summary.year}-12-31`,
-      order: 3,
-      id: `summary-${summary.year}`,
-      kind: "summary" as const,
-      amount: summary.closingValue,
-      observationDate: summary.closingValueObservedAt,
-    }));
-  const events = [...entries, ...summaries]
-    .sort((left, right) => left.date.localeCompare(right.date) || left.order - right.order || left.id.localeCompare(right.id));
-  let value = 0;
-  let observationDate: string | undefined;
-  for (const event of events) {
-    if (event.kind === "contribution") value += event.amount;
-    else if (event.kind === "withdrawal") value = Math.max(0, value - event.amount);
-    else {
-      value = event.amount;
-      observationDate = event.observationDate;
-    }
-  }
-  return { value, observationDate };
-}
-
 function investmentMonthMetrics(
   data: FinanceData,
   investment: Investment,
@@ -166,30 +124,43 @@ function investmentMonthMetrics(
     .at(-1);
   if (!valuation) return undefined;
 
-  const opening = investmentValueBefore(data, investment, start);
-  const openedAtPeriodStart = investment.openedAt === start;
+  const previousObservations = [
+    ...entries
+      .filter((entry) => entry.kind === "valuation" && !isRolloverOpeningValuation(entry) && entry.date < start)
+      .map((entry) => ({ date: entry.date, value: entry.amount, order: 1, id: entry.id })),
+    ...data.investmentAnnualSummaries
+      .filter((summary) => summary.investmentId === investment.id
+        && summary.closingValueObservedAt !== undefined
+        && summary.closingValueObservedAt < start)
+      .map((summary) => ({
+        date: summary.closingValueObservedAt!, value: summary.closingValue, order: 0, id: `summary-${summary.year}`,
+      })),
+  ].sort((left, right) => left.date.localeCompare(right.date) || left.order - right.order || left.id.localeCompare(right.id));
+  const opening = previousObservations.at(-1);
+  if (!opening) return undefined;
+  const periodDays = daysBetween(opening.date, valuation.date);
+  if (periodDays <= 0) return undefined;
   const movements = entries.filter((entry) => (entry.kind === "contribution" || entry.kind === "withdrawal")
-    && entry.date >= start && entry.date <= valuation.date);
-  const periodDays = daysBetween(start, valuation.date) + 1;
+    && entry.date > opening.date && entry.date <= valuation.date);
   let netFlows = 0;
   let weightedFlows = 0;
   for (const movement of movements) {
     const signedAmount = movement.kind === "contribution" ? movement.amount : -movement.amount;
-    const dayNumber = daysBetween(start, movement.date) + 1;
-    const weight = Math.max(0, (periodDays - dayNumber) / periodDays);
+    const weight = Math.max(0, Math.min(1, daysBetween(movement.date, valuation.date) / periodDays));
     netFlows += signedAmount;
     weightedFlows += signedAmount * weight;
   }
   const denominator = opening.value + weightedFlows;
   if (denominator <= EPSILON) return undefined;
-  const completeOpening = opening.observationDate === previousDay(start) || openedAtPeriodStart;
   return {
     numerator: valuation.amount - opening.value - netFlows,
     denominator,
     openingValue: opening.value,
     endingValue: valuation.amount,
     netFlows,
-    coverage: valuation.date === monthEnd(start) && completeOpening ? "complete" : "partial",
+    coverage: addMonths(monthStart(opening.date), 1) === start ? "complete" : "partial",
+    openingObservedAt: opening.date,
+    endingObservedAt: valuation.date,
   };
 }
 
@@ -237,11 +208,10 @@ function annualInvestmentEstimates(
     const relevant = leaves.filter((leaf) => leaf.openedAt <= yearEnd && (!leaf.closedAt || leaf.closedAt >= yearStart));
     const rows = relevant.map((leaf) => histories.get(leaf.id)?.find((item) => item.year === year));
     if (!relevant.length || rows.some((row) => !row)) continue;
-    if (year !== data.meta.activeYear && rows.some((row) => !row!.closingValueObservedAt)) continue;
     let openingValue = 0;
     let missingOpeningValue = false;
     for (const leaf of relevant) {
-      const previous = histories.get(leaf.id)?.filter((item) => item.year < year).at(-1);
+      const previous = histories.get(leaf.id)?.find((item) => item.year === year - 1);
       if (previous) openingValue += previous.closingValue;
       else if (leaf.openedAt < yearStart) missingOpeningValue = true;
     }
@@ -260,7 +230,7 @@ function annualInvestmentEstimates(
       coverage: "estimated",
       partialPeriod: (year === data.meta.activeYear && asOf < yearEnd)
         || relevant.some((leaf) => leaf.openedAt > yearStart || (leaf.closedAt !== undefined && leaf.closedAt < yearEnd))
-        || rows.some((row) => row!.closingValueObservedAt !== yearEnd),
+        || rows.some((row) => row!.closingValueObservedAt !== undefined && row!.closingValueObservedAt !== yearEnd),
       components: {
         kind: "investment",
         openingValue,
@@ -309,11 +279,18 @@ function exactAnnualInvestmentReturns(
     const yearPoints = expectedMonths.map((date) => monthly.find((point) => point.date === date));
     if (!expectedMonths.length || yearPoints.some((point) => !point || point.rate === null || point.coverage !== "complete")) continue;
     const rate = yearPoints.reduce((linked, point) => linked * (1 + point!.rate!), 1) - 1;
+    const firstComponents = yearPoints[0]?.components;
+    const lastComponents = yearPoints.at(-1)?.components;
+    const completeBoundaries = firstComponents?.kind === "investment"
+      && firstComponents.openingObservedAt === `${year - 1}-12-31`
+      && lastComponents?.kind === "investment"
+      && lastComponents.endingObservedAt === yearEnd;
+    const completePeriod = expectedStart === yearStart && expectedEnd === monthStart(yearEnd) && completeBoundaries;
     points.push({
       year,
       rate,
-      coverage: expectedStart === yearStart && expectedEnd === monthStart(yearEnd) ? "complete" : "partial",
-      partialPeriod: expectedStart !== yearStart || expectedEnd !== monthStart(yearEnd),
+      coverage: completePeriod ? "complete" : "partial",
+      partialPeriod: !completePeriod,
       components: { kind: "linked", periods: yearPoints.length },
     });
   }
@@ -359,6 +336,12 @@ export function investmentReturnSeries(
           endingValue: metrics.reduce((sum, item) => sum + item!.endingValue, 0),
           netFlows: metrics.reduce((sum, item) => sum + item!.netFlows, 0),
           weightedBase: denominator,
+          openingObservedAt: new Set(metrics.map((item) => item!.openingObservedAt)).size === 1
+            ? metrics[0]!.openingObservedAt
+            : undefined,
+          endingObservedAt: new Set(metrics.map((item) => item!.endingObservedAt)).size === 1
+            ? metrics[0]!.endingObservedAt
+            : undefined,
         },
       };
     });

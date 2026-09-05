@@ -81,6 +81,55 @@ describe("asset percentage returns", () => {
     expect(investmentReturnSeries(data, investment, "2026-02-28").monthly.map((point) => point.rate)).toEqual([0, 0]);
   });
 
+  it("calculates each monthly point between consecutive observed valuations", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const investment = { id: investmentId, name: "Irregular-date fund", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" };
+    data.investments.push(investment);
+    data.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 100, contributions: 100, withdrawals: 0,
+      closingValueObservedAt: "2025-12-18",
+    });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-20", kind: "valuation", amount: 110, description: "January observation", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-05", kind: "contribution", amount: 5, description: "Contribution between observations", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-02-18", kind: "valuation", amount: 115, description: "February observation", notes: "" },
+    );
+
+    const result = investmentReturnSeries(data, investment, "2026-02-28");
+    expect(result.monthly).toHaveLength(2);
+    expect(result.monthly[0]).toMatchObject({
+      date: "2026-01-01", rate: 0.1, coverage: "complete",
+      components: { kind: "investment", openingObservedAt: "2025-12-18", endingObservedAt: "2026-01-20" },
+    });
+    expect(result.monthly[1]).toMatchObject({
+      date: "2026-02-01", rate: 0, coverage: "complete",
+      components: { kind: "investment", openingObservedAt: "2026-01-20", endingObservedAt: "2026-02-18" },
+    });
+  });
+
+  it("keeps an unobserved month as a gap and marks the next multi-month interval partial", () => {
+    const data = createEmptyFinanceData(2026);
+    const investmentId = crypto.randomUUID();
+    const investment = { id: investmentId, name: "Gapped fund", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2025-01-01", notes: "" };
+    data.investments.push(investment);
+    data.investmentAnnualSummaries.push({
+      investmentId, year: 2025, closingValue: 100, contributions: 100, withdrawals: 0,
+      closingValueObservedAt: "2025-12-31",
+    });
+    data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2026-01-31", kind: "valuation", amount: 110, description: "January observation", notes: "" },
+      { id: crypto.randomUUID(), investmentId, date: "2026-03-31", kind: "valuation", amount: 121, description: "March observation", notes: "" },
+    );
+
+    const result = investmentReturnSeries(data, investment, "2026-03-31");
+    expect(result.monthly).toMatchObject([
+      { date: "2026-01-01", rate: 0.1, coverage: "complete" },
+      { date: "2026-02-01", rate: null, coverage: "missing" },
+      { date: "2026-03-01", rate: 0.1, coverage: "partial" },
+    ]);
+  });
+
   it("marks annual investment returns estimated when monthly valuation coverage is incomplete", () => {
     const data = createEmptyFinanceData(2026);
     const investmentId = crypto.randomUUID();
@@ -123,22 +172,24 @@ describe("asset percentage returns", () => {
     const investmentId = crypto.randomUUID();
     const unavailableId = crypto.randomUUID();
     const investment = { id: investmentId, name: "Leap-year fund", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2023-01-01", notes: "" };
-    const unavailable = { id: unavailableId, name: "Same-day opening", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2024-02-29", notes: "" };
+    const unavailable = { id: unavailableId, name: "Same-day opening", kind: "fund" as const, provider: "", currency: "EUR", active: true, openedAt: "2024-01-31", notes: "" };
     data.investments.push(investment, unavailable);
     data.investmentAnnualSummaries.push({ investmentId, year: 2023, closingValue: 100, contributions: 100, withdrawals: 0, closingValueObservedAt: "2023-12-31" });
     data.investmentEntries.push(
+      { id: crypto.randomUUID(), investmentId, date: "2024-01-31", kind: "valuation", amount: 100, description: "January closing value", notes: "" },
       { id: crypto.randomUUID(), investmentId, date: "2024-02-15", kind: "contribution", amount: 10, description: "First same-day flow", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), investmentId, date: "2024-02-15", kind: "contribution", amount: 10, description: "Second same-day flow", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), investmentId, date: "2024-02-15", kind: "withdrawal", amount: 5, description: "Same-day withdrawal", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), investmentId, date: "2024-02-29", kind: "valuation", amount: 120, description: "Leap-day valuation", notes: "" },
+      { id: crypto.randomUUID(), investmentId: unavailableId, date: "2024-01-31", kind: "valuation", amount: 0, description: "Zero opening observation", notes: "" },
       { id: crypto.randomUUID(), investmentId: unavailableId, date: "2024-02-29", kind: "contribution", amount: 100, description: "End-of-period opening", categoryId: data.categories[8].id, paymentMethodId: data.paymentMethods[0].id, notes: "" },
       { id: crypto.randomUUID(), investmentId: unavailableId, date: "2024-02-29", kind: "valuation", amount: 100, description: "Same-day valuation", notes: "" },
     );
 
-    const leapPoint = investmentReturnSeries(data, investment, "2024-02-29").monthly[0];
+    const leapPoint = investmentReturnSeries(data, investment, "2024-02-29").monthly[1];
     expect(leapPoint.rate).toBeCloseTo(5 / (100 + 15 * 14 / 29), 10);
     expect(leapPoint.components).toMatchObject({ kind: "investment", openingValue: 100, endingValue: 120, netFlows: 15 });
-    expect(investmentReturnSeries(data, unavailable, "2024-02-29").monthly[0]).toMatchObject({
+    expect(investmentReturnSeries(data, unavailable, "2024-02-29").monthly[1]).toMatchObject({
       rate: null,
       coverage: "missing",
     });
@@ -171,7 +222,7 @@ describe("asset percentage returns", () => {
     });
   });
 
-  it("keeps closed child positions in a collector's applicable historical return", () => {
+  it("derives labelled annual estimates from legacy summaries for investments and pension collectors", () => {
     const data = createEmptyFinanceData(2026);
     const parentId = crypto.randomUUID();
     const childId = crypto.randomUUID();
@@ -181,11 +232,13 @@ describe("asset percentage returns", () => {
       { id: childId, parentInvestmentId: parentId, name: "Closed compartment", kind: "pension", provider: "", currency: "EUR", active: false, openedAt: "2024-01-01", closedAt: "2025-12-31", notes: "" },
     );
     data.investmentAnnualSummaries.push(
-      { investmentId: childId, year: 2024, closingValue: 100, contributions: 100, withdrawals: 0, closingValueObservedAt: "2024-12-31" },
-      { investmentId: childId, year: 2025, closingValue: 108, contributions: 0, withdrawals: 0, closingValueObservedAt: "2025-12-31" },
+      { investmentId: childId, year: 2024, closingValue: 100, contributions: 100, withdrawals: 0 },
+      { investmentId: childId, year: 2025, closingValue: 108, contributions: 0, withdrawals: 0 },
     );
 
     expect(investmentReturnSeries(data, parent, "2026-09-05").annual.find((point) => point.year === 2025))
+      .toMatchObject({ year: 2025, rate: 0.08, coverage: "estimated", partialPeriod: false });
+    expect(investmentReturnSeries(data, data.investments[1], "2026-09-05").annual.find((point) => point.year === 2025))
       .toMatchObject({ year: 2025, rate: 0.08, coverage: "estimated", partialPeriod: false });
   });
 

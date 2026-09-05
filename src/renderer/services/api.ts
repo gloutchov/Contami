@@ -75,7 +75,9 @@ function demoData(): FinanceData {
   const investmentId = crypto.randomUUID();
   data.investments.push({ id: investmentId, name: "Balanced portfolio", kind: "fund", typeId: data.investmentTypes.find((item) => item.code === "fund")?.id, provider: "", currency: "EUR", active: true, openedAt: `${data.meta.activeYear - 4}-01-01`, notes: "" });
   data.investmentEntries.push(
+    { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-01-31`, kind: "valuation", amount: 86_000, description: "January value", notes: "" },
     { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-02-01`, kind: "contribution", amount: 5_000, description: "Contribution", categoryId: category("Investments"), paymentMethodId: payment, accountId, notes: "" },
+    { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-02-28`, kind: "valuation", amount: 91_600, description: "February value", notes: "" },
     { id: crypto.randomUUID(), investmentId, date: `${data.meta.activeYear}-03-01`, kind: "valuation", amount: 92_450, description: "Current value", notes: "" },
   );
   data.investmentAnnualSummaries.push(
@@ -94,9 +96,20 @@ function demoData(): FinanceData {
     ...pensionComponents.map((item) => ({ id: item.id, name: item.name, kind: "pension" as const, typeId: pensionTypeId, parentInvestmentId: pensionId, provider: "Fideuram", currency: "EUR", active: true, openedAt: `${data.meta.activeYear - 6}-01-01`, notes: "" })),
   );
   pensionComponents.forEach((item, index) => {
+    const observedValues = [
+      [17_500, 17_680, 17_910, 18_120, 18_300, 18_450],
+      [11_300, 11_540, 11_790, 12_060, 12_410, 12_780],
+      [8_750, 8_910, 9_070, 9_240, 9_430, 9_620],
+    ][index];
     data.investmentEntries.push(
       { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-01-31`, kind: "contribution", amount: 600, description: "Pension contribution", categoryId: category("Investments"), paymentMethodId: payment, accountId, notes: "" },
-      { id: crypto.randomUUID(), investmentId: item.id, date: `${data.meta.activeYear}-06-30`, kind: "valuation", amount: [18_450, 12_780, 9_620][index], description: "Current value", notes: "" },
+      ...observedValues.map((amount, monthIndex) => ({
+        id: crypto.randomUUID(), investmentId: item.id,
+        date: `${data.meta.activeYear}-${String(monthIndex + 1).padStart(2, "0")}-${[31, 28, 31, 30, 31, 30][monthIndex]}`,
+        kind: "valuation" as const, amount,
+        description: monthIndex === observedValues.length - 1 ? "Current value" : "Monthly pension value",
+        notes: "",
+      })),
     );
     data.investmentAnnualSummaries.push(
       {
